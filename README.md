@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 CSORMS: A Web-Based Monitoring System for Campus Student Organization Narrative, Accomplishment and Summary Reports.
 
 
@@ -75,3 +76,6 @@ Major and specialized activity distribution
 Organization rankings based on activity count
 Allows administrators to export data and generate printable reports.
 Includes monitoring tools for evaluating organizational performance.
+=======
+# Campus-Organization-Reports-Management-System
+>>>>>>> 338d7961b96bbc5ad68efd72e4661dd52aa36d47
