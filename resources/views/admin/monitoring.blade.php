@@ -114,6 +114,8 @@
                         @if($activity->narrative_report)
                             <button onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')" 
                                     class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 font-semibold">View</button>
+                            <button onclick="printPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}')" 
+                                    class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200 font-semibold">Print</button>
                             <a href="{{ route('admin.file.download', [$activity->id, 'narrative']) }}" 
                                class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 font-semibold">DL</a>
                         @endif
@@ -195,6 +197,13 @@ function viewPDF(url, title) {
     titleEl.textContent = title;
     iframe.src = url;
     modal.classList.remove('hidden');
+}
+
+function printPDF(url) {
+    const printWindow = window.open(url, '_blank');
+    printWindow.onload = function() {
+        printWindow.print();
+    };
 }
 
 function closePDFViewer() {

@@ -78,6 +78,7 @@
                     <th class="p-2 text-left text-gray-500">Date</th>
                     <th class="p-2 text-left text-gray-500">Venue</th>
                     <th class="p-2 text-left text-gray-500">Status</th>
+                    <th class="p-2 text-center text-gray-500">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -101,9 +102,17 @@
                             {{ ucfirst($act->status) }}
                         </span>
                     </td>
+                    <td class="p-2 text-center">
+                        @if($act->narrative_report)
+                            <button onclick="printPDF('{{ route('admin.file.view', [$act->id, 'narrative']) }}')" 
+                                    class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200 font-semibold">Print</button>
+                        @else
+                            <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="p-4 text-center text-gray-400">No submissions yet.</td></tr>
+                <tr><td colspan="6" class="p-4 text-center text-gray-400">No submissions yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -153,6 +162,13 @@ function initializeCharts() {
         data: { labels: @json($monthlyTrend->pluck('month')), datasets: [{ label: 'Submissions', data: @json($monthlyTrend->pluck('count')), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#0ea5e9' }] },
         options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
+}
+
+function printPDF(url) {
+    const printWindow = window.open(url, '_blank');
+    printWindow.onload = function() {
+        printWindow.print();
+    };
 }
 
 document.addEventListener('DOMContentLoaded', initializeCharts);

@@ -32,6 +32,8 @@ Route::middleware(['auth'])->group(function () {
     // GPOA Activity Submission
     Route::get('/gpoa/create', [GpoaActivityController::class, 'create'])->name('gpoa.create');
     Route::post('/gpoa/store', [GpoaActivityController::class, 'store'])->name('gpoa.store');
+    Route::get('/gpoa/{activity}/edit', [GpoaActivityController::class, 'edit'])->name('gpoa.edit');
+    Route::put('/gpoa/{activity}/update', [GpoaActivityController::class, 'update'])->name('gpoa.update');
 
     // Profile management
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');

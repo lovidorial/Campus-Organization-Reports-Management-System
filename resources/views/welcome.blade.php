@@ -28,7 +28,7 @@
             <div class="navbar-brand-wrap">
                 <a href="{{ url('/') }}" class="nav-brand">
                     <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="" class="nav-logo-img">
-                    <span class="nav-brand-text">CORMS</span>
+                    <span class="nav-brand-text">CSORMS</span>
                 </a>
             </div>
 
@@ -121,7 +121,7 @@
     <section class="section-block section-benefits">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Why Use CORMS?</h2>
+                <h2 class="section-title">Why Use CSORMS?</h2>
                 <p class="section-subtitle">Streamlined management for student organizations</p>
             </div>
 
@@ -203,7 +203,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="footer-brand"><i class="fas fa-university me-2"></i>CORMS</div>
+                    <div class="footer-brand"><i class="fas fa-university me-2"></i>CSORMS</div>
                     <p class="footer-desc">
                         Campus Student Organization Activities Tracking System.<br>
                         A comprehensive platform for monitoring and managing student organization activities.

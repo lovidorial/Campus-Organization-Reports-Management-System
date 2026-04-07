@@ -8,6 +8,12 @@
        class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700 transition">+ Submit Activity</a>
 </div>
 
+@if(session('success'))
+<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+    {{ session('success') }}
+</div>
+@endif
+
 <!-- Stats Row -->
 <div class="grid grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
@@ -71,6 +77,7 @@
                 <th class="text-left px-4 py-3 font-semibold text-gray-600">Basis</th>
                 <th class="text-left px-4 py-3 font-semibold text-gray-600">Files</th>
                 <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                <th class="text-center px-4 py-3 font-semibold text-gray-600">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y">
@@ -114,14 +121,22 @@
                     </span>
                     @if($item->status == 'rejected' && $item->reject_reason)
                     <p class="text-xs text-red-500 mt-1 max-w-[180px]" title="{{ $item->reject_reason }}">
-                        💬 {{ Str::limit($item->reject_reason, 50) }}
+                         {{ Str::limit($item->reject_reason, 50) }}
                     </p>
+                    @endif
+                </td>
+                <td class="px-4 py-4 text-center">
+                    @if($item->status == 'rejected')
+                        <a href="{{ route('gpoa.edit', $item) }}"
+                           class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 font-semibold">Edit & Resubmit</a>
+                    @else
+                        <span class="text-gray-300 text-xs">—</span>
                     @endif
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="px-4 py-10 text-center text-gray-400">
+                <td colspan="9" class="px-4 py-10 text-center text-gray-400">
                     No activities submitted yet.
                     <a href="{{ route('gpoa.create') }}" class="text-sky-600 hover:underline ml-1">Submit your first activity →</a>
                 </td>
