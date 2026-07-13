@@ -141,9 +141,7 @@
                         </button>
                     </form>
 
-                    <div class="signup-text">
-                        Don't have an account? <a href="{{ route('register') }}">Sign Up here</a>
-                    </div>
+                   
 
                     <div class="login-help">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
