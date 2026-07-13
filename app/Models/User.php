@@ -30,6 +30,28 @@ class User extends Authenticatable
         return $this->hasMany(Activity::class);
     }
 
+    public function gpoas()
+    {
+        return $this->hasMany(Gpoa::class);
+    }
+
+    public function activityRequests()
+    {
+        return $this->hasMany(ActivityRequest::class);
+    }
+
+    public function approvedGpoaForCurrentPeriod(): bool
+    {
+        $term = $this->term ?? '1st Term';
+        $schoolYear = $this->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+
+        return Gpoa::where('user_id', $this->id)
+            ->where('term', $term)
+            ->where('school_year', $schoolYear)
+            ->whereIn('status', ['approved', 'stored'])
+            ->exists();
+    }
+
     public function organization()
     {
         return $this->belongsTo(Organization::class);

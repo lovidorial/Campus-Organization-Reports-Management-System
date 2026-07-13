@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // REGISTER YOUR MIDDLEWARE ALIAS HERE
         $middleware->alias([
+            'approved.gpoa' => \App\Http\Middleware\EnsureApprovedGpoa::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

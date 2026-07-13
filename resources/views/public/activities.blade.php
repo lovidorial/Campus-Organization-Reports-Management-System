@@ -21,6 +21,25 @@
             box-sizing: border-box;
         }
 
+        .hero.hero-with-bg {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        position: relative;
+        }
+
+        .hero.hero-with-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient( to right,rgba(26, 43, 109, 0.80) 0%, rgba(26, 43, 109, 0.40) 60%, rgba(26, 43, 109, 0.15) 100%);
+        z-index: 1;
+}
+
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #f8f9fc 0%, #eff2f7 100%);
@@ -30,63 +49,114 @@
 
         /* Navbar */
         .navbar {
-            background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-            padding: 16px 0;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(221, 225, 235, 0.3);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 12px 0 !important;
         }
 
         .navbar-brand {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 800;
-            color: white !important;
-            letter-spacing: -0.5px;
+            color: #1a2b6d !important;
+            letter-spacing: 1px;
+            margin-right: 24px;
         }
 
         .nav-link {
-            color: rgba(255,255,255,0.9) !important;
-            font-weight: 500;
+            color: #555577 !important;
+            font-weight: 600;
             margin: 0 12px;
+            font-size: 0.93rem;
             transition: all 0.3s ease;
         }
 
         .nav-link:hover {
-            color: white !important;    
-            transform: translateY(-2px);
+            color: #1a2b6d !important;
+            background: #f8f9fc;
+            border-radius: 5px;
+            padding: 6px 12px;
         }
 
         .btn-login {
-            background: black;
-            color: #e89600;
-            font-weight: 700;
-            padding: 8px 24px;
-            border-radius: 2px solid rgba(255, 255, 255, 0.4);
+            background: linear-gradient(135deg, #ec7e08 0%, #ec7e08 100%);
+            color: white;
+            font-weight: 600;
+            padding: 10px 30px;
+            border-radius: 50px;
+            border: none;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(11, 94, 215, 0.3);
             transition: all 0.3s ease;
         }
 
         .btn-login:hover {
-            background: #df810f;
-            transform: translateY(-2px);
+            background: linear-gradient(135deg, #0b5ed7 0%, #094db5 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(41, 117, 249, 0.4);
+            text-decoration: none;
         }
 
         /* Page Header */
         .page-header {
-            background: linear-gradient(160deg, #f5a623 0%, #e97a00 100%);
-            color: white;
-            padding: 60px 0;
-            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+            position: relative;
+            min-height: 450px;
+            overflow: hidden;
+            padding: 120px 48px;
             margin-bottom: 40px;
             text-align: center;
+            color: white;
+            background-image: url('{{ asset('images/hero-bg.jpg') }}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                background-attachment: scroll;
+            }
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient( to right, rgba(26, 43, 109, 0.80) 0%, rgba(26, 43, 109, 0.40) 60%, rgba(26, 43, 109, 0.15) 100%);
+            z-index: 1;
+        }
+
+        .page-header .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1100px;
         }
 
         .page-header h1 {
-            font-size: 2.5rem;
+            font-family: 'Raleway', sans-serif;
+            font-size: clamp(2.2rem, 6vw, 3.4rem);
             font-weight: 800;
-            margin-bottom: 12px;
+            line-height: 1.15;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.5);
         }
 
         .page-header p {
             font-size: 1.1rem;
-            opacity: 0.95;
+            color: rgba(255,255,255,0.95);
+            max-width: 700px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.4);
         }
 
         /* Filter and Search */
@@ -110,7 +180,7 @@
             margin-bottom: 6px;
             display: block;
         }
-
+   
         .filter-group input,
         .filter-group select {
             width: 100%;
@@ -162,6 +232,13 @@
             border-left: 5px solid #f5a623;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+        .activity-card{
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
         }
 
         .activity-card:hover {
@@ -174,6 +251,8 @@
             padding: 20px;
             background: linear-gradient(135deg, rgba(245, 166, 35, 0.05) 0%, rgba(232, 150, 0, 0.05) 100%);
             border-bottom: 1px solid #f0f0f0;
+            transform: translateY(-6px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
         }
 
         .activity-title {
@@ -222,8 +301,8 @@
         }
 
         .activity-description {
-            font-size: 0.95rem;
-            color: #666;
+            font-size: 14px;
+            color: #6b7280;
             line-height: 1.6;
             margin-bottom: 16px;
             flex-grow: 1;
@@ -233,9 +312,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #1e8e3e;
+            background: #16a34a;
             color: white;
-            padding: 5px 14px;
+            padding: 4px 10px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
@@ -256,18 +335,19 @@
             background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 6px 14px;
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 0.9rem;
+            font-size: 13px;
             text-decoration: none;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
+            width: fit-content;
         }
 
         .btn-view:hover {
@@ -275,6 +355,134 @@
             box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
             text-decoration: none;
             color: white;
+        }
+
+        .detail-header {
+            position: relative;
+            background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);
+            color: white;
+            padding: 32px 28px 28px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .detail-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.24), transparent 35%);
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.82rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.85;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .detail-title {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            margin: 0;
+            line-height: 1.05;
+            position: relative;
+            z-index: 2;
+        }
+
+        .detail-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .detail-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 18px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: white;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.24);
+        }
+
+        .detail-badge.badge-approved {
+            background: #0d7a42;
+            color: #f8fdf7;
+        }
+
+        .detail-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .detail-card {
+            background: #f5f3ec;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+            min-height: 130px;
+        }
+
+        .detail-card h6 {
+            margin: 0 0 10px;
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #b98106;
+        }
+
+        .detail-card p {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.4;
+        }
+
+        .detail-description {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+            color: #334155;
+            line-height: 1.8;
+            font-size: 0.95rem;
+            margin-bottom: 0;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .modal-content {
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .btn-close-white {
+            filter: invert(1) brightness(1.2);
+        }
+
+        @media (max-width: 767px) {
+            .detail-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Empty State */
@@ -332,6 +540,8 @@
             padding: 40px 0 28px;
             margin-top: 60px;
             text-align: center;
+            display: flex;
+            justify-content: center;
         }
 
         .footer p {
@@ -350,7 +560,9 @@
             }
 
             .activities-grid {
-                grid-template-columns: 1fr;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
             }
 
             .filter-group {
@@ -364,7 +576,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url('/') }}">
-                 CORMS
+                 CSORMS
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -401,6 +613,7 @@
     {{-- Page Header --}}
     <div class="page-header">
         <div class="container">
+         
             <h1>Activities</h1>
             <p>Discover all approved student organization activities</p>
         </div>
@@ -452,7 +665,6 @@
                         <div class="activity-header">
                             <h3 class="activity-title">{{ $activity->title }}</h3>
                             <p class="activity-org">
-                                <i class="fas fa-building"></i> 
                                 @if($activity->user)
                                     {{ $activity->user->org_name ?? $activity->user->name }}
                                 @else
@@ -524,50 +736,46 @@
     <div class="modal fade" id="activityModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="modalTitle">Activity Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
                 <div class="modal-body">
-                    <div style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                        <h3 id="detailTitle" style="margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 700;"></h3>
-                        <p id="detailOrg" style="margin: 0; font-size: 0.95rem; opacity: 0.9;"><i class="fas fa-building"></i></p>
+                    <div class="detail-header">
+                        <div class="detail-meta">
+                            <span id="detailOrg"></span>
+                            <span>·</span>
+                            <span id="detailCategoryMeta"></span>
+                        </div>
+                        <h3 class="detail-title" id="detailTitle"></h3>
+                        <div class="detail-badges">
+                            <span id="detailStatusBadge" class="detail-badge badge-approved"></span>
+                            <span id="detailTermBadge" class="detail-badge"></span>
+                            <span id="detailSYBadge" class="detail-badge"></span>
+                        </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Activity Date</h6>
-                            <p id="detailDate" style="margin: 0; color: #333; font-weight: 600;"><i class="fas fa-calendar"></i></p>
+                    <div class="detail-row">
+                        <div class="detail-card">
+                            <h6>Date & Time</h6>
+                            <p id="detailDate"></p>
                         </div>
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Venue</h6>
-                            <p id="detailVenue" style="margin: 0; color: #333; font-weight: 600;"><i class="fas fa-map-marker-alt"></i></p>
+                        <div class="detail-card">
+                            <h6>Venue</h6>
+                            <p id="detailVenue"></p>
                         </div>
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Category</h6>
-                            <p id="detailCategory" style="margin: 0; color: #333; font-weight: 600;"></p>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-card">
+                            <h6>Participants</h6>
+                            <p id="detailParticipants"></p>
                         </div>
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Participants</h6>
-                            <p id="detailParticipants" style="margin: 0; color: #333; font-weight: 600;"><i class="fas fa-users"></i></p>
-                        </div>
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Term</h6>
-                            <p id="detailTerm" style="margin: 0; color: #333; font-weight: 600;"></p>
-                        </div>
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">School Year</h6>
-                            <p id="detailSY" style="margin: 0; color: #333; font-weight: 600;"></p>
-                        </div>
-                        <div>
-                            <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Basis for Grading</h6>
-                            <p id="detailBasis" style="margin: 0; color: #333; font-weight: 600;"></p>
+                        <div class="detail-card">
+                            <h6>Basis for Grading</h6>
+                            <p id="detailBasis"></p>
                         </div>
                     </div>
 
                     <div id="descriptionSection" style="display: none;">
                         <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Description</h6>
-                        <p id="detailDescription" style="margin: 0; color: #555; line-height: 1.6;"></p>
+                        <p id="detailDescription" class="detail-description"></p>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -601,16 +809,16 @@
             const description = button.getAttribute('data-description');
 
             // Populate modal elements
-            document.getElementById('modalTitle').textContent = title;
             document.getElementById('detailTitle').textContent = title;
-            document.getElementById('detailOrg').innerHTML = `<i class="fas fa-building"></i> ${organization}`;
-            document.getElementById('detailDate').innerHTML = `<i class="fas fa-calendar"></i> ${date}`;
-            document.getElementById('detailVenue').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${venue}`;
-            document.getElementById('detailCategory').textContent = category;
-            document.getElementById('detailParticipants').innerHTML = `<i class="fas fa-users"></i> ${participants}`;
-            document.getElementById('detailTerm').textContent = term;
-            document.getElementById('detailSY').textContent = sy;
+            document.getElementById('detailOrg').textContent = organization;
+            document.getElementById('detailCategoryMeta').textContent = category;
+            document.getElementById('detailDate').textContent = date;
+            document.getElementById('detailVenue').textContent = venue;
+            document.getElementById('detailParticipants').textContent = participants;
             document.getElementById('detailBasis').textContent = basis;
+            document.getElementById('detailTermBadge').textContent = term;
+            document.getElementById('detailSYBadge').textContent = sy;
+            document.getElementById('detailStatusBadge').textContent = 'Approved';
 
             // Show description section only if description exists
             const descriptionSection = document.getElementById('descriptionSection');

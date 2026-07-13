@@ -66,7 +66,7 @@
     </nav>
 
     {{-- ========================================================
-         HERO — Improved with better heading and spacing
+         HERO — heading
     ======================================================== --}}
     <section class="hero hero-with-bg" style="background-image: url('{{ asset('images/hero-bg.jpg') }}');">
         <div class="hero-container">
@@ -205,7 +205,7 @@
                 <div class="col-md-6 mb-3">
                     <div class="footer-brand"><i class="fas fa-university me-2"></i>CSORMS</div>
                     <p class="footer-desc">
-                        Campus Student Organization Activities Tracking System.<br>
+                        Campus Student Organization Reports Monitoring  System.<br>
                         A comprehensive platform for monitoring and managing student organization activities.
                     </p>
                 </div>
@@ -221,7 +221,7 @@
             </div>
             <hr class="footer-hr">
             <p class="footer-copy">
-                &copy; {{ date('Y') }} Campus Student Organization Activities Tracking System. All Rights Reserved.
+                &copy; {{ date('Y') }} Campus Student Organization Reports Monitoring  System. All Rights Reserved.
             </p>
         </div>
     </footer>
@@ -231,15 +231,15 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="learnMoreModalLabel">About CORMS</h5>
+                    <h5 class="modal-title" id="learnMoreModalLabel">About CSORMS</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <!-- System Overview -->
                     <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is CORMS?</h6>
+                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is CSORMS?</h6>
                         <p style="color: #555; line-height: 1.6;">
-                            <strong>Campus Organization Reporting Management System (CORMS)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
+                            <strong>Campus Student Organization Reporting Management System (CSORMS)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
                         </p>
                     </div>
 
@@ -257,9 +257,9 @@
 
                     <!-- System Benefits -->
                     <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Why Choose CORMS?</h6>
+                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Why Choose CSORMS?</h6>
                         <p style="color: #555; line-height: 1.6;">
-                            CORMS eliminates paperwork, reduces administrative burden, and ensures all student organization activities are properly documented and tracked. The system promotes transparency, enhances collaboration, and provides real-time insights into organizational activities and performance.
+                            CSORMS eliminates paperwork, reduces administrative burden, and ensures all student organization activities are properly documented and tracked. The system promotes transparency, enhances collaboration, and provides real-time insights into organizational activities and performance.
                         </p>
                     </div>
 
@@ -267,21 +267,21 @@
                     <div class="border-top pt-4">
                         <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Development Team</h6>
                         <p style="color: #666; font-size: 0.95rem; margin-bottom: 1.5rem;">
-                            CORMS was developed by a dedicated team of student developers and IT professionals committed to improving campus life through technology.
+                            CSORMS was developed by a dedicated team of student developers and IT professionals committed to improving campus life through technology.
                         </p>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                             <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Project Lead</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">IT Department</p>
+                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Project Leader</p>
+                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Unciano Jade</p>
                             </div>
                             <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Development</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Campus Software Team</p>
+                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Developer</p>
+                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Lovidorial Christian Paolo</p>
                             </div>
                             <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">UI/UX Design</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Design Team</p>
+                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">UI/UX Designer</p>
+                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Villena Adrian</p>
                             </div>
                             <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
                                 <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Quality Assurance</p>

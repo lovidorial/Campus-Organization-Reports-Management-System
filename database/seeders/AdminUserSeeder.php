@@ -12,7 +12,7 @@ class AdminUserSeeder extends Seeder
     {
         // Create Admin Account (or update if it already exists)
         User::updateOrCreate(
-            ['email' => 'admin@admin.com'],
+            ['email' => 'osdw@gmail.com'],
             [
                 'name' => 'Admin',
                 'password' => Hash::make('admin123'), // Default password

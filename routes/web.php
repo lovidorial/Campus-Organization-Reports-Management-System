@@ -1,57 +1,67 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ActivityReportController;
+use App\Http\Controllers\ActivityRequestController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminGpoaController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\GpoaActivityController;
+use App\Http\Controllers\GpoaController;
 use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
-// Welcome page
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// Public Routes
 Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
 
-// Auth Routes
 require __DIR__ . '/auth.php';
 
-// Authenticated User Routes
 Route::middleware(['auth'])->group(function () {
 
-    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // User Activity Management
-    Route::get('/submit-activity', [ActivityController::class, 'create'])->name('user.submit');
-    Route::post('/store-activity', [ActivityController::class, 'store'])->name('user.store');
-    Route::get('/my-activities', [ActivityController::class, 'index'])->name('user.activities');
+    // GPOA Management
+    Route::get('/gpoa', [GpoaController::class, 'index'])->name('gpoa.index');
+    Route::get('/gpoa/create', [GpoaController::class, 'create'])->name('gpoa.create');
+    Route::post('/gpoa/store', [GpoaController::class, 'store'])->name('gpoa.store');
+    Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
 
-    // GPOA Activity Submission
-    Route::get('/gpoa/create', [GpoaActivityController::class, 'create'])->name('gpoa.create');
-    Route::post('/gpoa/store', [GpoaActivityController::class, 'store'])->name('gpoa.store');
-    Route::get('/gpoa/{activity}/edit', [GpoaActivityController::class, 'edit'])->name('gpoa.edit');
-    Route::put('/gpoa/{activity}/update', [GpoaActivityController::class, 'update'])->name('gpoa.update');
+    // Activity Requests (requires approved GPOA)
+    Route::middleware([\App\Http\Middleware\EnsureApprovedGpoa::class])->group(function () {
+        Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
+        Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
+        Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
+        Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
+        Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
+    });
 
-    // Profile management
+    // Legacy routes redirect
+    Route::get('/submit-activity', fn () => redirect()->route('activity-requests.create'))->name('user.submit');
+    Route::get('/my-activities', fn () => redirect()->route('activity-requests.index'))->name('user.activities');
+
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Admin Only Routes
     Route::middleware([\App\Http\Middleware\AdminMiddlerware::class])->prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/activities', [AdminController::class, 'monitor'])->name('activities');
         Route::get('/approve/{id}', [AdminController::class, 'approve'])->name('approve');
         Route::post('/reject/{id}', [AdminController::class, 'reject'])->name('reject');
+        Route::post('/monitoring/{id}/record', [AdminController::class, 'recordMonitoring'])->name('monitoring.record');
         Route::get('/activities/export/{format}', [AdminController::class, 'exportActivities'])->name('activities.export');
         Route::get('/file/view/{activityId}/{fileType}', [AdminController::class, 'viewFile'])->name('file.view');
         Route::get('/file/download/{activityId}/{fileType}', [AdminController::class, 'downloadFile'])->name('file.download');
 
-        // User management
+        Route::get('/gpoa', [AdminGpoaController::class, 'index'])->name('gpoa.index');
+        Route::get('/gpoa/{gpoa}', [AdminGpoaController::class, 'show'])->name('gpoa.show');
+        Route::post('/gpoa/{gpoa}/approve', [AdminGpoaController::class, 'approve'])->name('gpoa.approve');
+        Route::post('/gpoa/{gpoa}/reject', [AdminGpoaController::class, 'reject'])->name('gpoa.reject');
+        Route::get('/gpoa/{gpoa}/document', [AdminController::class, 'viewGpoaDocument'])->name('gpoa.document');
+
         Route::get('/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [\App\Http\Controllers\AdminUserController::class, 'create'])->name('users.create');
         Route::post('/users', [\App\Http\Controllers\AdminUserController::class, 'store'])->name('users.store');
@@ -59,7 +69,6 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'destroy'])->name('users.destroy');
 
-        // Organization management
         Route::resource('/organizations', OrganizationController::class)->names([
             'index'   => 'organizations.index',
             'create'  => 'organizations.create',

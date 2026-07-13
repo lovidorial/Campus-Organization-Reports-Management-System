@@ -99,14 +99,18 @@
                 <td class="px-4 py-4">{{ $item->date->format('M d, Y') }}</td>
                 <td class="px-4 py-4 text-xs text-gray-500">{{ $item->term ?? '—' }}<br>{{ $item->school_year ?? '—' }}</td>
                 <td class="px-4 py-4 text-xs text-gray-500">{{ $item->basis_grading ?? '—' }}</td>
-                <td class="px-4 py-4">
+                <td class="px-4 py-4 space-y-2">
                     @if($item->communication_letter)
-                        <a href="{{ asset('storage/'.$item->communication_letter) }}" target="_blank"
-                           class="text-sky-600 hover:underline mr-2 text-xs">Comm</a>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ asset('storage/'.$item->communication_letter) }}" target="_blank"
+                               class="text-sky-600 hover:underline text-xs">Comm</a>
+                        </div>
                     @endif
                     @if($item->narrative_report)
-                        <a href="{{ asset('storage/'.$item->narrative_report) }}" target="_blank"
-                           class="text-green-600 hover:underline text-xs">Narr</a>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ asset('storage/'.$item->narrative_report) }}" target="_blank"
+                               class="text-green-600 hover:underline text-xs">Narr</a>
+                        </div>
                     @endif
                     @if(!$item->communication_letter && !$item->narrative_report)
                         <span class="text-gray-300">—</span>
@@ -125,12 +129,15 @@
                     </p>
                     @endif
                 </td>
-                <td class="px-4 py-4 text-center">
-                    @if($item->status == 'rejected')
-                        <a href="{{ route('gpoa.edit', $item) }}"
-                           class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 font-semibold">Edit & Resubmit</a>
-                    @else
-                        <span class="text-gray-300 text-xs">—</span>
+                <td class="px-4 py-4 text-center space-y-2">
+                    @if($item->status !== 'approved')
+                        <a href="{{ route('user.activities.edit', $item) }}"
+                           class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 font-semibold">Edit</a>
+                        <form action="{{ route('user.activities.destroy', $item) }}" method="POST" onsubmit="return confirm('Delete this activity? This cannot be undone.');" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 font-semibold">Delete</button>
+                        </form>
                     @endif
                 </td>
             </tr>

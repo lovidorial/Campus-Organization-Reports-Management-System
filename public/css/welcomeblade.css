@@ -356,6 +356,7 @@ body  {
     color: var(--text-dark); 
     margin-bottom: 12px;
     letter-spacing: -0.3px;
+    text-align: center;
 }
 
 .section-subtitle {

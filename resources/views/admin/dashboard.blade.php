@@ -8,7 +8,6 @@
 <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-3">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">Admin Dashboard</h2>
-        <p class="text-sm text-gray-500">CORMS — Co-Curricular Organization Activity Tracking System</p>
     </div>
 </div>
 
@@ -55,12 +54,6 @@
             <p class="text-gray-400 text-sm py-10 text-center">No category data yet.</p>
         @endif
     </div>
-</div>
-
-<!-- Monthly Trend -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-8">
-    <h3 class="font-bold text-gray-700 mb-3">Monthly Activity Submissions (Last 6 Months)</h3>
-    <canvas id="trendChart" height="60"></canvas>
 </div>
 
 <!-- Recent Submissions -->
@@ -157,11 +150,6 @@ function initializeCharts() {
         options: { plugins: { legend: { position: 'bottom' } } }
     });
     @endif
-    new Chart(document.getElementById('trendChart').getContext('2d'), {
-        type: 'line',
-        data: { labels: @json($monthlyTrend->pluck('month')), datasets: [{ label: 'Submissions', data: @json($monthlyTrend->pluck('count')), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#0ea5e9' }] },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-    });
 }
 
 function printPDF(url) {

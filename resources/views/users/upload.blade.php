@@ -108,13 +108,13 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Communication Letter</label>
                         <input type="file" name="communication_letter" id="communication_letter" class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500 px-3 py-2 @error('communication_letter') border-red-500 @enderror">
-                        <p class="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX (Max 5MB)</p>
+                        <p class="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX (Max 20MB)</p>
                         @error('communication_letter')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Narrative Report</label>
                         <input type="file" name="narrative_report" id="narrative_report" class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500 px-3 py-2 @error('narrative_report') border-red-500 @enderror">
-                        <p class="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX (Max 5MB)</p>
+                        <p class="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX (Max 20MB)</p>
                         @error('narrative_report')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -147,11 +147,11 @@
             // Validate file sizes
             const communicationLetter = document.getElementById('communication_letter');
             const narrativeReport = document.getElementById('narrative_report');
-            const maxFileSize = 5 * 1024 * 1024; // 5MB
+            const maxFileSize = 20 * 1024 * 1024; // 20MB
 
             if (communicationLetter.files.length > 0) {
                 if (communicationLetter.files[0].size > maxFileSize) {
-                    errors.push('Communication Letter file is too large (Max 5MB)');
+                    errors.push('Communication Letter file is too large (Max 20MB)');
                 }
                 const validFormats = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
                 if (!validFormats.includes(communicationLetter.files[0].type)) {
@@ -161,7 +161,7 @@
 
             if (narrativeReport.files.length > 0) {
                 if (narrativeReport.files[0].size > maxFileSize) {
-                    errors.push('Narrative Report file is too large (Max 5MB)');
+                    errors.push('Narrative Report file is too large (Max 20MB)');
                 }
                 const validFormats = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
                 if (!validFormats.includes(narrativeReport.files[0].type)) {

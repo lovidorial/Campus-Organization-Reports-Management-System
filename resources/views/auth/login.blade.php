@@ -96,7 +96,7 @@
                             <label for="password" class="form-label">Password</label>
                             <div class="password-input-wrapper">
                                 <input
-                                    id="password"
+                                    id="password" 
                                     type="password"
                                     name="password"
                                     required
@@ -117,15 +117,10 @@
                         </div>
 
                         <div class="form-actions">
-                            <label class="form-checkbox">
-                                <input
-                                    id="remember_me"
-                                    type="checkbox"
-                                    name="remember"
-                                    class="checkbox-input"
-                                >
-                                <span class="checkbox-label">Remember me</span>
-                            </label>
+                             <div style="display: flex; align-items: center; gap: 8px;">
+                                 <input id="remember_me" type="checkbox" name="remember" class="form-checkbox">
+                                 <label for="remember_me" class="form-label" style="margin: 0; font-size: 14px; font-weight: 600;">Remember Me</label>
+                             </div>
 
                             @if (Route::has('password.request'))
                                 <a href="{{ route('password.request') }}" class="forgot-password-link">Forgot Password?</a>

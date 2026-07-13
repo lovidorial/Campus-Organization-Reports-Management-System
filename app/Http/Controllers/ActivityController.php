@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ActivityController extends Controller
 {
@@ -19,8 +20,8 @@ class ActivityController extends Controller
             'title' => 'required|string|max:255',
             'date' => 'required|date',
             'venue' => 'required|string|max:255',
-            'communication_letter' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
-            'narrative_report' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+            'communication_letter' => 'nullable|file|mimes:pdf,doc,docx|max:20480',
+            'narrative_report' => 'nullable|file|mimes:pdf,doc,docx|max:20480',
         ]);
 
         // Check for Date & Venue Conflict
@@ -60,6 +61,102 @@ class ActivityController extends Controller
     {
         $activities = Activity::where('user_id', auth()->id())->latest()->paginate(10);
         return view('users.activities', compact('activities'));
+    }
+
+    public function edit(Activity $activity)
+    {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        return view('users.edit-activity', compact('activity'));
+    }
+
+    public function update(Request $request, Activity $activity)
+    {
+        if ($activity->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'date' => 'required|date',
+            'venue' => 'required|string|max:255',
+            'communication_letter' => 'nullable|file|mimes:pdf,doc,docx|max:20480',
+            'narrative_report' => 'nullable|file|mimes:pdf,doc,docx|max:20480',
+        ]);
+
+        if ($request->hasFile('communication_letter')) {
+            if ($activity->communication_letter) {
+                Storage::disk('public')->delete($activity->communication_letter);
+            }
+            $activity->communication_letter = $request->file('communication_letter')->store('uploads/comm', 'public');
+        }
+
+        if ($request->hasFile('narrative_report')) {
+            if ($activity->narrative_report) {
+                Storage::disk('public')->delete($activity->narrative_report);
+            }
+            $activity->narrative_report = $request->file('narrative_report')->store('uploads/narratives', 'public');
+        }
+
+        $updateData = [
+            'title' => $validated['title'],
+            'date' => $validated['date'],
+            'venue' => $validated['venue'],
+            'communication_letter' => $activity->communication_letter,
+            'narrative_report' => $activity->narrative_report,
+        ];
+
+        // If activity was rejected, change status back to pending when resubmitting
+        if ($activity->status === 'rejected') {
+            $updateData['status'] = 'pending';
+            $updateData['reject_reason'] = null;
+        }
+
+        $activity->update($updateData);
+
+        $message = $activity->status === 'pending' && $activity->wasChanged('status') 
+            ? 'Activity resubmitted for review successfully.' 
+            : 'Activity updated successfully.';
+
+        return redirect()->route('user.activities')->with('success', $message);
+    }
+
+    public function destroy(Activity $activity)
+    {
+        if ($activity->user_id !== auth()->id() || $activity->status === 'approved') {
+            abort(403);
+        }
+
+        if ($activity->communication_letter) {
+            Storage::disk('public')->delete($activity->communication_letter);
+        }
+        if ($activity->narrative_report) {
+            Storage::disk('public')->delete($activity->narrative_report);
+        }
+
+        $activity->delete();
+
+        return redirect()->route('user.activities')->with('success', 'Activity deleted successfully.');
+    }
+
+    public function deleteFile(Activity $activity, $type)
+    {
+        if ($activity->user_id !== auth()->id() || $activity->status === 'approved') {
+            abort(403);
+        }
+
+        if (!in_array($type, ['communication_letter', 'narrative_report'])) {
+            abort(404);
+        }
+
+        if ($activity->$type) {
+            Storage::disk('public')->delete($activity->$type);
+            $activity->update([$type => null]);
+        }
+
+        return redirect()->route('user.activities')->with('success', ucfirst(str_replace('_', ' ', $type)) . ' deleted successfully.');
     }
 
     public function publicActivities(Request $request)

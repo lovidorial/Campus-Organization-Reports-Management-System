@@ -30,7 +30,6 @@ class AdminUserController extends Controller
             'name'            => 'required|string|max:255',
             'email'           => 'required|email|max:255|unique:users',
             'password'        => 'required|string|min:8|confirmed',
-            'role'            => 'required|in:user,admin',
             'position'        => 'nullable|string|max:100',
             'college'         => 'nullable|string|max:100',
             'term'            => 'nullable|string|max:50',
@@ -38,6 +37,7 @@ class AdminUserController extends Controller
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
+        $validated['role'] = 'user';
 
         User::create($validated);
 

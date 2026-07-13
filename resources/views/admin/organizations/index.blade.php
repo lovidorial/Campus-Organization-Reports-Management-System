@@ -29,7 +29,7 @@
     <table class="w-full text-sm min-w-[700px]">
         <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="p-3 text-left text-gray-500">#</th>
+                <th class="p-3 text-left text-gray-500">Photo</th>
                 <th class="p-3 text-left text-gray-500">Organization Name</th>
                 <th class="p-3 text-left text-gray-500">Type</th>
                 <th class="p-3 text-left text-gray-500">College</th>
@@ -43,7 +43,15 @@
         <tbody>
             @forelse($organizations as $org)
             <tr class="border-b last:border-0 hover:bg-gray-50">
-                <td class="p-3 text-gray-400">{{ $loop->iteration }}</td>
+                <td class="p-3">
+                    @if($org->profile_photo_path)
+                        <img src="{{ asset('storage/' . $org->profile_photo_path) }}" alt="{{ $org->org_name }}" class="w-10 h-10 rounded-full object-cover">
+                    @else
+                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                            {{ strtoupper(substr($org->org_name ?? 'ORG', 0, 2)) }}
+                        </div>
+                    @endif
+                </td>
                 <td class="p-3 font-semibold text-gray-800">{{ $org->org_name ?? $org->name }}</td>
                 <td class="p-3">
                     <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $org->org_type ?? 'General' }}</span>

@@ -321,6 +321,16 @@ body {
     padding-right: 64px;
 }
 
+.password-input-wrapper .form-input::-ms-reveal,
+.password-input-wrapper .form-input::-ms-clear {
+    display: none;
+}
+
+.password-input-wrapper .form-input::-webkit-textfield-decoration-container,
+.password-input-wrapper .form-input::-webkit-textfield-drop-marker {
+    display: none !important;
+}
+
 .password-toggle {
     position: absolute;
     right: 14px;

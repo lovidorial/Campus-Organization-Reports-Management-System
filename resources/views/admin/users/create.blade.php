@@ -46,18 +46,6 @@
                    placeholder="Confirm password">
         </div>
 
-        <!-- Role -->
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Role <span class="text-red-500">*</span></label>
-            <select name="role" required
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 @error('role') border-red-500 @enderror">
-                <option value="">Select a role</option>
-                <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
-                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-            </select>
-            @error('role') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-        </div>
-
         <!-- Position -->
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Position/Role in Organization</label>

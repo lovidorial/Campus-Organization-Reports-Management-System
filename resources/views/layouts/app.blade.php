@@ -12,7 +12,7 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
         <div class="p-5 border-b" style="border-color: rgba(243, 239, 239, 0.2);">
-            <h1 class="text-xl font-bold text-white">CORMS  </h1>
+            <h1 class="text-xl font-bold text-white">CSORMS  </h1>
             <p class="text-xs text-white-400 mt-0.5">Activity Tracking System</p>
         </div>
         <nav class="p-4 flex-1 overflow-y-auto">
@@ -28,17 +28,24 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('gpoa.create') }}"
+                    <a href="{{ route('gpoa.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('gpoa.create') ? '#e89600' : 'transparent' }};">
-                         Submit Activity
+                       style="background-color: {{ request()->routeIs('gpoa.*') ? '#e89600' : 'transparent' }};">
+                         My GPOA
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('user.activities') }}"
+                    <a href="{{ route('gpoa.create') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('user.activities') ? '#e89600' : 'transparent' }};">
-                         My Activities
+                       style="background-color: {{ request()->routeIs('gpoa.create') ? '#e89600' : 'transparent' }};">
+                         Submit GPOA
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('activity-requests.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('activity-requests.*') || request()->routeIs('activity-reports.*') ? '#e89600' : 'transparent' }};">
+                         Activity Requests
                     </a>
                 </li>
                 <li>
@@ -59,10 +66,17 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('admin.gpoa.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('admin.gpoa.*') ? '#e89600' : 'transparent' }};">
+                         GPOA Review
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('admin.activities') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('admin.activities') ? '#e89600' : 'transparent' }};">
-                         Monitoring
+                         Activity Monitoring
                     </a>
                 </li>
                 <li class="mt-3">
