@@ -2,22 +2,22 @@
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">My GPOA</h2>
-        <p class="text-sm text-gray-500">General Plan of Activities — required before submitting activity requests</p>
+        <p class="text-sm text-gray-500">General Plan of Activities — Step 1 of your document workflow</p>
     </div>
-    @if(!$hasApprovedGpoa)
+    @if(isset($workflow) && $workflow->canSubmitGpoa() && !$workflow->is_locked)
     <a href="{{ route('gpoa.create') }}"
-       class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">+ Submit GPOA</a>
+       class="px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90" style="background:#e89600;">+ Submit GPOA</a>
     @endif
 </div>
+
+@if(isset($workflow))
+@include('components.workflow-progress', ['workflow' => $workflow, 'progressStages' => $workflow->progressStages()])
+@endif
 
 @if($hasApprovedGpoa)
 <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
     Your GPOA for <strong>{{ $term }}</strong> / SY <strong>{{ $schoolYear }}</strong> is approved.
-    <a href="{{ route('activity-requests.create') }}" class="underline font-semibold ml-1">Submit an activity request →</a>
-</div>
-@else
-<div class="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
-    You need an approved GPOA for {{ $term }} / SY {{ $schoolYear }} before you can submit activity requests.
+    <a href="{{ route('workflow.communication-letter') }}" class="underline font-semibold ml-1">Proceed to Communication Letter →</a>
 </div>
 @endif
 

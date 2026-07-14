@@ -40,6 +40,21 @@ class User extends Authenticatable
         return $this->hasMany(ActivityRequest::class);
     }
 
+    public function organizationWorkflows()
+    {
+        return $this->hasMany(OrganizationWorkflow::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
+    public function unreadNotificationsCount(): int
+    {
+        return $this->notifications()->whereNull('read_at')->count();
+    }
+
     public function approvedGpoaForCurrentPeriod(): bool
     {
         $term = $this->term ?? '1st Term';

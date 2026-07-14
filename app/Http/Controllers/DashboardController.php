@@ -3,11 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
-use App\Models\Gpoa;
+use App\Models\OrganizationWorkflow;
+use App\Models\UserNotification;
+use App\Services\OrganizationWorkflowService;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private OrganizationWorkflowService $workflowService
+    ) {}
+
     public function index()
     {
         if (Auth::user()->isAdmin()) {
@@ -18,7 +24,16 @@ class DashboardController extends Controller
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
 
-        $gpoa = Gpoa::where('user_id', auth()->id())
+        $workflow = $this->workflowService->getOrCreateForUser($user, $term, $schoolYear);
+        $workflow->load(['submissions.reviewer', 'events']);
+
+        $progressStages = $workflow->progressStages();
+        $submissionHistory = $workflow->submissions()->with('reviewer')->orderByDesc('created_at')->get();
+        $recentEvents = $workflow->events()->with('user')->take(10)->get();
+        $notifications = $user->notifications()->latest()->take(5)->get();
+        $unreadCount = $user->unreadNotificationsCount();
+
+        $gpoa = \App\Models\Gpoa::where('user_id', auth()->id())
             ->where('term', $term)
             ->where('school_year', $schoolYear)
             ->with('activities')
@@ -28,7 +43,7 @@ class DashboardController extends Controller
         $activities = ActivityRequest::where('user_id', auth()->id())
             ->with(['gpoaActivity', 'report'])
             ->latest()
-            ->paginate(10);
+            ->paginate(5);
 
         $stats = [
             'total'    => ActivityRequest::where('user_id', auth()->id())->count(),
@@ -38,8 +53,12 @@ class DashboardController extends Controller
             'rejected' => ActivityRequest::where('user_id', auth()->id())->where('status', 'rejected')->count(),
         ];
 
-        $hasApprovedGpoa = $user->approvedGpoaForCurrentPeriod();
+        $hasApprovedGpoa = $workflow->isGpoaApproved();
 
-        return view('dashboard', compact('activities', 'stats', 'gpoa', 'hasApprovedGpoa', 'term', 'schoolYear'));
+        return view('dashboard', compact(
+            'activities', 'stats', 'gpoa', 'hasApprovedGpoa', 'term', 'schoolYear',
+            'workflow', 'progressStages', 'submissionHistory', 'recentEvents',
+            'notifications', 'unreadCount'
+        ));
     }
 }

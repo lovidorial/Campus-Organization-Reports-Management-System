@@ -5,9 +5,11 @@ use App\Http\Controllers\ActivityReportController;
 use App\Http\Controllers\ActivityRequestController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminGpoaController;
+use App\Http\Controllers\AdminWorkflowController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GpoaController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\WorkflowDocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -27,6 +29,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/gpoa/create', [GpoaController::class, 'create'])->name('gpoa.create');
     Route::post('/gpoa/store', [GpoaController::class, 'store'])->name('gpoa.store');
     Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
+    Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');
+    Route::put('/gpoa/{gpoa}', [GpoaController::class, 'update'])->name('gpoa.update');
+
+    // Workflow Documents
+    Route::get('/workflow/communication-letter', [WorkflowDocumentController::class, 'communicationLetter'])->name('workflow.communication-letter');
+    Route::post('/workflow/communication-letter', [WorkflowDocumentController::class, 'storeCommunicationLetter'])->name('workflow.communication-letter.store');
+    Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
+    Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
+    Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
+    Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [WorkflowDocumentController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
 
     // Activity Requests (requires approved GPOA)
     Route::middleware([\App\Http\Middleware\EnsureApprovedGpoa::class])->group(function () {
@@ -61,6 +74,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/gpoa/{gpoa}/approve', [AdminGpoaController::class, 'approve'])->name('gpoa.approve');
         Route::post('/gpoa/{gpoa}/reject', [AdminGpoaController::class, 'reject'])->name('gpoa.reject');
         Route::get('/gpoa/{gpoa}/document', [AdminController::class, 'viewGpoaDocument'])->name('gpoa.document');
+
+        Route::get('/workflows', [AdminWorkflowController::class, 'index'])->name('workflows.index');
+        Route::get('/workflows/export', [AdminWorkflowController::class, 'export'])->name('workflows.export');
+        Route::get('/workflows/{workflow}', [AdminWorkflowController::class, 'show'])->name('workflows.show');
+        Route::post('/workflows/{workflow}/reopen', [AdminWorkflowController::class, 'reopen'])->name('workflows.reopen');
+        Route::post('/workflow-submissions/{submission}/approve', [AdminWorkflowController::class, 'approveSubmission'])->name('workflows.submissions.approve');
+        Route::post('/workflow-submissions/{submission}/reject', [AdminWorkflowController::class, 'rejectSubmission'])->name('workflows.submissions.reject');
+        Route::get('/workflow-submissions/{submission}/document', [AdminWorkflowController::class, 'viewDocument'])->name('workflows.submissions.document');
 
         Route::get('/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [\App\Http\Controllers\AdminUserController::class, 'create'])->name('users.create');

@@ -35,10 +35,27 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('gpoa.create') }}"
+                    <a href="{{ route('workflow.communication-letter') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('gpoa.create') ? '#e89600' : 'transparent' }};">
-                         Submit GPOA
+                       style="background-color: {{ request()->routeIs('workflow.communication-letter*') ? '#e89600' : 'transparent' }};">
+                         Communication Letter
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('workflow.summary-report') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'transparent' }};">
+                         Summary Report
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('notifications.*') ? '#e89600' : 'transparent' }};">
+                         Notifications
+                         @if(auth()->user()->unreadNotificationsCount() > 0)
+                         <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ auth()->user()->unreadNotificationsCount() }}</span>
+                         @endif
                     </a>
                 </li>
                 <li>
@@ -63,6 +80,13 @@
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('admin.dashboard') ? '#e89600' : 'transparent' }};">
                          Admin Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('admin.workflows.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('admin.workflows.*') ? '#e89600' : 'transparent' }};">
+                         Organization Workflows
                     </a>
                 </li>
                 <li>

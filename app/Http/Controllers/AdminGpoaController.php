@@ -2,83 +2,65 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActivityRequest;
 use App\Models\Gpoa;
-use App\Models\MonitoringResult;
-use App\Services\GpoaMatchValidator;
-use Carbon\Carbon;
+use App\Models\OrganizationWorkflow;
+use App\Models\WorkflowSubmission;
+use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
 
 class AdminGpoaController extends Controller
 {
+    public function __construct(
+        private OrganizationWorkflowService $workflowService
+    ) {}
+
     public function index(Request $request)
     {
-        $query = Gpoa::with(['user', 'activities'])->withCount('activities');
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(function ($q) use ($term) {
-                $q->where('term', 'like', "%{$term}%")
-                  ->orWhere('school_year', 'like', "%{$term}%")
-                  ->orWhereHas('user', function ($u) use ($term) {
-                      $u->where('org_name', 'like', "%{$term}%")
-                        ->orWhere('name', 'like', "%{$term}%");
-                  });
-            });
-        }
-
-        $gpoas = $query->latest()->paginate(10)->withQueryString();
-
-        $stats = [
-            'total'    => Gpoa::count(),
-            'pending'  => Gpoa::where('status', 'pending')->count(),
-            'approved' => Gpoa::whereIn('status', ['approved', 'stored'])->count(),
-            'rejected' => Gpoa::where('status', 'rejected')->count(),
-        ];
-
-        return view('admin.gpoa.index', compact('gpoas', 'stats'));
+        return redirect()->route('admin.workflows.index', $request->query());
     }
 
     public function show(Gpoa $gpoa)
     {
         $gpoa->load(['user', 'activities', 'approver']);
 
-        return view('admin.gpoa.show', compact('gpoa'));
+        $workflow = OrganizationWorkflow::where('user_id', $gpoa->user_id)
+            ->where('term', $gpoa->term)
+            ->where('school_year', $gpoa->school_year)
+            ->first();
+
+        return view('admin.gpoa.show', compact('gpoa', 'workflow'));
     }
 
     public function approve(Gpoa $gpoa)
     {
-        if ($gpoa->status !== 'pending') {
-            return back()->with('error', 'Only pending GPOAs can be approved.');
+        $submission = WorkflowSubmission::where('gpoa_id', $gpoa->id)
+            ->where('is_current', true)
+            ->where('document_type', OrganizationWorkflow::DOC_GPOA)
+            ->first();
+
+        if (!$submission || $submission->status !== WorkflowSubmission::STATUS_UNDER_REVIEW) {
+            return back()->with('error', 'No GPOA submission under review found.');
         }
 
-        $gpoa->update([
-            'status'      => 'stored',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-            'stored_at'   => now(),
-            'reject_reason' => null,
-        ]);
+        $this->workflowService->approveSubmission($submission, auth()->user());
 
         return back()->with('success', 'GPOA verified, approved, and stored successfully.');
     }
 
     public function reject(Request $request, Gpoa $gpoa)
     {
-        $request->validate(['reject_reason' => 'nullable|string|max:500']);
+        $request->validate(['reject_reason' => 'required|string|max:500']);
 
-        if ($gpoa->status !== 'pending') {
-            return back()->with('error', 'Only pending GPOAs can be rejected.');
+        $submission = WorkflowSubmission::where('gpoa_id', $gpoa->id)
+            ->where('is_current', true)
+            ->where('document_type', OrganizationWorkflow::DOC_GPOA)
+            ->first();
+
+        if (!$submission || $submission->status !== WorkflowSubmission::STATUS_UNDER_REVIEW) {
+            return back()->with('error', 'No GPOA submission under review found.');
         }
 
-        $gpoa->update([
-            'status'        => 'rejected',
-            'reject_reason' => $request->reject_reason,
-        ]);
+        $this->workflowService->rejectSubmission($submission, auth()->user(), $request->reject_reason);
 
         return back()->with('success', 'GPOA rejected.');
     }
