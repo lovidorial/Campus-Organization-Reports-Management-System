@@ -8,56 +8,171 @@ use App\Models\MonitoringResult;
 use App\Models\User;
 use App\Models\Organization;
 use App\Models\Gpoa;
+use App\Models\OrganizationWorkflow;
+use App\Models\WorkflowEvent;
+use App\Models\WorkflowSubmission;
 use App\Services\GpoaMatchValidator;
+use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class AdminController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request, OrganizationWorkflowService $workflowService)
     {
+        $admin = auth()->user();
+
+        $currentTerm = OrganizationWorkflow::latest()->value('term')
+            ?? Activity::latest()->value('term')
+            ?? '1st Term';
+        $currentSY = OrganizationWorkflow::latest()->value('school_year')
+            ?? (date('Y') . '-' . (date('Y') + 1));
+
+        $totalSubmissions = WorkflowSubmission::where('is_current', true)->count();
+        $approvedSubmissions = WorkflowSubmission::where('is_current', true)
+            ->where('status', WorkflowSubmission::STATUS_APPROVED)->count();
+        $pendingReviews = WorkflowSubmission::where('is_current', true)
+            ->where('status', WorkflowSubmission::STATUS_UNDER_REVIEW)->count();
+        $rejectedSubmissions = WorkflowSubmission::where('is_current', true)
+            ->where('status', WorkflowSubmission::STATUS_REJECTED)->count();
+
+        $lastMonthTotal = WorkflowSubmission::where('created_at', '>=', now()->subMonth()->startOfMonth())
+            ->where('created_at', '<', now()->startOfMonth())->count();
+        $thisMonthTotal = WorkflowSubmission::where('created_at', '>=', now()->startOfMonth())->count();
+        $growthPercent = $lastMonthTotal > 0
+            ? (int) round((($thisMonthTotal - $lastMonthTotal) / $lastMonthTotal) * 100)
+            : ($thisMonthTotal > 0 ? 100 : 0);
+
         $stats = [
-            'total'         => Activity::count(),
-            'organizations' => Organization::count() ?: User::where('role', 'user')->count(),
-            'approved'      => Activity::where('status', 'approved')->count(),
-            'pending'       => Activity::where('status', 'pending')->count(),
-            'rejected'      => Activity::where('status', 'rejected')->count(),
-            'gpoa_pending'  => Gpoa::where('status', 'pending')->count(),
+            'total'          => $totalSubmissions,
+            'approved'       => $approvedSubmissions,
+            'pending'        => $pendingReviews,
+            'rejected'       => $rejectedSubmissions,
+            'organizations'  => Organization::count() ?: User::where('role', 'user')->count(),
+            'growth_percent' => $growthPercent,
+            'users'          => User::where('role', '!=', 'admin')->count(),
+            'gpoa_pending'   => WorkflowSubmission::where('is_current', true)
+                ->where('document_type', OrganizationWorkflow::DOC_GPOA)
+                ->where('status', WorkflowSubmission::STATUS_UNDER_REVIEW)->count(),
         ];
 
-        // Current term/SY from settings or latest activity
-        $currentTerm = Activity::latest()->value('term') ?? '1st Term';
-        $currentSY   = Activity::latest()->value('school_year') ?? date('Y') . '-' . (date('Y') + 1);
+        $pendingByDoc = [
+            'gpoa' => WorkflowSubmission::where('is_current', true)
+                ->where('document_type', OrganizationWorkflow::DOC_GPOA)
+                ->where('status', WorkflowSubmission::STATUS_UNDER_REVIEW)->count(),
+            'communication_letter' => WorkflowSubmission::where('is_current', true)
+                ->where('document_type', OrganizationWorkflow::DOC_COMMUNICATION)
+                ->where('status', WorkflowSubmission::STATUS_UNDER_REVIEW)->count(),
+            'summary_report' => WorkflowSubmission::where('is_current', true)
+                ->where('document_type', OrganizationWorkflow::DOC_SUMMARY)
+                ->where('status', WorkflowSubmission::STATUS_UNDER_REVIEW)->count(),
+        ];
 
-        // SC President (from organizations table or config)
-        $scPresident = Organization::where('type', 'Student Council')
-            ->orWhere('type', 'SC')
-            ->latest()->value('sc_president') ?? 'N/A';
+        $highPriority = WorkflowSubmission::where('is_current', true)
+            ->where('status', WorkflowSubmission::STATUS_UNDER_REVIEW)
+            ->where('submitted_at', '<', now()->subDays(7))
+            ->count();
 
-        // Chart Data — top orgs by submitted activity count
-        $topOrgs = User::withCount('activities')
-            ->where('role', 'user')
-            ->orderBy('activities_count', 'desc')
-            ->take(8)
+        $overdueCount = OrganizationWorkflow::where('is_completed', false)
+            ->where('updated_at', '<', now()->subDays(30))->count();
+        $commApprovedToday = WorkflowSubmission::where('document_type', OrganizationWorkflow::DOC_COMMUNICATION)
+            ->where('status', WorkflowSubmission::STATUS_APPROVED)
+            ->whereDate('approved_at', today())->count();
+
+        $alerts = [];
+        if ($pendingByDoc['gpoa'] > 0) {
+            $alerts[] = ['type' => 'orange', 'message' => "{$pendingByDoc['gpoa']} GPOA" . ($pendingByDoc['gpoa'] > 1 ? 's' : '') . ' awaiting review'];
+        }
+        if ($overdueCount > 0) {
+            $alerts[] = ['type' => 'red', 'message' => "{$overdueCount} submission" . ($overdueCount > 1 ? 's' : '') . ' overdue'];
+        }
+        if ($commApprovedToday > 0) {
+            $alerts[] = ['type' => 'green', 'message' => "{$commApprovedToday} Communication Letter" . ($commApprovedToday > 1 ? 's' : '') . ' approved today'];
+        }
+        $alerts[] = ['type' => 'amber', 'message' => 'Semester deadline is approaching'];
+
+        $recentActivity = WorkflowEvent::with(['workflow.user', 'user'])
+            ->latest('created_at')
+            ->take(12)
             ->get();
 
-        $byCategory = Activity::selectRaw('category, count(*) as count')
+        $topOrgs = User::withCount('activityRequests')
+            ->where('role', 'user')
+            ->orderByDesc('activity_requests_count')
+            ->take(5)
+            ->get();
+
+        $monthlyTrend = WorkflowSubmission::selectRaw('DATE_FORMAT(submitted_at, "%b %Y") as month, count(*) as count')
+            ->whereNotNull('submitted_at')
+            ->where('submitted_at', '>=', now()->subMonths(6))
+            ->groupBy('month')
+            ->orderByRaw('MIN(submitted_at)')
+            ->get();
+
+        $submissionsQuery = WorkflowSubmission::with(['workflow.user', 'reviewer'])
+            ->where('is_current', true)
+            ->whereNotNull('submitted_at');
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $submissionsQuery->whereHas('workflow.user', function ($q) use ($term) {
+                $q->where('org_name', 'like', "%{$term}%")
+                  ->orWhere('name', 'like', "%{$term}%");
+            });
+        }
+        if ($request->filled('status')) {
+            $submissionsQuery->where('status', $request->status);
+        }
+        if ($request->filled('document_type')) {
+            $submissionsQuery->where('document_type', $request->document_type);
+        }
+        if ($request->filled('organization')) {
+            $submissionsQuery->whereHas('workflow', fn ($q) => $q->where('user_id', $request->organization));
+        }
+        if ($request->filled('semester')) {
+            $submissionsQuery->whereHas('workflow', fn ($q) => $q->where('term', $request->semester));
+        }
+        if ($request->filled('academic_year')) {
+            $submissionsQuery->whereHas('workflow', fn ($q) => $q->where('school_year', $request->academic_year));
+        }
+        if ($request->filled('date')) {
+            try {
+                $submissionsQuery->whereDate('submitted_at', Carbon::parse($request->date));
+            } catch (\Exception $e) {
+            }
+        }
+
+        $recentSubmissions = $submissionsQuery->latest('submitted_at')->take(15)->get();
+
+        $approvalsToday = WorkflowSubmission::where('status', WorkflowSubmission::STATUS_APPROVED)
+            ->whereDate('approved_at', today())->count();
+        $submissionsToday = WorkflowSubmission::whereDate('submitted_at', today())->count();
+        $unreadCount = $admin->unreadNotificationsCount();
+
+        $upcomingDeadlines = [
+            ['date' => now()->addDays(6)->format('M j'), 'label' => 'Communication Letter', 'month' => now()->addDays(6)->format('F')],
+            ['date' => now()->addDays(14)->format('M j'), 'label' => 'Summary Report', 'month' => now()->addDays(14)->format('F')],
+            ['date' => now()->addDays(19)->format('M j'), 'label' => 'Final Approval', 'month' => now()->addDays(19)->format('F')],
+        ];
+
+        $byCategory = ActivityRequest::selectRaw('category, count(*) as count')
             ->whereNotNull('category')
             ->groupBy('category')
             ->get();
 
-        $monthlyTrend = Activity::selectRaw('DATE_FORMAT(created_at, "%b %Y") as month, count(*) as count')
-            ->where('created_at', '>=', now()->subMonths(6))
-            ->groupBy('month')
-            ->orderBy('created_at')
-            ->get();
+        $organizations = User::where('role', 'user')->select('id', 'org_name', 'name')->orderBy('org_name')->get();
+        $academicYears = OrganizationWorkflow::distinct()->pluck('school_year')->filter()->sort()->values();
+        $semesters = OrganizationWorkflow::distinct()->pluck('term')->filter()->sort()->values();
 
-        $recentActivities = Activity::with('user')->latest()->take(5)->get();
+        $hour = (int) now()->format('H');
+        $greeting = $hour < 12 ? 'Good Morning' : ($hour < 17 ? 'Good Afternoon' : 'Good Evening');
 
         return view('admin.dashboard', compact(
-            'stats', 'topOrgs', 'recentActivities',
-            'currentTerm', 'currentSY', 'scPresident',
-            'byCategory', 'monthlyTrend'
+            'stats', 'topOrgs', 'currentTerm', 'currentSY',
+            'byCategory', 'monthlyTrend', 'pendingByDoc', 'highPriority',
+            'alerts', 'recentActivity', 'recentSubmissions', 'approvalsToday',
+            'submissionsToday', 'unreadCount', 'upcomingDeadlines',
+            'organizations', 'academicYears', 'semesters', 'greeting', 'admin'
         ));
     }
 
