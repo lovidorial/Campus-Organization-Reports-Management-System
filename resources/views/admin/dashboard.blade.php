@@ -60,48 +60,49 @@
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-8">
     <div class="flex justify-between items-center mb-3">
         <h3 class="font-bold text-gray-700">Recent Submissions</h3>
-        <a href="{{ route('admin.activities') }}" class="text-sm font-medium transition" style="color: #f5a623;">View All →</a>
+        <a href="{{ route('admin.workflows.index') }}" class="text-sm font-medium transition" style="color: #f5a623;">View All →</a>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm min-w-[600px]">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="p-2 text-left text-gray-500">Title</th>
+                    <th class="p-2 text-left text-gray-500">Document Type</th>
                     <th class="p-2 text-left text-gray-500">Organization</th>
-                    <th class="p-2 text-left text-gray-500">Date</th>
-                    <th class="p-2 text-left text-gray-500">Venue</th>
+                    <th class="p-2 text-left text-gray-500">Submitted</th>
+                    <th class="p-2 text-left text-gray-500">Reviewer</th>
                     <th class="p-2 text-left text-gray-500">Status</th>
                     <th class="p-2 text-center text-gray-500">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($recentActivities as $act)
+                @forelse($recentSubmissions as $submission)
                 <tr class="border-b last:border-0 hover:bg-gray-50">
-                    <td class="p-2 font-medium">{{ $act->title }}</td>
+                    <td class="p-2 font-medium">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                            {{ ucfirst(str_replace('_', ' ', $submission->document_type)) }}
+                        </span>
+                    </td>
                     <td class="p-2">
-                        @if($act->user)
-                            {{ $act->user->org_name ?? $act->user->name }}
+                        @if($submission->workflow && $submission->workflow->user)
+                            {{ $submission->workflow->user->org_name ?? $submission->workflow->user->name }}
                         @else
-                            {{ $act->organization ?? '—' }}
+                            —
                         @endif
                     </td>
-                    <td class="p-2">{{ $act->date->format('M d, Y') }}</td>
-                    <td class="p-2">{{ $act->venue }}</td>
+                    <td class="p-2">{{ $submission->submitted_at ? $submission->submitted_at->format('M d, Y') : '—' }}</td>
+                    <td class="p-2">{{ $submission->reviewer?->name ?? '—' }}</td>
                     <td class="p-2">
                         <span class="px-2 py-1 rounded-full text-xs font-bold
-                            {{ $act->status == 'pending'  ? 'bg-yellow-100 text-yellow-700' : '' }}
-                            {{ $act->status == 'approved' ? 'bg-green-100 text-green-700'  : '' }}
-                            {{ $act->status == 'rejected' ? 'bg-red-100 text-red-700'      : '' }}">
-                            {{ ucfirst($act->status) }}
+                            {{ $submission->status == 'under_review'  ? 'bg-yellow-100 text-yellow-700' : '' }}
+                            {{ $submission->status == 'approved' ? 'bg-green-100 text-green-700'  : '' }}
+                            {{ $submission->status == 'rejected' ? 'bg-red-100 text-red-700'      : '' }}">
+                            {{ ucfirst(str_replace('_', ' ', $submission->status)) }}
                         </span>
                     </td>
                     <td class="p-2 text-center">
-                        @if($act->narrative_report)
-                            <button onclick="printPDF('{{ route('admin.file.view', [$act->id, 'narrative']) }}')" 
-                                    class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200 font-semibold">Print</button>
-                        @else
-                            <span class="text-gray-300 text-xs">—</span>
-                        @endif
+                        <a href="{{ route('admin.workflows.submissions.document', $submission->id) }}" 
+                           target="_blank"
+                           class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 font-semibold">View</a>
                     </td>
                 </tr>
                 @empty
@@ -137,12 +138,14 @@ function initializeCharts() {
     }
     
     const orgLabels = @json($topOrgs->pluck('name'));
-    const orgCounts = @json($topOrgs->pluck('activities_count'));
-    new Chart(document.getElementById('orgChart').getContext('2d'), {
-        type: 'bar',
-        data: { labels: orgLabels, datasets: [{ label: 'Activities Submitted', data: orgCounts, backgroundColor: 'rgba(14,165,233,0.7)', borderRadius: 6 }] },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-    });
+    const orgCounts = @json($topOrgs->pluck('activity_requests_count'));
+    if (orgLabels.length > 0) {
+        new Chart(document.getElementById('orgChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: orgLabels, datasets: [{ label: 'Activities Submitted', data: orgCounts, backgroundColor: 'rgba(14,165,233,0.7)', borderRadius: 6 }] },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    }
     @if($byCategory->count())
     new Chart(document.getElementById('catChart').getContext('2d'), {
         type: 'doughnut',
@@ -150,13 +153,6 @@ function initializeCharts() {
         options: { plugins: { legend: { position: 'bottom' } } }
     });
     @endif
-}
-
-function printPDF(url) {
-    const printWindow = window.open(url, '_blank');
-    printWindow.onload = function() {
-        printWindow.print();
-    };
 }
 
 document.addEventListener('DOMContentLoaded', initializeCharts);

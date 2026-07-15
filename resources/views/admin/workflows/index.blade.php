@@ -1,7 +1,7 @@
 <x-app-layout>
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
     <div>
-        <h2 class="text-2xl font-bold text-gray-800">Organization Workflows</h2>
+        <h2 class="text-2xl font-bold text-gray-800">GPOA Review</h2>
         <p class="text-sm text-gray-500">Track all organization document submissions and workflow progress</p>
     </div>
     <div class="flex gap-2">
