@@ -49,16 +49,6 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('notifications.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('notifications.*') ? '#e89600' : 'transparent' }};">
-                         Notifications
-                         @if(auth()->user()->unreadNotificationsCount() > 0)
-                         <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ auth()->user()->unreadNotificationsCount() }}</span>
-                         @endif
-                    </a>
-                </li>
-                <li>
                     <a href="{{ route('activity-requests.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('activity-requests.*') || request()->routeIs('activity-reports.*') ? '#e89600' : 'transparent' }};">
@@ -100,14 +90,7 @@
                     <a href="{{ route('admin.organizations.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('admin.organizations.*') ? '#e89600' : 'transparent' }};">
-                         Organizations
-                    </a>
-                </li>
-                <li class="mt-3">
-                    <a href="{{ route('admin.users.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('admin.users.*') ? '#e89600' : 'transparent' }};">
-                         Manage Users
+                         Organization account
                     </a>
                 </li>
                 @endif
@@ -126,16 +109,28 @@
 
         <!-- User info at bottom of sidebar -->
         <div class="p-4 border-t border-slate-700">
-            <div class="flex items-center gap-3">
-                @if(auth()->user()->profile_photo_path)
-                    <img src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" class="w-9 h-9 rounded-full object-cover"/>
-                @else
-                    <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" class="w-9 h-9 rounded-full object-cover" onerror="this.style.display='none'"/>
-                @endif
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-white truncate">{{ auth()->user()->name }}</p>
-                    <p class="text-xs text-slate-400 uppercase">{{ auth()->user()->role }}</p>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3 flex-1">
+                    @if(auth()->user()->profile_photo_path)
+                        <img src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" class="w-9 h-9 rounded-full object-cover"/>
+                    @else
+                        <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" class="w-9 h-9 rounded-full object-cover" onerror="this.style.display='none'"/>
+                    @endif
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-white truncate">{{ auth()->user()->name }}</p>
+                        <p class="text-xs text-slate-400 uppercase">{{ auth()->user()->role }}</p>
+                    </div>
                 </div>
+                @if(!auth()->user()->isAdmin())
+                <a href="{{ route('notifications.index') }}" class="relative ml-2">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    @if(auth()->user()->unreadNotificationsCount() > 0)
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ auth()->user()->unreadNotificationsCount() }}</span>
+                    @endif
+                </a>
+                @endif
             </div>
         </div>
     </aside>

@@ -15,6 +15,7 @@ class User extends Authenticatable
         'profile_photo_path',
         'term', 'school_year', 'sc_president',
         'position', 'org_name', 'org_type', 'college',
+        'username', 'student_number',
         'organization_id',
     ];
 

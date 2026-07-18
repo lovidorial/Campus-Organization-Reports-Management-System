@@ -1,144 +1,150 @@
 <x-app-layout>
-<!-- Header -->
-<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
-    <div class="flex items-center gap-3">
-        <a href="{{ route('admin.organizations.index') }}" class="text-gray-400 hover:text-gray-600">← Back</a>
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">{{ $organization->name }}</h2>
-            <div class="flex flex-wrap gap-2 mt-1">
-                <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $organization->type }}</span>
-                @if($organization->college)
-                <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ $organization->college }}</span>
+            <a href="{{ route('admin.organizations.index') }}" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm">← Back</a>
+            <h1 class="mt-3 text-3xl font-bold text-slate-900">{{ $organization->name }}</h1>
+            <p class="mt-2 max-w-2xl text-sm text-slate-500">This page shows the organization account details and the secretary access profile for the selected organization.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('admin.organizations.edit', $organization) }}" class="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800">Edit</a>
+            <form action="{{ route('admin.organizations.reset-password', $organization) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset Password</button>
+            </form>
+            @if($organization->is_active)
+            <form action="{{ route('admin.organizations.deactivate', $organization) }}" method="POST" class="inline" onsubmit="return confirm('Deactivate this organization account?');">
+                @csrf
+                <button type="submit" class="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700">Deactivate</button>
+            </form>
+            @endif
+        </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-col items-center gap-4 text-center">
+                @if($organization->logo_path)
+                    <img src="{{ asset('storage/'.$organization->logo_path) }}" alt="{{ $organization->name }} logo" class="h-28 w-28 rounded-3xl object-cover border border-slate-200" />
+                @else
+                    <div class="flex h-28 w-28 items-center justify-center rounded-3xl bg-orange-100 text-4xl font-bold text-orange-700 uppercase">{{ Illuminate\Support\Str::limit($organization->name, 2, '') }}</div>
                 @endif
-                <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $organization->term ?? '—' }}</span>
-                <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">SY {{ $organization->school_year ?? '—' }}</span>
-                @if($organization->is_active)
-                <span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-semibold">● Active</span>
+                <div>
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Organization</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">{{ $organization->name }}</p>
+                </div>
+            </div>
+            <div class="mt-8 space-y-4">
+                <div class="rounded-3xl bg-slate-50 p-4">
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p>
+                    <p class="mt-2 font-semibold text-slate-900">
+                        @if(! $secretary)
+                            Pending Secretary
+                        @elseif($organization->is_active)
+                            Active
+                        @else
+                            Inactive
+                        @endif
+                    </p>
+                </div>
+                <div class="rounded-3xl bg-slate-50 p-4">
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Activities Submitted</p>
+                    <p class="mt-2 text-3xl font-bold text-slate-900">{{ $stats['total'] ?? 0 }}</p>
+                </div>
+                <div class="rounded-3xl bg-slate-50 p-4">
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Registered</p>
+                    <p class="mt-2 text-slate-900">{{ $organization->created_at->format('M d, Y') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">Organization Details</h2>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Organization Type</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ $organization->type ?? '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">College</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ $organization->college ?? '—' }}</p>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Description</p>
+                        <p class="mt-2 text-slate-600">{{ $organization->description ?? 'No description added.' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">Secretary Account</h2>
+                @if($secretary)
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Secretary Name</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ $secretary->name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Student Number</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ $secretary->student_number ?? '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">School Email</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ $secretary->email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Username</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ $secretary->username ?? '—' }}</p>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Last Login</p>
+                        <p class="mt-2 font-medium text-slate-900">{{ optional($secretary->last_login_at)->format('M d, Y h:i A') ?? 'Not available' }}</p>
+                    </div>
+                </div>
+                @else
+                <p class="text-sm text-slate-500">No secretary account is linked to this organization yet.</p>
                 @endif
             </div>
         </div>
     </div>
-    <a href="{{ route('admin.organizations.edit', $organization) }}"
-       class="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-semibold hover:bg-yellow-600">Edit Org</a>
-</div>
 
-<!-- Org Info + SC Pres -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-xs text-gray-500 uppercase font-semibold mb-1">SC President / Head</p>
-        <p class="text-lg font-bold text-gray-800">{{ $organization->sc_president ?? 'Not set' }}</p>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Members</p>
-        <p class="text-lg font-bold text-gray-800">{{ $members->total() }}</p>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Description</p>
-        <p class="text-sm text-gray-600">{{ $organization->description ?? 'No description.' }}</p>
-    </div>
-</div>
-
-<!-- Stats Cards -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-        <p class="text-xs text-gray-500 uppercase">Total Activities</p>
-        <p class="text-3xl font-bold text-blue-600 mt-1">{{ $stats['total'] }}</p>
-    </div>
-    <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-        <p class="text-xs text-gray-500 uppercase">Approved</p>
-        <p class="text-3xl font-bold text-green-500 mt-1">{{ $stats['approved'] }}</p>
-    </div>
-    <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-        <p class="text-xs text-gray-500 uppercase">Pending</p>
-        <p class="text-3xl font-bold text-yellow-500 mt-1">{{ $stats['pending'] }}</p>
-    </div>
-    <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-        <p class="text-xs text-gray-500 uppercase">Rejected</p>
-        <p class="text-3xl font-bold text-red-500 mt-1">{{ $stats['rejected'] }}</p>
-    </div>
-</div>
-
-<!-- Org Chart / Members Grid -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8">
-    <h3 class="font-bold text-gray-700 mb-4">Org Structure / Members</h3>
-
-    <!-- SC President at top -->
-    <div class="flex flex-col items-center mb-6">
-        <div class="bg-sky-600 text-white rounded-xl px-6 py-3 text-center shadow">
-            <p class="text-xs opacity-80">SC President</p>
-            <p class="font-bold">{{ $organization->sc_president ?? 'Not set' }}</p>
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between gap-4 mb-4">
+            <h2 class="text-lg font-semibold text-slate-900">Recent Activities Submitted</h2>
+            <span class="text-sm text-slate-500">{{ $activities->total() }} records</span>
         </div>
-        <div class="w-px h-8 bg-gray-300"></div>
-    </div>
-
-    @if($members->count())
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        @foreach($members as $member)
-        <div class="flex flex-col items-center bg-gray-50 hover:bg-sky-50 rounded-xl p-3 border border-gray-200 transition text-center">
-            @if($member->profile_photo_path)
-                <img src="{{ asset('storage/'.$member->profile_photo_path) }}" alt="{{ $member->name }}"
-                     class="w-14 h-14 rounded-full object-cover mb-2 border-2 border-white shadow"/>
-            @else
-                <div class="w-14 h-14 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold mb-2">
-                    {{ substr($member->name,0,1) }}
-                </div>
-            @endif
-            <p class="text-sm font-semibold text-gray-800 leading-tight">{{ $member->name }}</p>
-            <p class="text-xs text-sky-600 font-medium mt-0.5">{{ $member->position ?? 'Member' }}</p>
-            <p class="text-xs text-gray-400">{{ $member->activities()->count() }} activities</p>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[680px] text-sm text-slate-600">
+                <thead class="bg-slate-50 border-t border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 text-left font-semibold text-slate-500">Title</th>
+                        <th class="p-4 text-left font-semibold text-slate-500">Submitted By</th>
+                        <th class="p-4 text-left font-semibold text-slate-500">Category</th>
+                        <th class="p-4 text-left font-semibold text-slate-500">Date</th>
+                        <th class="p-4 text-left font-semibold text-slate-500">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($activities as $act)
+                    <tr class="border-b last:border-0 hover:bg-slate-50">
+                        <td class="p-4 font-medium text-slate-900">{{ $act->title }}</td>
+                        <td class="p-4 text-slate-500">{{ $act->user->name ?? '—' }}</td>
+                        <td class="p-4">
+                            <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $act->category ?? '—' }}</span>
+                        </td>
+                        <td class="p-4">{{ optional($act->date)->format('M d, Y') ?? '—' }}</td>
+                        <td class="p-4">
+                            <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $act->status === 'approved' ? 'bg-emerald-100 text-emerald-700' : ($act->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') }}">{{ ucfirst($act->status ?? 'unknown') }}</span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" class="p-6 text-center text-slate-400">No activities submitted yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-        @endforeach
+        <div class="mt-4">{{ $activities->links() }}</div>
     </div>
-    <div class="mt-4">{{ $members->links() }}</div>
-    @else
-        <p class="text-center text-gray-400 py-6">No members assigned to this organization yet.</p>
-    @endif
-</div>
-
-<!-- Accomplishments / Activities Table -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-    <h3 class="font-bold text-gray-700 mb-4">Accomplishments / Activities Submitted</h3>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm min-w-[600px]">
-            <thead class="bg-gray-50 border-b">
-                <tr>
-                    <th class="p-3 text-left text-gray-500">Title</th>
-                    <th class="p-3 text-left text-gray-500">Submitted By</th>
-                    <th class="p-3 text-left text-gray-500">Category</th>
-                    <th class="p-3 text-left text-gray-500">Date</th>
-                    <th class="p-3 text-left text-gray-500">Basis</th>
-                    <th class="p-3 text-left text-gray-500">Term / SY</th>
-                    <th class="p-3 text-left text-gray-500">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($activities as $act)
-                <tr class="border-b last:border-0 hover:bg-gray-50">
-                    <td class="p-3 font-medium">{{ $act->title }}</td>
-                    <td class="p-3 text-gray-500">{{ $act->user->name ?? '—' }}</td>
-                    <td class="p-3">
-                        @if($act->category)
-                        <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $act->category }}</span>
-                        @else —@endif
-                    </td>
-                    <td class="p-3">{{ $act->date->format('M d, Y') }}</td>
-                    <td class="p-3 text-xs text-gray-500">{{ $act->basis_grading ?? '—' }}</td>
-                    <td class="p-3 text-xs text-gray-500">{{ $act->term ?? '—' }} / {{ $act->school_year ?? '—' }}</td>
-                    <td class="p-3">
-                        <span class="px-2 py-1 rounded-full text-xs font-bold
-                            {{ $act->status=='pending'  ?'bg-yellow-100 text-yellow-700':'' }}
-                            {{ $act->status=='approved' ?'bg-green-100 text-green-700':'' }}
-                            {{ $act->status=='rejected' ?'bg-red-100 text-red-700':'' }}">
-                            {{ ucfirst($act->status) }}
-                        </span>
-                    </td>
-                </tr>
-                @empty
-                <tr><td colspan="7" class="p-6 text-center text-gray-400">No activities yet.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-    <div class="mt-4">{{ $activities->links() }}</div>
 </div>
 </x-app-layout>

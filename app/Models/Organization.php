@@ -12,6 +12,7 @@ class Organization extends Model
     protected $fillable = [
         'name', 'type', 'college', 'sc_president',
         'term', 'school_year', 'description', 'is_active',
+        'logo_path',
     ];
 
     public function members()

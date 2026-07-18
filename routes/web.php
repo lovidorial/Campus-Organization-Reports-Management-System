@@ -99,5 +99,8 @@ Route::middleware(['auth'])->group(function () {
             'update'  => 'organizations.update',
             'destroy' => 'organizations.destroy',
         ]);
+
+        Route::post('/organizations/{organization}/deactivate', [OrganizationController::class, 'deactivate'])->name('organizations.deactivate');
+        Route::post('/organizations/{organization}/reset-password', [OrganizationController::class, 'resetPassword'])->name('organizations.reset-password');
     });
 });

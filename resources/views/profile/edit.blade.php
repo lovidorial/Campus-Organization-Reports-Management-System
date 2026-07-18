@@ -19,11 +19,7 @@
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl sm:max-w-2xl md:max-w-3xl mx-auto">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
+            <!-- Delete account UI removed -->
         </div>
     </div>
 </x-app-layout>
