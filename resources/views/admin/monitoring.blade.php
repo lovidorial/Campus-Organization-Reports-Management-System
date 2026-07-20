@@ -41,10 +41,54 @@
 
 @if(isset($stats))
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white p-4 rounded-lg shadow-sm border"><p class="text-xs text-gray-500 uppercase">Total</p><p class="text-2xl font-bold text-blue-600">{{ $stats['total'] }}</p></div>
-    <div class="bg-white p-4 rounded-lg shadow-sm border"><p class="text-xs text-gray-500 uppercase">Pending</p><p class="text-2xl font-bold text-yellow-500">{{ $stats['pending'] }}</p></div>
-    <div class="bg-white p-4 rounded-lg shadow-sm border"><p class="text-xs text-gray-500 uppercase">Active/Closed</p><p class="text-2xl font-bold text-green-500">{{ $stats['approved'] }}</p></div>
-    <div class="bg-white p-4 rounded-lg shadow-sm border"><p class="text-xs text-gray-500 uppercase">Rejected</p><p class="text-2xl font-bold text-red-500">{{ $stats['rejected'] }}</p></div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div>
+            <svg class="w-6 h-6 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+        </div>
+        <div>
+            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Total</p>
+            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['total'] }}</p>
+            <p class="text-[11px] text-[#64748b] mt-0.5">All activities</p>
+        </div>
+    </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div>
+            <svg class="w-6 h-6 text-[#f59e0b]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <div>
+            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Pending</p>
+            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['pending'] }}</p>
+            <p class="text-[11px] text-[#64748b] mt-0.5">Awaiting review</p>
+        </div>
+    </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div>
+            <svg class="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <div>
+            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Active/Closed</p>
+            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['approved'] }}</p>
+            <p class="text-[11px] text-[#64748b] mt-0.5">Completed activities</p>
+        </div>
+    </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div>
+            <svg class="w-6 h-6 text-[#ef4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <div>
+            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Rejected</p>
+            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['rejected'] }}</p>
+            <p class="text-[11px] text-[#64748b] mt-0.5">Declined activities</p>
+        </div>
+    </div>
 </div>
 @endif
 

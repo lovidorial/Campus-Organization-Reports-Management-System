@@ -21,22 +21,22 @@
         </div>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="flex flex-col items-center gap-4 text-center">
+    <div class="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex flex-col items-center gap-3 text-center">
                 @if($organization->logo_path)
-                    <img src="{{ asset('storage/'.$organization->logo_path) }}" alt="{{ $organization->name }} logo" class="h-28 w-28 rounded-3xl object-cover border border-slate-200" />
+                    <img src="{{ asset('storage/'.$organization->logo_path) }}" alt="{{ $organization->name }} logo" class="h-24 w-24 rounded-3xl object-cover border border-slate-200" />
                 @else
-                    <div class="flex h-28 w-28 items-center justify-center rounded-3xl bg-orange-100 text-4xl font-bold text-orange-700 uppercase">{{ Illuminate\Support\Str::limit($organization->name, 2, '') }}</div>
+                    <div class="flex h-24 w-24 items-center justify-center rounded-3xl bg-orange-100 text-3xl font-bold text-orange-700 uppercase">{{ Illuminate\Support\Str::limit($organization->name, 2, '') }}</div>
                 @endif
                 <div>
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Organization</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">{{ $organization->name }}</p>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Organization</p>
+                    <p class="mt-2 text-lg font-semibold text-slate-900">{{ $organization->name }}</p>
                 </div>
             </div>
-            <div class="mt-8 space-y-4">
-                <div class="rounded-3xl bg-slate-50 p-4">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p>
+            <div class="mt-6 space-y-3">
+                <div class="rounded-3xl bg-slate-50 p-3">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Status</p>
                     <p class="mt-2 font-semibold text-slate-900">
                         @if(! $secretary)
                             Pending Secretary
@@ -59,26 +59,26 @@
         </div>
 
         <div class="space-y-6">
-            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">Organization Details</h2>
-                <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="text-base font-semibold text-slate-900 mb-3">Organization Details</h2>
+                <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Organization Type</p>
+                        <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Organization Type</p>
                         <p class="mt-2 font-medium text-slate-900">{{ $organization->type ?? '—' }}</p>
                     </div>
                     <div>
-                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">College</p>
+                        <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">College</p>
                         <p class="mt-2 font-medium text-slate-900">{{ $organization->college ?? '—' }}</p>
                     </div>
                     <div class="sm:col-span-2">
-                        <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Description</p>
-                        <p class="mt-2 text-slate-600">{{ $organization->description ?? 'No description added.' }}</p>
+                        <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Description</p>
+                        <p class="mt-2 text-slate-600 text-sm">{{ $organization->description ?? 'No description added.' }}</p>
                     </div>
                 </div>
             </div>
 
-            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">Secretary Account</h2>
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="text-base font-semibold text-slate-900 mb-3">Secretary Account</h2>
                 @if($secretary)
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -109,37 +109,37 @@
         </div>
     </div>
 
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="flex items-center justify-between gap-4 mb-4">
-            <h2 class="text-lg font-semibold text-slate-900">Recent Activities Submitted</h2>
-            <span class="text-sm text-slate-500">{{ $activities->total() }} records</span>
+    <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between gap-4 mb-3">
+            <h2 class="text-base font-semibold text-slate-900">Recent Activities Submitted</h2>
+            <span class="text-xs text-slate-500">{{ $activities->total() }} records</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[680px] text-sm text-slate-600">
+            <table class="w-full min-w-[620px] text-sm text-slate-600">
                 <thead class="bg-slate-50 border-t border-b border-slate-200">
                     <tr>
-                        <th class="p-4 text-left font-semibold text-slate-500">Title</th>
-                        <th class="p-4 text-left font-semibold text-slate-500">Submitted By</th>
-                        <th class="p-4 text-left font-semibold text-slate-500">Category</th>
-                        <th class="p-4 text-left font-semibold text-slate-500">Date</th>
-                        <th class="p-4 text-left font-semibold text-slate-500">Status</th>
+                        <th class="p-3 text-left font-semibold text-slate-500">Title</th>
+                        <th class="p-3 text-left font-semibold text-slate-500">Submitted By</th>
+                        <th class="p-3 text-left font-semibold text-slate-500">Category</th>
+                        <th class="p-3 text-left font-semibold text-slate-500">Date</th>
+                        <th class="p-3 text-left font-semibold text-slate-500">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($activities as $act)
                     <tr class="border-b last:border-0 hover:bg-slate-50">
-                        <td class="p-4 font-medium text-slate-900">{{ $act->title }}</td>
-                        <td class="p-4 text-slate-500">{{ $act->user->name ?? '—' }}</td>
-                        <td class="p-4">
-                            <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $act->category ?? '—' }}</span>
+                        <td class="p-3 font-medium text-slate-900">{{ $act->title }}</td>
+                        <td class="p-3 text-slate-500">{{ $act->user->name ?? '—' }}</td>
+                        <td class="p-3">
+                            <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{{ $act->category ?? '—' }}</span>
                         </td>
-                        <td class="p-4">{{ optional($act->date)->format('M d, Y') ?? '—' }}</td>
-                        <td class="p-4">
-                            <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $act->status === 'approved' ? 'bg-emerald-100 text-emerald-700' : ($act->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') }}">{{ ucfirst($act->status ?? 'unknown') }}</span>
+                        <td class="p-3">{{ optional($act->date)->format('M d, Y') ?? '—' }}</td>
+                        <td class="p-3">
+                            <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $act->status === 'approved' ? 'bg-emerald-100 text-emerald-700' : ($act->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') }}">{{ ucfirst($act->status ?? 'unknown') }}</span>
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" class="p-6 text-center text-slate-400">No activities submitted yet.</td></tr>
+                    <tr><td colspan="5" class="p-5 text-center text-slate-400">No activities submitted yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

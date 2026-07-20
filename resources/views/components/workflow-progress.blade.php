@@ -1,111 +1,72 @@
 @php
-    $statusClasses = [
-        'pending' => 'bg-gray-100 text-gray-600 border-gray-200',
-        'submitted' => 'bg-blue-50 text-blue-700 border-blue-200',
-        'under_review' => 'bg-orange-50 text-orange-700 border-orange-200',
-        'approved' => 'bg-green-50 text-green-700 border-green-200',
-        'rejected' => 'bg-red-50 text-red-700 border-red-200',
+    $gpoa = $workflow->currentSubmission('gpoa');
+    $communication = $workflow->currentSubmission('communication_letter');
+    $summary = $workflow->currentSubmission('summary_report');
+    $steps = [
+        ['label' => 'GPOA Submitted', 'status' => $gpoa && in_array($gpoa->status, ['approved', 'submitted', 'under_review', 'stored']) ? 'completed' : 'pending'],
+        ['label' => 'Communication Letter', 'status' => $communication && in_array($communication->status, ['approved', 'submitted', 'under_review']) ? 'completed' : 'pending'],
+        ['label' => 'Summary Report', 'status' => $summary && in_array($summary->status, ['approved', 'submitted', 'under_review']) ? 'completed' : 'pending'],
+        ['label' => 'Completed', 'status' => $workflow->is_completed ? 'completed' : 'pending'],
     ];
-    $statusLabels = [
-        'pending' => 'Pending',
-        'submitted' => 'Submitted',
-        'under_review' => 'Under Review',
-        'approved' => 'Approved',
-        'rejected' => 'Rejected',
+    $badgeClasses = [
+        'pending' => 'bg-slate-100 text-slate-600 border-slate-200',
+        'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
     ];
-    $completedStages = collect($progressStages)->filter(fn ($s) => ($s['status'] ?? '') === 'approved')->count();
-    $progressWidth = count($progressStages) > 1 ? (($completedStages / (count($progressStages) - 1)) * 100) : 0;
 @endphp
 
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-shadow duration-300 hover:shadow-md">
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-5">
+<div class="bg-white rounded-[28px] shadow-sm border border-slate-200 p-6 mb-5">
+    <div class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
         <div>
-            <h3 class="text-lg font-bold text-gray-900 tracking-tight">Workflow Progress</h3>
-            <p class="text-sm text-gray-500 mt-0.5">GPOA → Communication Letter → Summary Report → Completed</p>
+            <h3 class="text-2xl font-semibold text-slate-900">Workflow Progress</h3>
+            <p class="text-sm text-slate-500 mt-1">GPOA → Communication Letter → Summary Report → Completed</p>
         </div>
-        <div class="flex items-center gap-4 w-full lg:w-auto">
-            <div class="flex-1 lg:flex-none">
-                <div class="flex justify-between items-center mb-1.5">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Overall Completion</span>
-                    <span class="text-lg font-bold" style="color: #e89600;">{{ $workflow->completion_percentage }}%</span>
-                </div>
-                <div class="w-full lg:w-48 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-700 ease-out"
-                         style="width: {{ $workflow->completion_percentage }}%; background: linear-gradient(90deg, #f5a623, #e89600);"></div>
-                </div>
+        <div class="flex items-center gap-6 w-full xl:w-auto">
+            <div class="text-right">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Overall Completion</p>
+                <p class="text-2xl font-bold text-orange-600">{{ $workflow->completion_percentage }}%</p>
+            </div>
+            <div class="w-full xl:w-48 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-700 ease-out"
+                     style="width: {{ $workflow->completion_percentage }}%; background: linear-gradient(90deg, #f5a623, #e89600);"></div>
             </div>
         </div>
     </div>
 
-    {{-- Desktop stepper --}}
-    <div class="hidden md:block relative pt-2 pb-1">
-        <div class="absolute top-[1.65rem] left-[2.5%] right-[2.5%] h-1 bg-gray-100 rounded-full z-0"></div>
-        <div class="absolute top-[1.65rem] left-[2.5%] h-1 rounded-full z-0 transition-all duration-700"
-             style="width: calc({{ min($progressWidth, 100) }}% - 2.5%); background: linear-gradient(90deg, #f5a623, #e89600);"></div>
-        <div class="grid grid-cols-7 gap-2 relative z-10">
-            @foreach($progressStages as $index => $stage)
-            @php
-                $status = $stage['status'];
-                $isLocked = $stage['locked'] ?? false;
-                $submission = $stage['submission'] ?? null;
-                $classes = $statusClasses[$status] ?? $statusClasses['pending'];
-                $isApproved = $status === 'approved';
-                $isRejected = $status === 'rejected';
-            @endphp
-            <div class="flex flex-col items-center text-center group {{ $isLocked ? 'opacity-45' : '' }}">
-                <div class="w-11 h-11 rounded-full border-2 flex items-center justify-center text-sm font-bold mb-2 transition-transform duration-300 group-hover:scale-105 {{ $classes }}">
-                    @if($isApproved)
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    @elseif($isRejected)
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    @elseif($isLocked)
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    @else
+    <div class="hidden md:block relative px-4 py-6">
+        <div class="absolute left-8 right-8 top-10 h-px bg-slate-200"></div>
+        <div class="grid grid-cols-4 gap-6 relative">
+            @foreach($steps as $index => $step)
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-16 h-16 rounded-full border-2 flex items-center justify-center text-lg font-bold mb-4 transition-all duration-300 {{ $step['status'] === 'completed' ? 'border-emerald-500 text-emerald-700 bg-white shadow-sm' : 'border-slate-300 text-slate-500 bg-white' }}">
                         {{ $index + 1 }}
-                    @endif
+                    </div>
+                    <p class="text-sm font-semibold text-slate-900 leading-snug">{{ $step['label'] }}</p>
+                    <span class="mt-3 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold {{ $badgeClasses[$step['status']] }}">
+                        {{ ucfirst($step['status']) }}
+                    </span>
                 </div>
-                <p class="text-[11px] font-semibold text-gray-700 leading-tight mb-1 px-1">{{ $stage['label'] }}</p>
-                <span class="text-[10px] px-2 py-0.5 rounded-full border font-semibold {{ $classes }}">
-                    {{ $isLocked ? 'Locked' : ($statusLabels[$status] ?? ucfirst($status)) }}
-                </span>
-            </div>
             @endforeach
         </div>
     </div>
 
-    {{-- Mobile timeline --}}
-    <div class="md:hidden space-y-0">
-        @foreach($progressStages as $index => $stage)
-        @php
-            $status = $stage['status'];
-            $isLocked = $stage['locked'] ?? false;
-            $submission = $stage['submission'] ?? null;
-            $classes = $statusClasses[$status] ?? $statusClasses['pending'];
-            $isLast = $index === count($progressStages) - 1;
-        @endphp
-        <div class="flex gap-3 {{ $isLocked ? 'opacity-45' : '' }}">
-            <div class="flex flex-col items-center">
-                <div class="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 {{ $classes }}">
-                    @if($status === 'approved') ✓
-                    @elseif($status === 'rejected') ✕
-                    @elseif($isLocked) 🔒
-                    @else {{ $index + 1 }}
+    <div class="md:hidden space-y-5">
+        @foreach($steps as $index => $step)
+            <div class="flex items-start gap-4">
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full border-2 flex items-center justify-center text-base font-bold {{ $step['status'] === 'completed' ? 'border-emerald-500 text-emerald-700 bg-white shadow-sm' : 'border-slate-300 text-slate-500 bg-white' }}">
+                        {{ $index + 1 }}
+                    </div>
+                    @if(!$loop->last)
+                        <div class="w-px h-8 bg-slate-200 mt-2"></div>
                     @endif
                 </div>
-                @if(!$isLast)
-                <div class="w-0.5 flex-1 min-h-[1.5rem] my-1 {{ $status === 'approved' ? 'bg-orange-300' : 'bg-gray-200' }}"></div>
-                @endif
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-slate-900">{{ $step['label'] }}</p>
+                    <span class="mt-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold {{ $badgeClasses[$step['status']] }}">
+                        {{ ucfirst($step['status']) }}
+                    </span>
+                </div>
             </div>
-            <div class="pb-4 {{ $isLast ? 'pb-0' : '' }} flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800">{{ $stage['label'] }}</p>
-                <span class="inline-block text-[10px] px-2 py-0.5 rounded-full border font-semibold mt-1 {{ $classes }}">
-                    {{ $isLocked ? 'Locked' : ($statusLabels[$status] ?? ucfirst($status)) }}
-                </span>
-                @if($submission?->reject_reason)
-                <p class="text-xs text-red-600 mt-1.5 bg-red-50 rounded-lg px-2 py-1.5">{{ Str::limit($submission->reject_reason, 80) }}</p>
-                @endif
-            </div>
-        </div>
         @endforeach
     </div>
 </div>

@@ -41,14 +41,12 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [WorkflowDocumentController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
 
-    // Activity Requests (requires approved GPOA)
-    Route::middleware([\App\Http\Middleware\EnsureApprovedGpoa::class])->group(function () {
-        Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
-        Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
-        Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
-        Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
-        Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
-    });
+    // Activity Requests
+    Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
+    Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
+    Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
+    Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
+    Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
     // Legacy routes redirect
     Route::get('/submit-activity', fn () => redirect()->route('activity-requests.create'))->name('user.submit');

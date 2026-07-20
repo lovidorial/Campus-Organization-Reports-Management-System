@@ -10,56 +10,56 @@
     </div>
 
     <!-- Information Card -->
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p class="text-sm font-semibold text-slate-900 uppercase tracking-[0.2em] mb-3">Note</p>
-        <p class="text-sm text-slate-600 leading-relaxed">Each registered student organization is assigned one system account. Only the organization&rsquo;s Secretary is authorized to access and manage organization activities within the system.</p>
+    <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-900 uppercase tracking-[0.2em] mb-2">Note</p>
+            <p class="text-sm text-slate-600 leading-relaxed">Each registered student organization is assigned one system account. Only the organization&rsquo;s Secretary is authorized to access and manage organization activities within the system.</p>
+        </div>
     </div>
 
     <!-- Summary Cards Grid -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <!-- Total Organizations -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mb-4">Total Organizations</p>
-            <p class="text-4xl font-bold text-slate-900 mb-auto">{{ $summary['total'] ?? 0 }}</p>
-            <p class="mt-4 text-sm text-slate-600">All registered organizations</p>
+        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Total Organizations</p>
+            <p class="mt-2 text-xs text-slate-500">All registered organizations</p>
+            <p class="mt-4 text-3xl font-bold text-slate-900">{{ $summary['total'] ?? 0 }}</p>
         </div>
 
         <!-- Active Accounts -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mb-4">Active</p>
-            <p class="text-4xl font-bold text-emerald-600 mb-auto">{{ $summary['active'] ?? 0 }}</p>
-            <p class="mt-4 text-sm text-slate-600">Active organization accounts</p>
+        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Active</p>
+            <p class="mt-2 text-xs text-slate-500">Active organization accounts</p>
+            <p class="mt-4 text-3xl font-bold text-emerald-600">{{ $summary['active'] ?? 0 }}</p>
         </div>
 
         <!-- Inactive Accounts -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mb-4">Inactive</p>
-            <p class="text-4xl font-bold text-rose-600 mb-auto">{{ $summary['inactive'] ?? 0 }}</p>
-            <p class="mt-4 text-sm text-slate-600">Inactive organization accounts</p>
-        </div>
-
-        <!-- Pending Accounts -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mb-4">Pending</p>
-            <p class="text-4xl font-bold text-amber-600 mb-auto">{{ $summary['pending'] ?? 0 }}</p>
-            <p class="mt-4 text-sm text-slate-600">Pending organization accounts</p>
+        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Inactive</p>
+            <p class="mt-2 text-xs text-slate-500">Inactive organization accounts</p>
+            <p class="mt-4 text-3xl font-bold text-rose-600">{{ $summary['inactive'] ?? 0 }}</p>
         </div>
     </div>
 
     <!-- Filter Section -->
     <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-4">
             <!-- Search Field -->
-            <div class="relative lg:col-span-1">
+            <div class="relative">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Search organizations..."
-                       class="w-full rounded-3xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-700 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100" />
+                       class="w-full rounded-3xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100" />
                 <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" /></svg>
                 </span>
             </div>
 
+            <!-- College Dropdown -->
+            <select name="college" class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100">
+                <option value="">All Colleges</option>
+            </select>
+
             <!-- Type Dropdown -->
-            <select name="type" onchange="this.form.submit()" class="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100 lg:col-span-1">
+            <select name="type" onchange="this.form.submit()" class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100">
                 <option value="">All Types</option>
                 <option value="Student Council" {{ request('type')=='Student Council' ? 'selected' : '' }}>Student Council</option>
                 <option value="Academic Org" {{ request('type')=='Academic Org' ? 'selected' : '' }}>Academic Org</option>
@@ -70,23 +70,13 @@
                 <option value="Other" {{ request('type')=='Other' ? 'selected' : '' }}>Other</option>
             </select>
 
-            <!-- College Dropdown -->
-            <select name="college" class="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100 lg:col-span-1">
-                <option value="">All Colleges</option>
-            </select>
-
             <!-- Status Dropdown -->
-            <select name="status" onchange="this.form.submit()" class="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100 lg:col-span-1">
+            <select name="status" onchange="this.form.submit()" class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100">
                 <option value="">All Status</option>
                 <option value="active" {{ request('status')=='active' ? 'selected' : '' }}>Active</option>
                 <option value="inactive" {{ request('status')=='inactive' ? 'selected' : '' }}>Inactive</option>
                 <option value="pending" {{ request('status')=='pending' ? 'selected' : '' }}>Pending</option>
             </select>
-
-            <!-- Reset Button -->
-            @if(request()->filled('search') || request()->filled('type') || request()->filled('status'))
-                <a href="{{ route('admin.organizations.index') }}" class="inline-flex items-center justify-center rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition md:col-span-2 xl:col-span-4">Reset Filters</a>
-            @endif
         </div>
     </div>
 

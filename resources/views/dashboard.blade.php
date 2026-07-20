@@ -75,24 +75,24 @@
 @endphp
 
 {{-- Welcome Header --}}
-<div class="rounded-2xl p-5 md:p-6 mb-5 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
+<div class="rounded-2xl p-4 md:p-5 mb-4 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
      style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div class="flex items-start sm:items-center gap-4">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-start sm:items-center gap-3">
             @if($user->profile_photo_path)
                 <img src="{{ asset('storage/'.$user->profile_photo_path) }}"
                      alt="{{ $user->name }}"
-                     class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
+                     class="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
             @else
                 <div class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl bg-white/95 flex items-center justify-center text-2xl font-bold shadow-md shrink-0" style="color: #e89600;">
                     {{ strtoupper(substr($user->name, 0, 1)) }}
                 </div>
             @endif
             <div>
-                <p class="text-white/80 text-sm font-medium">Welcome,</p>
-                <h1 class="text-xl md:text-2xl font-bold tracking-tight">{{ $user->name }}</h1>
+                <p class="text-white/80 text-xs font-medium">Welcome,</p>
+                <h1 class="text-lg md:text-xl font-bold tracking-tight">{{ $user->name }}</h1>
                 @if($user->position)
-                <p class="text-white/75 text-sm mt-0.5">{{ $user->position }}</p>
+                <p class="text-white/75 text-xs mt-0.5">{{ $user->position }}</p>
                 @endif
             </div>
         </div>
@@ -109,24 +109,24 @@
         @endif
     </div>
 
-    <div class="mt-5 pt-5 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="mt-4 pt-4 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Organization</p>
-            <p class="font-semibold text-base">{{ $orgName }}</p>
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Organization</p>
+            <p class="font-semibold text-sm">{{ $orgName }}</p>
         </div>
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Current Semester</p>
-            <p class="font-semibold text-base">{{ $semester }}</p>
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Current Semester</p>
+            <p class="font-semibold text-sm">{{ $semester }}</p>
         </div>
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Academic Year</p>
-            <p class="font-semibold text-base">{{ $academicYear }}</p>
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Academic Year</p>
+            <p class="font-semibold text-sm">{{ $academicYear }}</p>
         </div>
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Current Status</p>
-            <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/20">
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Current Status</p>
+            <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-xl border border-white/20">
                 <span class="w-2.5 h-2.5 rounded-full {{ $statusDotColors[$statusColor] ?? 'bg-gray-400' }} shrink-0"></span>
-                <span class="font-semibold text-sm">{{ $currentStatus }}</span>
+                <span class="font-semibold text-xs">{{ $currentStatus }}</span>
             </div>
         </div>
     </div>

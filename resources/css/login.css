@@ -42,26 +42,61 @@ body {
 /* ================================================================
    LOGIN CONTAINER
    ================================================================ */
-.login-container {
+.login-page {
     display: flex;
     min-height: 100vh;
+    width: 100%;
     background: linear-gradient(135deg, #f5f5f5 0%, #ececec 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.login-card {
+    display: flex;
+    width: min(100%, 860px);
+    border-radius: 30px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.16);
+    background: #ffffff;
 }
 
 /* Left Panel - OSDW Info */
-.login-left-panel {
-    flex: 1;
+.login-panel-left {
+    flex: 0 0 42%;
+    min-width: 320px;
     background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 40px;
+    padding: 46px 30px;
     color: var(--white);
     text-align: center;
-    border-radius: 30px 0 0 30px;
-    margin: 20px 0 20px 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-panel-left::before {
+    content: '';
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    top: 30px;
+    left: 30px;
+}
+
+.login-panel-left::after {
+    content: '';
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 50%;
+    bottom: 40px;
+    right: 40px;
 }
 
 .login-logo {
@@ -196,16 +231,14 @@ body {
 }
 
 /* Right Panel - Login Form */
-.login-right-panel {
-    flex: 1;
+.login-panel-right {
+    flex: 0 0 58%;
+    min-width: 380px;
     background: var(--white);
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 60px 50px;
-    border-radius: 0 30px 30px 0;
-    margin: 20px 20px 20px 0;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 46px 42px;
 }
 
 .login-back-link {
@@ -229,8 +262,44 @@ body {
     height: 18px;
 }
 
-.login-header {
+.role-tabs {
+    display: inline-flex;
+    gap: 10px;
+    background: rgba(247, 247, 247, 0.95);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+    padding: 6px;
     margin-bottom: 30px;
+}
+
+.role-tab {
+    border: 1px solid transparent;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.role-tab svg {
+    width: 18px;
+    height: 18px;
+}
+
+.role-tab--active {
+    background: rgba(249, 115, 22, 0.14);
+    color: var(--orange-dark);
+    border-color: rgba(249, 115, 22, 0.25);
+}
+
+.login-header {
+    margin-bottom: 24px;
 }
 
 .login-heading {
@@ -284,31 +353,52 @@ body {
     color: var(--gray-400);
 }
 
-.form-input[type="email"] {
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(245, 166, 35)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>');
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 20px;
-    padding-right: 44px;
-}
-
-.form-input[type="password"] {
-    display: grid;
-    grid-template-columns: 1fr auto;
+.input-with-icon {
     position: relative;
-    gap: 0;
+    display: flex;
+    align-items: center;
+    width: 100%;
 }
 
-.password-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--gray-400);
+.input-icon {
+    position: absolute;
+    left: -72px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    transition: color 0.3s ease;
+    background: var(--white);
+    border: 1px solid rgba(229, 231, 235, 0.9);
+    border-radius: 16px;
+    color: var(--gray-500);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.input-with-icon .form-input {
+    padding-left: 100px;
+}
+
+.password-input-wrapper .form-input {
+    padding-right: 52px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    transition: all 0.25s ease;
 }
 
 .password-toggle:hover {
@@ -359,16 +449,17 @@ body {
 }
 
 .login-button {
-    padding: 14px 24px;
+    padding: 16px 24px;
     background: linear-gradient(135deg, var(--orange-primary) 0%, var(--orange-dark) 100%);
     color: var(--white);
     border: none;
-    border-radius: 8px;
+    border-radius: 16px;
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(245, 166, 35, 0.3);
+    box-shadow: 0 12px 28px rgba(245, 166, 35, 0.25);
+    width: 100%;
 }
 
 .login-button:hover {

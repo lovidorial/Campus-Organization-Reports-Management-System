@@ -5,6 +5,7 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ccc; padding: 4px; }
         th { background: #f0f0f0; }
+       
     </style>
 </head>
 <body>

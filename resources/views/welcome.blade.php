@@ -28,7 +28,7 @@
             <div class="navbar-brand-wrap">
                 <a href="{{ url('/') }}" class="nav-brand">
                     <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="" class="nav-logo-img">
-                    <span class="nav-brand-text">CSORMS</span>
+                    <span class="nav-brand-text" style="color: #f5a623;">CSORMS</span>
                 </a>
             </div>
 
@@ -203,7 +203,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="footer-brand"><i class="fas fa-university me-2"></i>CSORMS</div>
+                    <div class="footer-brand"><i class="fas fa-university me-2"></i><span style="color:#f5a623; font-weight:700;">CSORMS</span></div>
                     <p class="footer-desc">
                         Campus Student Organization Reports Monitoring  System.<br>
                         A comprehensive platform for monitoring and managing student organization activities.

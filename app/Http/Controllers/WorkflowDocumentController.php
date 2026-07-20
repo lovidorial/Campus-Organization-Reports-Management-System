@@ -17,15 +17,10 @@ class WorkflowDocumentController extends Controller
     {
         $user = auth()->user();
         $workflow = $this->workflowService->getOrCreateForUser($user);
-
-        if (!$workflow->canSubmitCommunicationLetter()) {
-            return redirect()->route('dashboard')
-                ->with('error', 'Communication Letter submission is locked until your GPOA is approved.');
-        }
-
+        $canSubmit = $workflow->canSubmitCommunicationLetter();
         $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_COMMUNICATION);
 
-        return view('workflow.communication-letter', compact('workflow', 'submission'));
+        return view('workflow.communication-letter', compact('workflow', 'submission', 'canSubmit'));
     }
 
     public function storeCommunicationLetter(Request $request)
@@ -58,15 +53,10 @@ class WorkflowDocumentController extends Controller
     {
         $user = auth()->user();
         $workflow = $this->workflowService->getOrCreateForUser($user);
-
-        if (!$workflow->canSubmitSummaryReport()) {
-            return redirect()->route('dashboard')
-                ->with('error', 'Summary Report submission is locked until your Communication Letter is approved.');
-        }
-
+        $canSubmit = $workflow->canSubmitSummaryReport();
         $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_SUMMARY);
 
-        return view('workflow.summary-report', compact('workflow', 'submission'));
+        return view('workflow.summary-report', compact('workflow', 'submission', 'canSubmit'));
     }
 
     public function storeSummaryReport(Request $request)

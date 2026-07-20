@@ -575,9 +575,10 @@
     {{-- Navbar --}}
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url('/') }}">
-                 CSORMS
-            </a>
+              <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
+                  <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CSORMS" style="height:26px;width:26px;object-fit:cover;border-radius:50%;margin-right:8px;">
+                  <span style="color: #f5a623; font-weight:800;">CSORMS</span>
+              </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

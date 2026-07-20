@@ -24,7 +24,7 @@
                         <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M6 8l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/></svg>
                     </button>
                     <div id="adminProfileMenu" class="hidden absolute right-0 mt-3 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                        <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>
+                        <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Settings</a>
                         <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Logout</a>
                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>
                     </div>
@@ -44,20 +44,10 @@
                 @endphp
 
                 @foreach($cards as $card)
-                <div class="rounded-lg border border-slate-100 bg-white p-5 shadow-sm flex flex-col justify-between" style="min-height:110px;">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-2xl font-bold text-slate-900">{{ $card['count'] }}</p>
-                            <p class="text-sm text-slate-600 mt-1">{{ $card['label'] }}</p>
-                        </div>
-                        <div class="h-10 w-10 rounded-xl flex items-center justify-center"
-                             style="background: {{ $card['color'] == 'blue' ? 'rgba(59,130,246,0.08)' : ($card['color']=='green' ? 'rgba(16,185,129,0.08)' : ($card['color']=='yellow' ? 'rgba(245,158,11,0.08)' : ($card['color']=='purple' ? 'rgba(139,92,246,0.08)' : 'rgba(245,162,0,0.08)')) ) }}; color: {{ $card['color']=='blue' ? '#3b82f6' : ($card['color']=='green' ? '#10b981' : ($card['color']=='yellow' ? '#f59e0b' : ($card['color']=='purple' ? '#8b5cf6' : '#f5a623')) ) }};">
-                            <!-- simple icon -->
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7h18M3 12h18M3 17h18"/></svg>
-                        </div>
-                    </div>
-                    <div class="mt-4 border-t border-slate-100 pt-3">
-                        <a href="{{ $card['link'] }}" class="text-sm font-medium text-slate-700 hover:text-slate-900">{{ $card['action'] }} →</a>
+                <div class="bg-white p-5 border border-gray-100 shadow-sm flex flex-col justify-between" style="min-height:110px;">
+                    <div>
+                        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">{{ $card['label'] }}</p>
+                        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $card['count'] }}</p>
                     </div>
                 </div>
                 @endforeach
