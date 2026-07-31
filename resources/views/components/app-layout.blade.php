@@ -27,26 +27,42 @@
                          Dashboard
                     </a>
                 </li>
-                <li>
-                    <a href="{{ route('gpoa.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('gpoa.*') ? '#e89600' : 'transparent' }};">
-                         My GPOA
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('workflow.communication-letter') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('workflow.communication-letter*') ? '#e89600' : 'transparent' }};">
-                         Communication Letter
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('workflow.summary-report') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'transparent' }};">
-                         Summary Report
-                    </a>
+                <li x-data="{ open: {{ request()->routeIs('gpoa.*') || request()->routeIs('workflow.communication-letter*') || request()->routeIs('workflow.summary-report*') ? 'true' : 'false' }} }">
+                    <button type="button"
+                            @click="open = !open"
+                            :aria-expanded="open.toString()"
+                            class="flex items-center justify-between gap-3 w-full px-4 py-2.5 rounded-lg transition font-bold text-white"
+                            :class="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('workflow.communication-letter*') || request()->routeIs('workflow.summary-report*') ? 'true' : 'false' }} ? 'bg-[#e89600]' : 'bg-transparent'">
+                        <span>Documents</span>
+                        <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" :class="open ? 'rotate-90' : ''">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 max-h-0"
+                         x-transition:enter-end="opacity-100 max-h-40"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 max-h-40"
+                         x-transition:leave-end="opacity-0 max-h-0"
+                         class="overflow-hidden space-y-1 mt-1 pl-4">
+                        <a href="{{ route('gpoa.index') }}"
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
+                           style="background-color: {{ request()->routeIs('gpoa.*') ? '#e89600' : 'transparent' }};">
+                            My GPOA
+                        </a>
+                        <a href="{{ route('workflow.communication-letter') }}"
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
+                           style="background-color: {{ request()->routeIs('workflow.communication-letter*') ? '#e89600' : 'transparent' }};">
+                            Communication Letter
+                        </a>
+                        <a href="{{ route('workflow.summary-report') }}"
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
+                           style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'transparent' }};">
+                            Summary Report
+                        </a>
+                    </div>
                 </li>
                 <li>
                     <a href="{{ route('activity-requests.index') }}"

@@ -51,13 +51,13 @@
 
                     <!-- Role Tabs -->
                     <div class="role-tabs">
-                        <button type="button" class="role-tab role-tab--active" data-role="student_org" id="tab-student-org">
+                        <button type="button" class="role-tab {{ old('role', 'student') === 'student' ? 'role-tab--active' : '' }}" data-role="student" id="tab-student-org">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                             </svg>
                             Student Organization
                         </button>
-                        <button type="button" class="role-tab" data-role="admin" id="tab-admin">
+                        <button type="button" class="role-tab {{ old('role', 'student') === 'admin' ? 'role-tab--active' : '' }}" data-role="admin" id="tab-admin">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                                 <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/>
                             </svg>
@@ -95,72 +95,140 @@
                     <form method="POST" action="{{ route('login') }}" class="login-form">
                         @csrf
 
-                        <div class="form-group">
-                            <div class="input-with-icon">
-                               
-                                <input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value="{{ old('email') }}"
-                                    required
-                                    autofocus
-                                    autocomplete="username"
-                                    placeholder="Email address"
-                                    class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
-                                />
+                        <input type="hidden" name="role" id="role" value="{{ old('role', 'student') }}" />
+
+                        <div class="student-section">
+                            <div class="form-group student-group">
+                                <div class="input-with-icon">
+                                   
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        value="{{ old('email') }}"
+                                        required
+                                        autofocus
+                                        autocomplete="username"
+                                        placeholder="Email address"
+                                        class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
+                                    />
+                                </div>
+                                @error('email')
+                                    <span class="form-error">{{ $message }}</span>
+                                @enderror
                             </div>
-                            @error('email')
-                                <span class="form-error">{{ $message }}</span>
-                            @enderror
-                        </div>
 
-                        <div class="form-group">
-                            <div class="input-with-icon password-input-wrapper">
-                                
-                                <input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    autocomplete="current-password"
-                                    placeholder="Password"
-                                    class="form-input {{ $errors->has('password') ? 'form-input--error' : '' }}"
-                                />
-                                <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Toggle password visibility">
-                                    <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                    <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                                        <line x1="1" y1="1" x2="23" y2="23"/>
-                                    </svg>
-                                </button>
+                            <div class="form-group student-group">
+                                <div class="input-with-icon password-input-wrapper">
+                                    
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        name="password"
+                                        required
+                                        autocomplete="current-password"
+                                        placeholder="Password"
+                                        class="form-input {{ $errors->has('password') ? 'form-input--error' : '' }}"
+                                    />
+                                    <button type="button" class="password-toggle" onclick="togglePassword(this)" aria-label="Toggle password visibility">
+                                        <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                        <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                            <line x1="1" y1="1" x2="23" y2="23"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                @error('password')
+                                    <span class="form-error">{{ $message }}</span>
+                                @enderror
                             </div>
-                            @error('password')
-                                <span class="form-error">{{ $message }}</span>
-                            @enderror
+
+                            <div class="form-actions student-group">
+                                 <div class="remember-me-wrapper">
+                                     <input id="remember_me" type="checkbox" name="remember" class="form-checkbox">
+                                     <label for="remember_me" class="remember-label">Remember me</label>
+                                 </div>
+
+                                @if (Route::has('password.request'))
+                                    <a href="{{ route('password.request') }}" class="forgot-password-link student">Forgot password?</a>
+                                @endif
+                            </div>
+
+                            <button type="submit" class="login-button student-submit-button">
+                                <span>Sign In</span>
+                                <svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
                         </div>
 
-                        <div class="form-actions">
-                             <div class="remember-me-wrapper">
-                                 <input id="remember_me" type="checkbox" name="remember" class="form-checkbox">
-                                 <label for="remember_me" class="remember-label">Remember me</label>
-                             </div>
+                        <div class="admin-section hidden">
+                            <div class="form-group admin-group">
+                                <div class="input-with-icon">
+                                    <input
+                                        id="admin_email"
+                                        type="email"
+                                        name="admin_email"
+                                        value="{{ old('admin_email') }}"
+                                        autocomplete="username"
+                                        placeholder="Admin email"
+                                        class="form-input {{ $errors->has('admin_email') ? 'form-input--error' : '' }}"
+                                    />
+                                </div>
+                                @error('admin_email')
+                                    <span class="form-error">{{ $message }}</span>
+                                @enderror
+                            </div>
 
-                            @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}" class="forgot-password-link">Forgot password?</a>
-                            @endif
+                            <div class="form-group admin-group">
+                                <div class="input-with-icon password-input-wrapper">
+                                    <input
+                                        id="admin_password"
+                                        type="password"
+                                        name="admin_password"
+                                        autocomplete="current-password"
+                                        placeholder="Password"
+                                        class="form-input {{ $errors->has('admin_password') ? 'form-input--error' : '' }}"
+                                    />
+                                    <button type="button" class="password-toggle" onclick="togglePassword(this)" aria-label="Toggle password visibility">
+                                        <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                        <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                            <line x1="1" y1="1" x2="23" y2="23"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                @error('admin_password')
+                                    <span class="form-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="form-actions admin-group">
+                                 <div class="remember-me-wrapper">
+                                     <input id="admin_remember_me" type="checkbox" name="admin_remember" class="form-checkbox">
+                                     <label for="admin_remember_me" class="remember-label">Remember admin session</label>
+                                 </div>
+
+                                @if (Route::has('password.request'))
+                                    <a href="{{ route('password.request') }}" class="forgot-password-link admin">Forgot password?</a>
+                                @endif
+                            </div>
+
+                            <button type="submit" class="login-button admin-submit-button hidden">
+                                <span>Sign In as Admin</span>
+                                <svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
                         </div>
-
-                        <button type="submit" class="login-button">
-                            <span>Sign In</span>
-                            <svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                        </button>
                     </form>
 
                     <div class="login-help">
@@ -171,30 +239,135 @@
         </div>
 
         <script>
-            function togglePassword() {
-                const passwordInput = document.getElementById('password');
-                const eyeOpen = document.querySelector('.eye-open');
-                const eyeClosed = document.querySelector('.eye-closed');
+            function togglePassword(button) {
+                const wrapper = button.closest('.password-input-wrapper');
+                if (!wrapper) {
+                    return;
+                }
+                const passwordInput = wrapper.querySelector('input[type="password"], input[type="text"]');
+                const eyeOpen = wrapper.querySelector('.eye-open');
+                const eyeClosed = wrapper.querySelector('.eye-closed');
+
+                if (!passwordInput) {
+                    return;
+                }
+
                 if (passwordInput.type === 'password') {
                     passwordInput.type = 'text';
-                    eyeOpen.style.display = 'none';
-                    eyeClosed.style.display = 'block';
+                    if (eyeOpen) eyeOpen.style.display = 'none';
+                    if (eyeClosed) eyeClosed.style.display = 'block';
                 } else {
                     passwordInput.type = 'password';
-                    eyeOpen.style.display = 'block';
-                    eyeClosed.style.display = 'none';
+                    if (eyeOpen) eyeOpen.style.display = 'block';
+                    if (eyeClosed) eyeClosed.style.display = 'none';
                 }
             }
 
-            // Role tab switching
-            document.querySelectorAll('.role-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('role-tab--active'));
-                    this.classList.add('role-tab--active');
+            function setRoleMode(role) {
+                const roleInput = document.getElementById('role');
+                const tabs = document.querySelectorAll('.role-tab');
+                const studentElements = document.querySelectorAll(
+                    '.student-only, .student-group, .student-section, .student-card, .student-form'
+                );
+                const adminElements = document.querySelectorAll(
+                    '.admin-only, .admin-group, .admin-section, .admin-card, .admin-form'
+                );
+                const studentLinks = document.querySelectorAll(
+                    '.forgot-password-link.student, .student-forgot-password-link'
+                );
+                const adminLinks = document.querySelectorAll(
+                    '.forgot-password-link.admin, .admin-forgot-password-link'
+                );
+                const studentButtons = document.querySelectorAll(
+                    '.login-button.student-submit, .student-submit-button'
+                );
+                const adminButtons = document.querySelectorAll(
+                    '.login-button.admin-submit, .admin-submit-button'
+                );
+                const studentEmail = document.getElementById('email');
+                const studentPassword = document.getElementById('password');
+                const adminEmail = document.getElementById('admin_email');
+                const adminPassword = document.getElementById('admin_password');
+                const rememberCheckbox = document.getElementById('remember_me');
+                const adminRememberCheckbox = document.getElementById('admin_remember_me');
+
+                tabs.forEach(tab => {
+                    const isActive = tab.dataset.role === role;
+                    tab.classList.toggle('role-tab--active', isActive);
                 });
-            });
+
+                if (roleInput) {
+                    roleInput.value = role;
+                }
+
+                if (studentEmail && studentPassword && adminEmail && adminPassword) {
+                    if (role === 'student') {
+                        studentEmail.name = 'email';
+                        studentPassword.name = 'password';
+                        studentEmail.required = true;
+                        studentPassword.required = true;
+                        studentEmail.disabled = false;
+                        studentPassword.disabled = false;
+                        if (rememberCheckbox) {
+                            rememberCheckbox.name = 'remember';
+                            rememberCheckbox.disabled = false;
+                        }
+
+                        adminEmail.name = 'admin_email';
+                        adminPassword.name = 'admin_password';
+                        adminEmail.required = false;
+                        adminPassword.required = false;
+                        adminEmail.disabled = true;
+                        adminPassword.disabled = true;
+                        if (adminRememberCheckbox) {
+                            adminRememberCheckbox.name = 'admin_remember';
+                            adminRememberCheckbox.disabled = true;
+                        }
+                    } else {
+                        studentEmail.name = 'student_email';
+                        studentPassword.name = 'student_password';
+                        studentEmail.required = false;
+                        studentPassword.required = false;
+                        studentEmail.disabled = true;
+                        studentPassword.disabled = true;
+                        if (rememberCheckbox) {
+                            rememberCheckbox.name = 'remember_inactive';
+                            rememberCheckbox.disabled = true;
+                        }
+
+                        adminEmail.name = 'email';
+                        adminPassword.name = 'password';
+                        adminEmail.required = true;
+                        adminPassword.required = true;
+                        adminEmail.disabled = false;
+                        adminPassword.disabled = false;
+                        if (adminRememberCheckbox) {
+                            adminRememberCheckbox.name = 'remember';
+                            adminRememberCheckbox.disabled = false;
+                        }
+                    }
+                }
+
+                const showStudent = role === 'student';
+                const showAdmin = role === 'admin';
+
+                studentElements.forEach(el => el.classList.toggle('hidden', !showStudent));
+                adminElements.forEach(el => el.classList.toggle('hidden', !showAdmin));
+                studentLinks.forEach(el => el.classList.toggle('hidden', !showStudent));
+                adminLinks.forEach(el => el.classList.toggle('hidden', !showAdmin));
+                studentButtons.forEach(el => el.classList.toggle('hidden', !showStudent));
+                adminButtons.forEach(el => el.classList.toggle('hidden', !showAdmin));
+            }
 
             document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.role-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        setRoleMode(this.dataset.role || 'student');
+                    });
+                });
+
+                setRoleMode(document.getElementById('role')?.value || 'student');
+
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {
                     alert.style.animation = 'slideIn 0.4s ease-out';

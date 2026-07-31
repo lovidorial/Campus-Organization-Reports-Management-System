@@ -34,7 +34,7 @@
     --status-rejected:  #c62828;
     --status-draft:     #757575;
     --status-submitted: #0277bd;
-    --status-cancelled: #f57c00;
+    --status-cancelled: s
 }
 
 /* ----------------------------------------------------------------
@@ -66,10 +66,11 @@ body  {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 24px;
-    height: 56px;
-    display: flex;
+    height: 68px;
+    display: grid;
+    grid-template-columns: auto minmax(320px, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
+    gap: 28px;
     width: 100%;
 }
 .nav-brand {
@@ -106,55 +107,62 @@ body  {
     font-family: 'Raleway', sans-serif;
     font-size: 1.2rem;
     font-weight: 800;
-    color: var(--navy);
+    color: #f57c00;
     letter-spacing: 1px;
 }
 .nav-links {
     list-style: none;
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 4px;
-    flex: 1;
+    gap: 18px;
     padding: 0;
+    margin: 0;
 }
 .nav-links .nav-link {
-    font-size: 0.93rem;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: var(--text-mid);
+    color: gray;
     text-decoration: none;
-    padding: 6px 12px;
-    border-radius: 5px;
-    transition: 0.18s;
+    padding: 10px 14px;
+    border-radius: 999px;
+    transition: 0.2s ease;
 }
-.nav-links .nav-link:hover    { background: var(--off-white); color: var(--navy); }
-.nav-links .nav-link.is-active{ color: var(--navy); font-weight: 700; }
+.nav-links .nav-link:hover {
+    background: rgba(255, 152, 0, 0.08);
+    color: #ffb347;
+}
+.nav-links .nav-link.is-active {
+    color: gray;
+}
 .nav-auth {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: flex-end;
+    gap: 0;
     flex-shrink: 0;
 }
 .nav-auth-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 30px;
-    background: linear-gradient(135deg, #ec7e08, #ec7e08);
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #ff9800, #ffb347);
     color: white;
     text-decoration: none;
-    border-radius: 50px;
-    font-weight: 600;
+    border-radius: 999px;
+    font-weight: 700;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(11, 94, 215, 0.3);
+    box-shadow: 0 10px 28px rgba(255, 152, 0, 0.2);
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
 }
 .nav-auth-link:hover {
     color: white;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(41, 117, 249, 0.4);
-    background: linear-gradient(135deg, #0b5ed7, #094db5);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(255, 152, 0, 0.24);
+    background: linear-gradient(135deg, #ff9f00, #ffb93d);
     text-decoration: none;
 }
 .nav-auth-link:active {
@@ -202,6 +210,12 @@ body  {
     background: none; border: none; cursor: pointer; padding: 6px; margin-left: 12px;
 }
 .hamburger span { display: block; width: 22px; height: 2px; background: var(--text-dark); border-radius: 2px; transition: 0.25s; }
+
+@media (max-width: 992px) {
+    .navbar-inner { grid-template-columns: auto auto; gap: 18px; }
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+}
 
 /* ================================================================
    HERO SECTION

@@ -36,11 +36,6 @@
         <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['not_started'] }}</p>
         <p class="text-[11px] text-[#64748b] mt-0.5">Not yet started</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm">
-        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Overdue (30d+)</p>
-        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['overdue'] }}</p>
-        <p class="text-[11px] text-[#64748b] mt-0.5">Past due submissions</p>
-    </div>
 </div>
 
 {{-- Pending Reviews hidden to match exact screenshot layout --}}

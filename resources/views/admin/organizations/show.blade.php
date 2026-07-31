@@ -18,6 +18,11 @@
                 <button type="submit" class="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700">Deactivate</button>
             </form>
             @endif
+            <form action="{{ route('admin.organizations.destroy', $organization) }}" method="POST" class="inline" onsubmit="return confirm('Delete this organization account? This cannot be undone.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100">Delete Account</button>
+            </form>
         </div>
     </div>
 

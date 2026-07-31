@@ -20,25 +20,43 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="colleges">College *</label>
-                                    <select id="colleges" name="colleges" required>
-                                        <option value="">Select college</option>
-                                        @foreach(['CTED','CCJE','CHM','CFAS','CBEA','CIT','CICS'] as $c)
-                                        <option value="{{ $c }}" {{ old('colleges')==$c?'selected':'' }}>{{ $c }}</option>
-                                        @endforeach
-                                    </select>
+                                    @if(!empty($detectedCollege))
+                                        <div class="detected-value">
+                                            <span>{{ $detectedCollege }}</span>
+                                            <small class="help-text">Detected from your student organization.</small>
+                                        </div>
+                                        <input type="hidden" name="colleges" value="{{ $detectedCollege }}">
+                                    @else
+                                        <select id="colleges" name="colleges" required>
+                                            <option value="">Select college</option>
+                                            @foreach(['CTED','CCJE','CHM','CFAS','CBEA','CIT','CICS'] as $c)
+                                            <option value="{{ $c }}" {{ old('colleges')==$c ? 'selected' : '' }}>{{ $c }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
                                 </div>
                                 <div class="form-group">
                                     <label for="term">Term *</label>
-                                    <select id="term" name="term" required>
-                                        <option value="">Select term</option>
-                                        <option value="1st Term" {{ old('term', auth()->user()->term)=='1st Term'?'selected':'' }}>1st Term</option>
-                                        <option value="2nd Term" {{ old('term', auth()->user()->term)=='2nd Term'?'selected':'' }}>2nd Term</option>
-                                    </select>
+                                    @if(auth()->user()->term)
+                                        <input type="text" disabled value="{{ old('term', auth()->user()->term) }}" class="bg-gray-100">
+                                        <input type="hidden" name="term" value="{{ old('term', auth()->user()->term) }}">
+                                    @else
+                                        <select id="term" name="term" required>
+                                            <option value="">Select term</option>
+                                            <option value="1st Term" {{ old('term')=='1st Term' ? 'selected' : '' }}>1st Term</option>
+                                            <option value="2nd Term" {{ old('term')=='2nd Term' ? 'selected' : '' }}>2nd Term</option>
+                                        </select>
+                                    @endif
                                 </div>
                                 <div class="form-group">
                                     <label for="school_year">School Year *</label>
-                                    <input type="text" id="school_year" name="school_year" required
-                                           placeholder="e.g. 2025-2026" value="{{ old('school_year', auth()->user()->school_year) }}">
+                                    @if(auth()->user()->school_year)
+                                        <input type="text" disabled value="{{ old('school_year', auth()->user()->school_year) }}" class="bg-gray-100">
+                                        <input type="hidden" name="school_year" value="{{ old('school_year', auth()->user()->school_year) }}">
+                                    @else
+                                        <input type="text" id="school_year" name="school_year" required
+                                               placeholder="e.g. 2025-2026" value="{{ old('school_year') }}">
+                                    @endif
                                 </div>
                             </div>
                             <div class="form-group">

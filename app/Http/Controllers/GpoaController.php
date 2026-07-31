@@ -51,7 +51,87 @@ class GpoaController extends Controller
                 ->with('error', 'You already have a GPOA submitted or approved for this term and school year.');
         }
 
-        return view('gpoa.create');
+        $detectedCollege = $this->detectCollegeFromOrganization($user);
+
+        return view('gpoa.create', compact('detectedCollege'));
+    }
+
+    private function detectCollegeFromOrganization($user): ?string
+    {
+        if (!empty($user->college)) {
+            return strtoupper($user->college);
+        }
+
+        if (!empty($user->organization?->college)) {
+            return strtoupper($user->organization->college);
+        }
+
+        $orgName = strtoupper(trim($user->org_name ?? $user->organization?->name ?? ''));
+        $orgName = preg_replace('/[^A-Z0-9\- ]+/', '', $orgName);
+
+        $collegeMap = [
+            // CICS
+            'ITOUCH PUBLICATION' => 'CICS',
+            'ITOUCH' => 'CICS',
+            'CICS SC' => 'CICS',
+            'CICS-SC' => 'CICS',
+            'COLLEGE OF INFORMATION AND COMPUTING SCIENCES' => 'CICS',
+
+            // CTE
+            'THE MENTOR' => 'CTE',
+            'THE ACADEMIA' => 'CTE',
+            'CTE SC' => 'CTE',
+            'CTE-SC' => 'CTE',
+            'CCTE SC' => 'CTE',
+            'CCTE-SC' => 'CTE',
+            'PASSED' => 'CTE',
+            'COLLEGE OF TEACHER EDUCATION' => 'CTE',
+
+            // CFAS
+            'THE WATERWORLD' => 'CFAS',
+            'THE AQUARIUS' => 'CFAS',
+            'CFAS SC' => 'CFAS',
+            'CFAS-SC' => 'CFAS',
+            'COLLEGE OF FISHERIES AND AQUATIC SCIENCES' => 'CFAS',
+
+            // CHM
+            'THE BANQUET' => 'CHM',
+            'CHM SC' => 'CHM',
+            'CHM-SC' => 'CHM',
+            'SAB-CHM' => 'CHM',
+            'SAB CHM' => 'CHM',
+            'HMS' => 'CHM',
+            'COLLEGE OF HOSPITALITY MANAGEMENT' => 'CHM',
+
+            // CCJE
+            'THE CALIBER' => 'CCJE',
+            'CJS SC' => 'CCJE',
+            'CJS-SC' => 'CCJE',
+            'COLLEGE OF CRIMINAL JUSTICE EDUCATION' => 'CCJE',
+
+            // CBEA
+            'THE LEDGER' => 'CBEA',
+            'COLLEGE OF BUSINESS, ENTREPRENEURSHIP AND ACCOUNTANCY' => 'CBEA',
+
+            // CET
+            'THE CONDUIT' => 'CET',
+            'COLLEGE OF ENGINEERING AND TECHNOLOGY' => 'CET',
+
+            // Agriculture
+            'FAME' => 'AGRICULTURE',
+            'FAS SCO' => 'AGRICULTURE',
+            'FAS-SCO' => 'AGRICULTURE',
+            'ASIDETS' => 'AGRICULTURE',
+            'COLLEGE OF AGRICULTURE' => 'AGRICULTURE',
+        ];
+
+        foreach ($collegeMap as $needle => $college) {
+            if (str_contains($orgName, $needle)) {
+                return $college;
+            }
+        }
+
+        return null;
     }
 
     public function store(Request $request)

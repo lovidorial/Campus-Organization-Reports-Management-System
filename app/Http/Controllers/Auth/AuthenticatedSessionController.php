@@ -28,6 +28,33 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $role = $request->input('role', 'student');
+        $user = Auth::user();
+
+        if ($role === 'admin') {
+            if (! $user->isAdmin()) {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors(['role' => 'You are not an administrator.']);
+            }
+
+            return redirect()->intended(route('admin.dashboard', absolute: false));
+        }
+
+        $isStudentOrganization = $user->role === 'user' && (
+            ! empty($user->organization_id) || ! empty($user->org_name)
+        );
+
+        if (! $isStudentOrganization) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors(['role' => 'Please sign in with a student organization account.']);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

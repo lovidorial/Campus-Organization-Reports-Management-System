@@ -41,53 +41,25 @@
 
 @if(isset($stats))
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-        <div>
-            <svg class="w-6 h-6 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Total</p>
-            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['total'] }}</p>
-            <p class="text-[11px] text-[#64748b] mt-0.5">All activities</p>
-        </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Total</p>
+        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['total'] }}</p>
+        <p class="text-[11px] text-[#64748b] mt-0.5">All activities</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-        <div>
-            <svg class="w-6 h-6 text-[#f59e0b]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Pending</p>
-            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['pending'] }}</p>
-            <p class="text-[11px] text-[#64748b] mt-0.5">Awaiting review</p>
-        </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Pending</p>
+        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['pending'] }}</p>
+        <p class="text-[11px] text-[#64748b] mt-0.5">Awaiting review</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-        <div>
-            <svg class="w-6 h-6 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Active/Closed</p>
-            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['approved'] }}</p>
-            <p class="text-[11px] text-[#64748b] mt-0.5">Completed activities</p>
-        </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Active/Closed</p>
+        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['approved'] }}</p>
+        <p class="text-[11px] text-[#64748b] mt-0.5">Completed activities</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-        <div>
-            <svg class="w-6 h-6 text-[#ef4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Rejected</p>
-            <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['rejected'] }}</p>
-            <p class="text-[11px] text-[#64748b] mt-0.5">Declined activities</p>
-        </div>
+    <div class="bg-white p-5 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Rejected</p>
+        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['rejected'] }}</p>
+        <p class="text-[11px] text-[#64748b] mt-0.5">Declined activities</p>
     </div>
 </div>
 @endif
@@ -98,6 +70,7 @@
             <tr>
                 <th class="p-3 text-left text-gray-500">Activity</th>
                 <th class="p-3 text-left text-gray-500">Organization</th>
+                <th class="p-3 text-left text-gray-500">Source</th>
                 <th class="p-3 text-left text-gray-500">GPOA Match</th>
                 <th class="p-3 text-left text-gray-500">Category</th>
                 <th class="p-3 text-left text-gray-500">Date</th>
@@ -112,6 +85,7 @@
             <tr class="border-b last:border-0 hover:bg-gray-50">
                 <td class="p-3 font-medium max-w-[140px] truncate" title="{{ $activity->title }}">{{ $activity->title }}</td>
                 <td class="p-3">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
+                <td class="p-3"><span class="text-xs text-slate-600 font-semibold">Activity Request</span></td>
                 <td class="p-3">
                     @if($activity->matchesGpoaLineItem())
                     <span class="text-green-600 text-xs font-bold">✓ Match</span>
@@ -182,6 +156,45 @@
 </div>
 
 <div class="mt-4">{{ $activities->links() }}</div>
+
+@if(isset($plannedActivities) && $plannedActivities->count())
+<div class="mt-10">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">Planned GPOA Activities</h3>
+    <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+        <table class="w-full text-sm min-w-[1000px]">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="p-3 text-left text-gray-500">Activity</th>
+                    <th class="p-3 text-left text-gray-500">Organization</th>
+                    <th class="p-3 text-left text-gray-500">College</th>
+                    <th class="p-3 text-left text-gray-500">Category</th>
+                    <th class="p-3 text-left text-gray-500">Date</th>
+                    <th class="p-3 text-left text-gray-500">Venue</th>
+                    <th class="p-3 text-left text-gray-500">GPOA Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($plannedActivities as $planned)
+                <tr class="border-b last:border-0 hover:bg-gray-50">
+                    <td class="p-3 font-medium max-w-[140px] truncate" title="{{ $planned->title }}">{{ $planned->title }}</td>
+                    <td class="p-3">{{ $planned->gpoa->user->org_name ?? $planned->gpoa->user->name ?? '—' }}</td>
+                    <td class="p-3">{{ $planned->gpoa->college ?? '—' }}</td>
+                    <td class="p-3">
+                        @if($planned->category)
+                        <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $planned->category }}</span>
+                        @else — @endif
+                    </td>
+                    <td class="p-3">{{ optional($planned->date)->format('M d, Y') }}</td>
+                    <td class="p-3">{{ $planned->venue }}</td>
+                    <td class="p-3"><span class="text-xs text-slate-600">{{ ucfirst($planned->gpoa->status) }}</span></td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-4">{{ $plannedActivities->links('pagination::tailwind', ['pageName' => 'plannedPage']) }}</div>
+</div>
+@endif
 
 <!-- Approve Modal -->
 <div id="approveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">

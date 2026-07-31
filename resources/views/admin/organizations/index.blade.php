@@ -32,13 +32,6 @@
             <p class="mt-2 text-xs text-slate-500">Active organization accounts</p>
             <p class="mt-4 text-3xl font-bold text-emerald-600">{{ $summary['active'] ?? 0 }}</p>
         </div>
-
-        <!-- Inactive Accounts -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Inactive</p>
-            <p class="mt-2 text-xs text-slate-500">Inactive organization accounts</p>
-            <p class="mt-4 text-3xl font-bold text-rose-600">{{ $summary['inactive'] ?? 0 }}</p>
-        </div>
     </div>
 
     <!-- Filter Section -->
@@ -151,6 +144,13 @@
                                     </button>
                                 </form>
                                 @endif
+                                <form action="{{ route('admin.organizations.destroy', $org) }}" method="POST" onsubmit="return confirm('Delete this organization account? This cannot be undone.');" class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-700 hover:bg-rose-100 transition" title="Delete" aria-label="Delete">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

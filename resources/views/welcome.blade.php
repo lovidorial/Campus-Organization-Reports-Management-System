@@ -20,55 +20,37 @@
 <body>
 
     {{-- ========================================================
-         NAVBAR  —  matches screenshot: brand left, links, auth right
+         NAVBAR  —  header navigation layout update
     ======================================================== --}}
     <nav class="site-navbar">
         <div class="navbar-inner">
+            <a href="{{ url('/') }}" class="nav-brand">
+                <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CORMS logo" class="nav-logo-img">
+                <span class="nav-brand-text">CORMS</span>
+            </a>
 
-            <div class="navbar-brand-wrap">
-                <a href="{{ url('/') }}" class="nav-brand">
-                    <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="" class="nav-logo-img">
-                    <span class="nav-brand-text" style="color: #f5a623;">CSORMS</span>
-                </a>
-            </div>
+            <ul class="nav-links">
+                <li><a href="#top" class="nav-link is-active">Home</a></li>
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#learnMoreModal">About</a></li>
+                <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+                <li><a href="{{ route('public.activities') }}" class="nav-link">Browse Activities</a></li>
+            </ul>
 
             <div class="nav-auth">
-                <a href="{{ route('public.activities') }}" class="nav-auth-link">
-                     Browse Activities
-                </a>
-                @auth
-                    <div class="nav-user" id="userDropdownWrap">
-                        <button class="user-btn" id="userBtn">
-                            <i class="fas fa-user-circle"></i>
-                            <span>{{ Auth::user()->username ?? Auth::user()->name }}</span>
-                            <i class="fas fa-chevron-down caret"></i>
-                        </button>
-                        <div class="user-dropdown" id="userDropdownMenu">
-                            <a href="{{ url('/dashboard') }}"><i class="fas fa-home"></i> Dashboard</a>
-                            <a href="{{ route('user.activities') }}"><i class="fas fa-calendar"></i> My Activities</a>
-                            <hr>
-                            <a href="{{ route('logout') }}" class="danger"
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
-                        </div>
-                    </div>
-                @else
+                @guest
                     <a href="{{ route('login') }}" class="nav-auth-link">Login</a>
-                @endauth
+                @else
+                    <a href="{{ url('/dashboard') }}" class="nav-auth-link">Dashboard</a>
+                @endguest
             </div>
-
-            <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
-                <span></span><span></span><span></span>
-            </button>
         </div>
     </nav>
 
     {{-- ========================================================
          HERO — heading
     ======================================================== --}}
-    <section class="hero hero-with-bg" style="background-image: url('{{ asset('images/hero-bg.jpg') }}');">
+    <section id="top" class="hero hero-with-bg" style="background-image: url('{{ asset('images/hero-bg.jpg') }}');">
         <div class="hero-container">
             <div class="hero-content">
                 
@@ -118,7 +100,8 @@
     {{-- ========================================================
          BENEFITS SECTION
     ======================================================== --}}
-    <section class="section-block section-benefits">
+    <div id="about"></div>
+    <section id="features" class="section-block section-benefits">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Why Use CSORMS?</h2>
@@ -151,9 +134,8 @@
     {{-- ========================================================
          FEATURE / STATS SECTION
     ======================================================== --}}
-    <section class="section-block section-light">
+    <section id="how-it-works" class="section-block section-light">
         <div class="container">
-            <h2 class="section-title">How It Works</h2>
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="feat-card">
@@ -199,7 +181,7 @@
     {{-- ========================================================
          FOOTER
     ======================================================== --}}
-    <footer class="site-footer">
+    <footer id="contact" class="site-footer">
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-3">

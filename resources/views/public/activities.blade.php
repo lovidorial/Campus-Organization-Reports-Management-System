@@ -65,7 +65,7 @@
         }
 
         .nav-link {
-            color: #555577 !important;
+            color: gray !important;
             font-weight: 600;
             margin: 0 12px;
             font-size: 0.93rem;
@@ -73,29 +73,33 @@
         }
 
         .nav-link:hover {
-            color: #1a2b6d !important;
+            color: #ec7e08 !important;
             background: #f8f9fc;
             border-radius: 5px;
             padding: 6px 12px;
         }
 
         .btn-login {
-            background: linear-gradient(135deg, #ec7e08 0%, #ec7e08 100%);
-            color: white;
-            font-weight: 600;
-            padding: 10px 30px;
-            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ff9800 0%, #ffb347 100%);
+            color: white !important;
+            font-weight: 700;
+            padding: 10px 28px;
+            border-radius: 999px;
             border: none;
             font-size: 0.95rem;
-            box-shadow: 0 4px 15px rgba(11, 94, 215, 0.3);
-            transition: all 0.3s ease;
+            box-shadow: 0 10px 28px rgba(255, 152, 0, 0.24);
+            transition: all 0.25s ease;
+            text-decoration: none;
         }
-
+    
         .btn-login:hover {
-            background: linear-gradient(135deg, #0b5ed7 0%, #094db5 100%);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(41, 117, 249, 0.4);
+            background: linear-gradient(135deg, #ff9f00 0%, #ffb347 100%);
+            color: white !important;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 26px rgba(255, 152, 0, 0.28);
             text-decoration: none;
         }
 
@@ -576,8 +580,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
               <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-                  <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CSORMS" style="height:26px;width:26px;object-fit:cover;border-radius:50%;margin-right:8px;">
-                  <span style="color: #f5a623; font-weight:800;">CSORMS</span>
+                  <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CORMS" style="height:26px;width:26px;object-fit:cover;border-radius:50%;margin-right:8px;">
+                  <span style="color: #f5a623; font-weight:800;">CORMS</span>
               </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -595,7 +599,7 @@
                             <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link btn btn-login ms-3" href="{{ route('logout') }}" 
+                            <a class="btn btn-login ms-3" href="{{ route('logout') }}" 
                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                 Logout
                             </a>
@@ -603,7 +607,7 @@
                         </li>
                     @else
                         <li class="nav-item">
-                            <a class="nav-link btn btn-login ms-3" href="{{ route('login') }}">Login</a>
+                            <a class="btn btn-login ms-3" href="{{ route('login') }}">Login</a>
                         </li>
                     @endauth
                 </ul>
