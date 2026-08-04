@@ -147,9 +147,14 @@ class GpoaController extends Controller
             'activities.*.date'   => 'required|date',
             'activities.*.venue'  => 'required|string|max:255',
             'activities.*.category'           => 'required|string|max:100',
-            'activities.*.description'        => 'required|string',
-            'activities.*.participants_count' => 'required|integer|min:1',
-            'activities.*.basis_grading'      => 'nullable|string|max:50',
+            'activities.*.objectives'         => 'required|string',
+            'activities.*.target_participants'=> 'required|string|max:255',
+            'activities.*.estimated_budget'   => 'required|numeric|min:0',
+            'activities.*.source_of_funds'    => 'required|string|max:100',
+            'activities.*.person_in_charge'   => 'required|string|max:255',
+            'activities.*.sdgs'              => 'required|array|min:1|max:11',
+            'activities.*.sdgs.*'            => 'integer|between:1,11',
+            'activities.*.preceding_activity' => 'nullable|string|max:255',
         ]);
 
         $workflow = $this->workflowService->getOrCreateForUser(
@@ -182,9 +187,13 @@ class GpoaController extends Controller
                 'date'               => $activity['date'],
                 'venue'              => $activity['venue'],
                 'category'           => $activity['category'],
-                'description'        => $activity['description'],
-                'participants_count' => $activity['participants_count'],
-                'basis_grading'      => $activity['basis_grading'] ?? null,
+                'objectives'         => $activity['objectives'],
+                'target_participants'=> $activity['target_participants'],
+                'estimated_budget'   => $activity['estimated_budget'],
+                'source_of_funds'    => $activity['source_of_funds'],
+                'person_in_charge'   => $activity['person_in_charge'],
+                'sdgs'               => $activity['sdgs'],
+                'preceding_activity' => $activity['preceding_activity'] ?? null,
             ]);
         }
 
@@ -235,9 +244,14 @@ class GpoaController extends Controller
             'activities.*.date'   => 'required|date',
             'activities.*.venue'  => 'required|string|max:255',
             'activities.*.category'           => 'required|string|max:100',
-            'activities.*.description'        => 'required|string',
-            'activities.*.participants_count' => 'required|integer|min:1',
-            'activities.*.basis_grading'      => 'nullable|string|max:50',
+            'activities.*.objectives'         => 'required|string',
+            'activities.*.target_participants'=> 'required|string|max:255',
+            'activities.*.estimated_budget'   => 'required|numeric|min:0',
+            'activities.*.source_of_funds'    => 'required|string|max:100',
+            'activities.*.person_in_charge'   => 'required|string|max:255',
+            'activities.*.sdgs'              => 'required|array|min:1|max:11',
+            'activities.*.sdgs.*'            => 'integer|between:1,11',
+            'activities.*.preceding_activity' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('document_path')) {
@@ -263,9 +277,13 @@ class GpoaController extends Controller
                 'date'               => $activity['date'],
                 'venue'              => $activity['venue'],
                 'category'           => $activity['category'],
-                'description'        => $activity['description'],
-                'participants_count' => $activity['participants_count'],
-                'basis_grading'      => $activity['basis_grading'] ?? null,
+                'objectives'         => $activity['objectives'],
+                'target_participants'=> $activity['target_participants'],
+                'estimated_budget'   => $activity['estimated_budget'],
+                'source_of_funds'    => $activity['source_of_funds'],
+                'person_in_charge'   => $activity['person_in_charge'],
+                'sdgs'               => $activity['sdgs'],
+                'preceding_activity' => $activity['preceding_activity'] ?? null,
             ]);
         }
 

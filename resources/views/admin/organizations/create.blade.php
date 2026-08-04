@@ -28,13 +28,9 @@
                         <select id="type" name="type" required
                                 class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100">
                             <option value="">Select type</option>
-                            <option value="Student Council" {{ old('type')=='Student Council' ? 'selected' : '' }}>Student Council</option>
-                            <option value="Academic Org" {{ old('type')=='Academic Org' ? 'selected' : '' }}>Academic Org</option>
-                            <option value="Cultural Org" {{ old('type')=='Cultural Org' ? 'selected' : '' }}>Cultural Org</option>
-                            <option value="Sports Org" {{ old('type')=='Sports Org' ? 'selected' : '' }}>Sports Org</option>
-                            <option value="Religious Org" {{ old('type')=='Religious Org' ? 'selected' : '' }}>Religious Org</option>
-                            <option value="Publication" {{ old('type')=='Publication' ? 'selected' : '' }}>Publication</option>
-                            <option value="Other" {{ old('type')=='Other' ? 'selected' : '' }}>Other</option>
+                            <option value="Major Student Organization" {{ old('type')=='Major Student Organization' ? 'selected' : '' }}>Major Student Organization</option>
+                            <option value="Minor Student Organization" {{ old('type')=='Minor Student Organization' ? 'selected' : '' }}>Minor Student Organization</option>
+                            <option value="Specialized Student Organization" {{ old('type')=='Specialized Student Organization' ? 'selected' : '' }}>Specialized Student Organization</option>
                         </select>
                         @error('type')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>

@@ -9,12 +9,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class GpoaActivity extends Model
 {
     protected $fillable = [
-        'gpoa_id', 'title', 'date', 'venue', 'category',
-        'description', 'participants_count', 'basis_grading',
+        'gpoa_id',
+        'title',
+        'date',
+        'venue',
+        'category',
+        'objectives',
+        'target_participants',
+        'estimated_budget',
+        'source_of_funds',
+        'person_in_charge',
+        'sdgs',
+        'preceding_activity',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'sdgs' => 'array',
+        'estimated_budget' => 'decimal:2',
     ];
 
     public function gpoa(): BelongsTo

@@ -7,7 +7,7 @@
         @if(!$canSubmit)
         <div class="mb-6 rounded-lg border border-orange-200 bg-orange-50 text-orange-800 px-4 py-3">
             <p class="font-semibold">Communication Letter is not yet available</p>
-            <p class="text-sm mt-1">Your Communication Letter submission is currently locked until your GPOA is approved.</p>
+            <p class="text-sm mt-1">Your Communication Letter submission will be available once your GPOA is approved.</p>
         </div>
         @endif
 
