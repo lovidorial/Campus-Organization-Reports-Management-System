@@ -79,13 +79,19 @@
      style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div class="flex items-start sm:items-center gap-3">
-            @if($user->profile_photo_path)
-                <img src="{{ asset('storage/'.$user->profile_photo_path) }}"
-                     alt="{{ $user->name }}"
+            @php
+                $avatarPath = $user->organization?->logo_path
+                    ? 'storage/' . $user->organization->logo_path
+                    : ($user->profile_photo_path ? 'storage/' . $user->profile_photo_path : null);
+            @endphp
+
+            @if($avatarPath)
+                <img src="{{ asset($avatarPath) }}"
+                     alt="{{ $user->organization?->name ?? $user->name }}"
                      class="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
             @else
                 <div class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl bg-white/95 flex items-center justify-center text-2xl font-bold shadow-md shrink-0" style="color: #e89600;">
-                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                    {{ strtoupper(substr($user->organization?->name ?? $user->name, 0, 1)) }}
                 </div>
             @endif
             <div>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 02, 2026 at 03:40 AM
+-- Generation Time: Aug 08, 2026 at 09:24 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -97,14 +97,6 @@ CREATE TABLE `cache` (
   `value` mediumtext NOT NULL,
   `expiration` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `cache`
---
-
-INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('laravel-cache-pesocamal@gmail.com|127.0.0.1', 'i:1;', 1785634794),
-('laravel-cache-pesocamal@gmail.com|127.0.0.1:timer', 'i:1785634794;', 1785634794);
 
 -- --------------------------------------------------------
 
@@ -294,6 +286,14 @@ CREATE TABLE `organizations` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `organizations`
+--
+
+INSERT INTO `organizations` (`id`, `name`, `type`, `college`, `sc_president`, `term`, `school_year`, `description`, `logo_path`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'CTE-SC', 'Student Council', 'CTED', 'Browny James', '1st Term', '2026-2027', NULL, 'organization-logos/k6Iw31UqCBUFq96TT8AIIVdt7wABfxPC8D54ty7Z.jpg', 1, '2026-08-01 17:42:13', '2026-08-01 17:42:13'),
+(2, 'ITOUCH-PUBLICATION', 'Specialized Student Organization', 'CICS', 'Jonni Brabo', '1st Term', '2026-2027', NULL, 'organization-logos/8LgBPTPqmDNjFz8eiNyAUyLnTM2ZdRUyzzTBYckQ.jpg', 1, '2026-08-01 19:45:02', '2026-08-01 19:45:02');
+
 -- --------------------------------------------------------
 
 --
@@ -315,6 +315,14 @@ CREATE TABLE `organization_workflows` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `organization_workflows`
+--
+
+INSERT INTO `organization_workflows` (`id`, `user_id`, `term`, `school_year`, `current_stage`, `completion_percentage`, `is_completed`, `is_locked`, `reopened_by`, `reopened_at`, `completed_at`, `created_at`, `updated_at`) VALUES
+(1, 5, '1st Term', '2026-2027', 'gpoa_pending', 0, 0, 0, NULL, NULL, NULL, '2026-08-01 17:43:52', '2026-08-01 17:43:52'),
+(2, 6, '1st Term', '2026-2027', 'gpoa_pending', 0, 0, 0, NULL, NULL, NULL, '2026-08-01 19:45:20', '2026-08-01 19:45:20');
 
 -- --------------------------------------------------------
 
@@ -381,7 +389,9 @@ INSERT INTO `users` (`id`, `name`, `email`, `username`, `student_number`, `profi
 (1, 'Admin', 'osdw@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$cM4yeZR3e/EXY752o.MR6e57fDG8cgkSWLkbzt9WPAkfmmJ48MN82', 'admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-01 17:39:07', '2026-08-01 17:39:07', NULL),
 (2, 'paolo contist', 'paolo@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$2IoGMobQEru0ibMay87lLObDO5zmx4rRcWYCV7XUj7/3TYjfFHjO2', 'user', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-01 17:39:07', '2026-08-01 17:39:07', NULL),
 (3, 'jade Unciano', 'jade@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$OMiDbtuIOUvL6y2P5ZfK5ezEBifmHzwK4tKbY.n2uKZ1rd12NBKb6', 'user', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-01 17:39:08', '2026-08-01 17:39:08', NULL),
-(4, 'adrian Villena', 'jums@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$.rBcsytjPoUqzf2gl0BolOy07q15LUfq8nBG3Fpd4/DKm3Kd22tgK', 'user', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-01 17:39:08', '2026-08-01 17:39:08', NULL);
+(4, 'adrian Villena', 'jums@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$.rBcsytjPoUqzf2gl0BolOy07q15LUfq8nBG3Fpd4/DKm3Kd22tgK', 'user', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-01 17:39:08', '2026-08-01 17:39:08', NULL),
+(5, 'Browny James', 'ctesc@gmail.com', 'CTE-SC', '23-12155', 'profile-photos/SfYVF2Di5c7mNwxzoa6D9lYZ70cxsPKPWOl3zhTN.jpg', NULL, '$2y$12$Juvi3R4Wene6dYgN2vRiO.13NyLfdN.icJd8rjwXeou/m/UTh.f2i', 'user', NULL, NULL, NULL, 'Secretary', 'CTE-SC', 'Student Council', 'CTED', 1, NULL, '2026-08-01 17:42:14', '2026-08-01 17:44:17', NULL),
+(6, 'Jonni Brabo', 'itouch@gmail.com', 'Jonni Brabo', '23-14244', 'profile-photos/sCIbX0Hf6lgFP9A0mgaVHxljvScO5RnvtDbljer2.jpg', NULL, '$2y$12$WTwYF9xs2gUIJfNoS55DU.7xYEYDyFk/sP8qVxntsGVGRZy7mnXdW', 'user', NULL, NULL, NULL, 'Secretary', 'ITOUCH-PUBLICATION', 'Specialized Student Organization', 'CICS', 2, NULL, '2026-08-01 19:45:02', '2026-08-01 19:45:45', NULL);
 
 -- --------------------------------------------------------
 
@@ -655,19 +665,19 @@ ALTER TABLE `monitoring_results`
 -- AUTO_INCREMENT for table `organizations`
 --
 ALTER TABLE `organizations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `organization_workflows`
 --
 ALTER TABLE `organization_workflows`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `user_notifications`
