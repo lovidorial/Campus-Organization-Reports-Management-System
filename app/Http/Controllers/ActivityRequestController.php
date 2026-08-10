@@ -36,7 +36,7 @@ class ActivityRequestController extends Controller
             ->whereIn('status', ['approved', 'stored'])
             ->with(['activities' => function ($q) {
                 $q->whereDoesntHave('activityRequests', function ($r) {
-                    $r->whereNotIn('status', ['rejected']);
+                    $r->whereNotIn('status', ['rejected', 'report_submitted', 'closed']);
                 });
             }])
             ->first();

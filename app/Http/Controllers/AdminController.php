@@ -185,7 +185,7 @@ class AdminController extends Controller
                 $q->whereIn('status', ['approved', 'stored']);
             })
             ->whereDoesntHave('activityRequests', function ($q) {
-                $q->whereNotIn('status', ['rejected']);
+                $q->whereNotIn('status', ['rejected', 'report_submitted', 'closed']);
             });
 
         if ($request->filled('search')) {

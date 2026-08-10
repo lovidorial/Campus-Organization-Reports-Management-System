@@ -93,7 +93,6 @@
                                 <th class="py-3 px-4">Submitted</th>
                                 <th class="py-3 px-4">Reviewer</th>
                                 <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
@@ -104,11 +103,10 @@
                                 <td class="py-4 px-4">{{ $submission->submitted_at ? $submission->submitted_at->format('M d, Y') : '—' }}</td>
                                 <td class="py-4 px-4">{{ $submission->reviewer?->name ?? '—' }}</td>
                                 <td class="py-4 px-4">{{ ucfirst(str_replace('_',' ',$submission->status)) }}</td>
-                                <td class="py-4 px-4 text-center"><a href="{{ route('admin.workflows.submissions.document', $submission->id) }}" class="text-slate-700 hover:text-slate-900">View</a></td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="py-12 px-4 text-center text-slate-500">
+                                <td colspan="5" class="py-12 px-4 text-center text-slate-500">
                                     <div class="flex flex-col items-center gap-4">
                                         <div class="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 11l3 3L22 4"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
