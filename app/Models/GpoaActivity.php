@@ -15,12 +15,17 @@ class GpoaActivity extends Model
         'venue',
         'category',
         'objectives',
+        'expected_outcome',
         'target_participants',
         'estimated_budget',
         'source_of_funds',
         'person_in_charge',
         'sdgs',
         'preceding_activity',
+        'plan_key_strategy',
+        'facilities_materials',
+        'remarks',
+        'activity_level',
     ];
 
     protected $casts = [

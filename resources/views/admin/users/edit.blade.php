@@ -49,6 +49,12 @@
                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-300"/>
             </div>
             <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Organization Name</label>
+                <input type="text" name="org_name" value="{{ old('org_name', $user->org_name) }}"
+                       placeholder="e.g. City College Student Council"
+                       class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-300"/>
+            </div>
+            <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1">Org Type</label>
                 <select name="org_type" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-300">
                     <option value="">Select</option>

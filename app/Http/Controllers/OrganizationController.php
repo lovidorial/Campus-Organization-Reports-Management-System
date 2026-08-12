@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\Activity;
 use App\Models\User;
+use App\Services\OrganizationClassifierService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -106,6 +107,8 @@ class OrganizationController extends Controller
 
         $validated = $request->validate($rules);
 
+        $validated = $this->applyAutoClassification($validated, app(OrganizationClassifierService::class));
+
         $organizationData = [
             'name'         => $validated['name'],
             'type'         => $validated['type'],
@@ -118,7 +121,19 @@ class OrganizationController extends Controller
         ];
 
         if ($request->hasFile('logo')) {
-            $organizationData['logo_path'] = $request->file('logo')->store('organization-logos', 'public');
+            $path = $request->file('logo')->store('organization-logos', 'public');
+            $publicPath = public_path('storage/' . $path);
+            $publicDir = dirname($publicPath);
+
+            if (! is_dir($publicDir)) {
+                mkdir($publicDir, 0777, true);
+            }
+
+            if (file_exists(storage_path('app/public/' . $path))) {
+                copy(storage_path('app/public/' . $path), $publicPath);
+            }
+
+            $organizationData['logo_path'] = $path;
         }
 
         $organization = Organization::create($organizationData);
@@ -224,13 +239,56 @@ class OrganizationController extends Controller
         ]);
 
         if ($request->hasFile('logo')) {
-            $validated['logo_path'] = $request->file('logo')->store('organization-logos', 'public');
+            $path = $request->file('logo')->store('organization-logos', 'public');
+            $publicPath = public_path('storage/' . $path);
+            $publicDir = dirname($publicPath);
+
+            if (! is_dir($publicDir)) {
+                mkdir($publicDir, 0777, true);
+            }
+
+            if (file_exists(storage_path('app/public/' . $path))) {
+                copy(storage_path('app/public/' . $path), $publicPath);
+            }
+
+            $validated['logo_path'] = $path;
         }
+
+        $validated = $this->applyAutoClassification($validated, app(OrganizationClassifierService::class));
 
         $organization->update($validated);
 
         return redirect()->route('admin.organizations.index')
             ->with('success', 'Organization updated.');
+    }
+
+    private function applyAutoClassification(array $validated, OrganizationClassifierService $classifier): array
+    {
+        $detected = $classifier->classify($validated['name']);
+
+        if (! $detected) {
+            return $validated;
+        }
+
+        if (empty($validated['type'])) {
+            $validated['type'] = $this->typeForClassification($detected['classification']);
+        }
+
+        if (empty($validated['college'])) {
+            $validated['college'] = $detected['college_area'];
+        }
+
+        return $validated;
+    }
+
+    private function typeForClassification(string $classification): string
+    {
+        return match ($classification) {
+            'Major' => 'Major Student Organization',
+            'Minor' => 'Minor Student Organization',
+            'Specialized' => 'Specialized Student Organization',
+            default => $classification,
+        };
     }
 
     public function destroy(Organization $organization)

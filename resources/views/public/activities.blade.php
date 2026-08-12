@@ -354,6 +354,165 @@
             width: fit-content;
         }
 
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 16px 0 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            color: #9a9a9a;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #1a1a2e;
+            line-height: 1;
+        }
+
+        .tabs-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 999px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #555;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: #f5a623;
+            color: #e89600;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+        }
+
+        .tab-panel {
+            min-height: 80px;
+        }
+
+        .tab-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 0.95rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .activity-image-wrap {
+            position: relative;
+        }
+
+        .activity-cover {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .photo-count {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .activity-card.completed-card {
+            overflow: hidden;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .gallery-grid img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 16px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
         .btn-view:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
@@ -662,79 +821,170 @@
             </form>
         </div>
 
-        {{-- Activities Grid --}}
-        @if($activities->count() > 0)
-            <div class="activities-grid">
-                @forelse($activities as $activity)
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <h3 class="activity-title">{{ $activity->title }}</h3>
-                            <p class="activity-org">
-                                @if($activity->user)
-                                    {{ $activity->user->org_name ?? $activity->user->name }}
-                                @else
-                                    {{ $activity->organization ?? 'General' }}
-                                @endif
-                            </p>
-                        </div>
-                        <div class="activity-body">
-                            <span class="activity-status">
-                                <i class="fas fa-check-circle"></i> Approved
-                            </span>
-                            <div class="activity-meta">
-                                <div class="meta-item">
-                                    <i class="fas fa-calendar"></i>
-                                    <span>{{ $activity->date->format('M d, Y') }}</span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>{{ $activity->venue ?? 'Location TBA' }}</span>
-                                </div>
-                            </div>
-
-                            @if($activity->description)
-                                <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
-                            @endif
-                        </div>
-                        <div class="activity-footer">
-                            <button class="btn-view" onclick="showActivityDetails(this)" 
-                                data-id="{{ $activity->id }}"
-                                data-title="{{ $activity->title }}"
-                                data-organization="{{ $activity->user ? ($activity->user->org_name ?? $activity->user->name) : ($activity->organization ?? 'General') }}"
-                                data-date="{{ $activity->date->format('M d, Y') }}"
-                                data-venue="{{ $activity->venue ?? 'Location TBA' }}"
-                                data-category="{{ $activity->category ?? 'N/A' }}"
-                                data-participants="{{ $activity->participants_count ?? '0' }}"
-                                data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
-                                data-term="{{ $activity->term ?? 'N/A' }}"
-                                data-sy="{{ $activity->school_year ?? 'N/A' }}"
-                                data-description="{{ $activity->description ?? '' }}">
-                                <i class="fas fa-eye"></i> View Details
-                            </button>
-                        </div>
-                    </div>
-                @empty
-                    <div class="empty-state" style="grid-column: 1/-1;">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3>No Activities Found</h3>
-                        <p>There are no approved activities to display at the moment.</p>
-                    </div>
-                @endforelse
-            </div>
-
-            {{-- Pagination --}}
-            @if($activities->hasPages())
-                <div class="d-flex justify-content-center">
-                    {{ $activities->links() }}
+        {{-- Activities Stats and Tabs --}}
+        <div class="stats-row">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">Total Activities</div>
+                    <div class="stat-value">{{ $stats['total'] }}</div>
                 </div>
-            @endif
-        @else
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <h3>No Activities Found</h3>
-                <p>There are no approved activities to display at the moment.</p>
             </div>
-        @endif
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">Organizations</div>
+                    <div class="stat-value">{{ $stats['organizations'] }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">School Years</div>
+                    <div class="stat-value">{{ $stats['school_years'] }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs-row">
+            <button type="button" class="tab-btn active" data-tab="completed">
+                Completed Activities ({{ $completed->count() }})
+            </button>
+            <button type="button" class="tab-btn" data-tab="ongoing">
+                Ongoing Activities ({{ $ongoing->count() }})
+            </button>
+            <button type="button" class="tab-btn" data-tab="upcoming">
+                Upcoming Activities ({{ $upcoming->count() }})
+            </button>
+        </div>
+
+        <div class="tab-panel" data-panel="completed">
+            @if($completed->count())
+                <div class="activities-grid">
+                    @foreach($completed as $activity)
+                        <div class="activity-card completed-card">
+                            @if($activity->report && $activity->report->photos->count())
+                                <div class="activity-image-wrap">
+                                    <img src="{{ Storage::disk('public')->url($activity->report->photos->first()->path) }}" alt="{{ $activity->title }}" class="activity-cover">
+                                    @if($activity->report->photos->count() > 1)
+                                        <span class="photo-count">+{{ $activity->report->photos->count() - 1 }}</span>
+                                    @endif
+                                </div>
+                            @endif
+                            <div class="activity-body">
+                                <div>
+                                    <h3 class="activity-title">{{ $activity->title }}</h3>
+                                    <p class="activity-org">{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}</p>
+                                </div>
+                                <span class="activity-status status-completed"><i class="fas fa-check"></i> Completed</span>
+                                <div class="activity-meta">
+                                    <div class="meta-item"><i class="fas fa-calendar"></i><span>{{ $activity->date->format('M d, Y') }}</span></div>
+                                    <div class="meta-item"><i class="fas fa-map-marker-alt"></i><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                </div>
+                                <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
+                            </div>
+                            <div class="activity-footer">
+                                <button class="btn-view" onclick="showActivityDetails(this)"
+                                    data-title="{{ $activity->title }}"
+                                    data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
+                                    data-date="{{ $activity->date->format('M d, Y') }}"
+                                    data-venue="{{ $activity->venue ?? 'Location TBA' }}"
+                                    data-category="{{ $activity->category ?? 'N/A' }}"
+                                    data-participants="{{ $activity->participants_count ?? '0' }}"
+                                    data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
+                                    data-term="{{ $activity->term ?? 'N/A' }}"
+                                    data-sy="{{ $activity->school_year ?? 'N/A' }}"
+                                    data-description="{{ $activity->description ?? '' }}"
+                                    data-photos='@json($activity->report?->photos->map(fn($photo) => ['url' => Storage::disk('public')->url($photo->path), 'caption' => $photo->caption])->all())'>
+                                    <i class="fas fa-eye"></i> View Highlights
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="tab-empty">No completed activities right now.</div>
+            @endif
+        </div>
+
+        <div class="tab-panel hidden" data-panel="ongoing">
+            @if($ongoing->count())
+                <div class="activities-grid">
+                    @foreach($ongoing as $activity)
+                        <div class="activity-card">
+                            <div class="activity-header">
+                                <h3 class="activity-title">{{ $activity->title }}</h3>
+                                <p class="activity-org">{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}</p>
+                            </div>
+                            <div class="activity-body">
+                                <span class="activity-status status-ongoing"><i class="fas fa-hourglass-half"></i> Ongoing</span>
+                                <div class="activity-meta">
+                                    <div class="meta-item"><i class="fas fa-calendar"></i><span>{{ $activity->date->format('M d, Y') }}</span></div>
+                                    <div class="meta-item"><i class="fas fa-map-marker-alt"></i><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                </div>
+                                <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
+                            </div>
+                            <div class="activity-footer">
+                                <button class="btn-view" onclick="showActivityDetails(this)"
+                                    data-title="{{ $activity->title }}"
+                                    data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
+                                    data-date="{{ $activity->date->format('M d, Y') }}"
+                                    data-venue="{{ $activity->venue ?? 'Location TBA' }}"
+                                    data-category="{{ $activity->category ?? 'N/A' }}"
+                                    data-participants="{{ $activity->participants_count ?? '0' }}"
+                                    data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
+                                    data-term="{{ $activity->term ?? 'N/A' }}"
+                                    data-sy="{{ $activity->school_year ?? 'N/A' }}"
+                                    data-description="{{ $activity->description ?? '' }}"
+                                    data-photos='[]'>
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="tab-empty">No ongoing activities right now.</div>
+            @endif
+        </div>
+
+        <div class="tab-panel hidden" data-panel="upcoming">
+            @if($upcoming->count())
+                <div class="activities-grid">
+                    @foreach($upcoming as $activity)
+                        <div class="activity-card">
+                            <div class="activity-header">
+                                <h3 class="activity-title">{{ $activity->title }}</h3>
+                                <p class="activity-org">{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}</p>
+                            </div>
+                            <div class="activity-body">
+                                <span class="activity-status status-upcoming"><i class="fas fa-calendar-alt"></i> Upcoming</span>
+                                <div class="activity-meta">
+                                    <div class="meta-item"><i class="fas fa-calendar"></i><span>{{ $activity->date->format('M d, Y') }}</span></div>
+                                    <div class="meta-item"><i class="fas fa-map-marker-alt"></i><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                </div>
+                                <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
+                            </div>
+                            <div class="activity-footer">
+                                <button class="btn-view" onclick="showActivityDetails(this)"
+                                    data-title="{{ $activity->title }}"
+                                    data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
+                                    data-date="{{ $activity->date->format('M d, Y') }}"
+                                    data-venue="{{ $activity->venue ?? 'Location TBA' }}"
+                                    data-category="{{ $activity->category ?? 'N/A' }}"
+                                    data-participants="{{ $activity->participants_count ?? '0' }}"
+                                    data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
+                                    data-term="{{ $activity->term ?? 'N/A' }}"
+                                    data-sy="{{ $activity->school_year ?? 'N/A' }}"
+                                    data-description="{{ $activity->description ?? '' }}"
+                                    data-photos='[]'>
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="tab-empty">No upcoming activities right now.</div>
+            @endif
+        </div>
     </div>
 
     {{-- Activity Details Modal --}}
@@ -801,7 +1051,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function showActivityDetails(button) {
-            // Get all data attributes from the button
             const title = button.getAttribute('data-title');
             const organization = button.getAttribute('data-organization');
             const date = button.getAttribute('data-date');
@@ -812,8 +1061,8 @@
             const term = button.getAttribute('data-term');
             const sy = button.getAttribute('data-sy');
             const description = button.getAttribute('data-description');
+            const photos = JSON.parse(button.getAttribute('data-photos') || '[]');
 
-            // Populate modal elements
             document.getElementById('detailTitle').textContent = title;
             document.getElementById('detailOrg').textContent = organization;
             document.getElementById('detailCategoryMeta').textContent = category;
@@ -823,9 +1072,8 @@
             document.getElementById('detailBasis').textContent = basis;
             document.getElementById('detailTermBadge').textContent = term;
             document.getElementById('detailSYBadge').textContent = sy;
-            document.getElementById('detailStatusBadge').textContent = 'Approved';
+            document.getElementById('detailStatusBadge').textContent = button.closest('.activity-card.completed-card') ? 'Completed' : button.closest('.activity-card')?.querySelector('.status-ongoing') ? 'Ongoing' : 'Upcoming';
 
-            // Show description section only if description exists
             const descriptionSection = document.getElementById('descriptionSection');
             if (description && description.trim()) {
                 descriptionSection.style.display = 'block';
@@ -834,10 +1082,49 @@
                 descriptionSection.style.display = 'none';
             }
 
-            // Show the modal
+            const gallery = document.getElementById('detailGallery');
+            if (gallery) {
+                gallery.innerHTML = '';
+                if (photos.length) {
+                    photos.forEach(photo => {
+                        const image = document.createElement('img');
+                        image.src = photo.url;
+                        image.alt = photo.caption || title;
+                        image.addEventListener('click', () => openLightbox(photo.url));
+                        gallery.appendChild(image);
+                    });
+                }
+            }
+
             const modal = new bootstrap.Modal(document.getElementById('activityModal'));
             modal.show();
         }
+
+        function openLightbox(url) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImage = document.getElementById('lightboxImage');
+            lightboxImage.src = url;
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.getElementById('lightboxImage').src = '';
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+                button.classList.add('active');
+                document.querySelector(`.tab-panel[data-panel="${button.getAttribute('data-tab')}"]`).classList.remove('hidden');
+            });
+        });
     </script>
+
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <div class="lightbox-close">&times;</div>
+        <img id="lightboxImage" src="" alt="Activity Photo">
+    </div>
 </body>
 </html>

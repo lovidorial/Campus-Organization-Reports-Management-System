@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Gpoa;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -10,12 +11,17 @@ class ActivityRequest extends Model
 {
     protected $fillable = [
         'user_id', 'gpoa_activity_id', 'title', 'date', 'venue',
-        'category', 'description', 'participants_count',
+        'category', 'activity_level', 'sdgs', 'objectives', 'expected_outcome',
+        'plan_key_strategy', 'target_participants', 'person_in_charge',
+        'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
+        'preceding_activity', 'description', 'participants_count',
         'communication_letter', 'status', 'reject_reason',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'sdgs' => 'array',
+        'estimated_budget' => 'decimal:2',
     ];
 
     public const STATUS_PENDING = 'pending';
@@ -44,6 +50,11 @@ class ActivityRequest extends Model
     public function monitoringResult(): HasOne
     {
         return $this->hasOne(MonitoringResult::class);
+    }
+
+    public function getGpoaAttribute(): ?Gpoa
+    {
+        return $this->gpoaActivity?->gpoa;
     }
 
     public function refreshLifecycleStatus(): void

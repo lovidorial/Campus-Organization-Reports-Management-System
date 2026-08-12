@@ -16,6 +16,14 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+Route::get('/storage/{path}', function (string $path) {
+    $safePath = str_replace(['../', '..\\'], '', $path);
+
+    abort_unless(Storage::disk('public')->exists($safePath), 404);
+
+    return Storage::disk('public')->response($safePath);
+})->where('path', '.*');
+
 Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
 
 require __DIR__ . '/auth.php';
@@ -97,6 +105,14 @@ Route::middleware(['auth'])->group(function () {
             'update'  => 'organizations.update',
             'destroy' => 'organizations.destroy',
         ]);
+
+        Route::get('/organization-classifications', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'index'])->name('organization-classifications.index');
+        Route::get('/organization-classifications/create', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'create'])->name('organization-classifications.create');
+        Route::post('/organization-classifications', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'store'])->name('organization-classifications.store');
+        Route::get('/organization-classifications/{organizationClassification}/edit', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'edit'])->name('organization-classifications.edit');
+        Route::patch('/organization-classifications/{organizationClassification}', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'update'])->name('organization-classifications.update');
+        Route::delete('/organization-classifications/{organizationClassification}', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'destroy'])->name('organization-classifications.destroy');
+        Route::get('/organization-classifications/classify', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'classify'])->name('organization-classifications.classify');
 
         Route::post('/organizations/{organization}/deactivate', [OrganizationController::class, 'deactivate'])->name('organizations.deactivate');
         Route::post('/organizations/{organization}/reset-password', [OrganizationController::class, 'resetPassword'])->name('organizations.reset-password');

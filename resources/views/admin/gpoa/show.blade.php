@@ -21,9 +21,8 @@
 </div>
 
 @if($gpoa->document_path)
-<div class="mb-6">
-    <a href="{{ route('admin.gpoa.document', $gpoa) }}" target="_blank"
-       class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold">View GPOA Document</a>
+<div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+    Legacy attachment stored for this GPOA record. Current submissions are data-first and may not include a document file.
 </div>
 @endif
 
@@ -53,26 +52,137 @@
 
 <div class="bg-white rounded-xl shadow-sm border overflow-x-auto mb-6">
     <div class="p-4 border-b font-semibold">Planned Activities ({{ $gpoa->activities->count() }})</div>
-    <table class="w-full text-sm">
+    <table class="w-full text-sm min-w-[1100px]">
         <thead class="bg-gray-50 border-b">
             <tr>
                 <th class="p-3 text-left">Title</th>
-                <th class="p-3 text-left">Date</th>
-                <th class="p-3 text-left">Venue</th>
                 <th class="p-3 text-left">Category</th>
-                <th class="p-3 text-left">Participants</th>
-                <th class="p-3 text-left">Description</th>
+                <th class="p-3 text-left">Activity Level</th>
+                <th class="p-3 text-left">Date</th>
+                <th class="p-3 text-left">Budget</th>
+                <th class="p-3 text-center">Details</th>
             </tr>
         </thead>
         <tbody>
+            @php
+                $sdgLabels = [
+                    1 => 'No Poverty',
+                    2 => 'Zero Hunger',
+                    3 => 'Good Health and Well-being',
+                    4 => 'Quality Education',
+                    5 => 'Gender Equality',
+                    6 => 'Clean Water and Sanitation',
+                    7 => 'Affordable and Clean Energy',
+                    8 => 'Decent Work and Economic Growth',
+                    9 => 'Industry, Innovation and Infrastructure',
+                    10 => 'Reduced Inequality',
+                    11 => 'Sustainable Cities and Communities',
+                    12 => 'Responsible Consumption and Production',
+                    13 => 'Climate Action',
+                    14 => 'Life Below Water',
+                    15 => 'Life on Land',
+                    16 => 'Peace, Justice and Strong Institutions',
+                    17 => 'Partnerships for the Goals',
+                ];
+            @endphp
             @foreach($gpoa->activities as $activity)
-            <tr class="border-b">
+            <tr class="border-b align-top">
                 <td class="p-3 font-medium">{{ $activity->title }}</td>
-                <td class="p-3">{{ $activity->date->format('M d, Y') }}</td>
-                <td class="p-3">{{ $activity->venue }}</td>
-                <td class="p-3">{{ $activity->category }}</td>
-                <td class="p-3">{{ $activity->participants_count }}</td>
-                <td class="p-3 text-xs max-w-[200px]">{{ Str::limit($activity->description, 80) }}</td>
+                <td class="p-3">{{ $activity->category ?? '—' }}</td>
+                <td class="p-3">{{ $activity->activity_level ?? '—' }}</td>
+                <td class="p-3">{{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</td>
+                <td class="p-3">₱ {{ number_format((float) ($activity->estimated_budget ?? 0), 2) }}</td>
+                <td class="p-3 text-center">
+                    <button type="button" onclick="this.closest('tr').nextElementSibling.classList.toggle('hidden'); this.textContent = this.textContent === 'Show Details' ? 'Hide Details' : 'Show Details';" class="px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200">
+                        Show Details
+                    </button>
+                </td>
+            </tr>
+            <tr class="hidden border-b bg-gray-50">
+                <td colspan="6" class="p-6">
+                    {{-- CLASSIFICATION SECTION --}}
+                    <div class="mb-6">
+                        <h4 class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">Classification</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">SDGs Addressed</p>
+                                <p class="text-sm text-gray-700">
+                                    @php
+                                        $sdgs = $activity->sdgs ?? [];
+                                        if (!is_array($sdgs)) {
+                                            $sdgs = json_decode($sdgs, true) ?? [];
+                                        }
+                                        $sdgText = collect($sdgs)
+                                            ->map(fn($id) => 'SDG ' . $id . ': ' . ($sdgLabels[$id] ?? 'Unknown'))
+                                            ->join(', ');
+                                    @endphp
+                                    {{ $sdgText ?: '—' }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Venue</p>
+                                <p class="text-sm text-gray-700">{{ $activity->venue ?? '—' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- PLANNING SECTION --}}
+                    <div class="mb-6">
+                        <h4 class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">Planning</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Objectives</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->objectives ?? '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Expected Outcome</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->expected_outcome ?? '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Plan / Key Strategy</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->plan_key_strategy ?? '—' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- LOGISTICS SECTION --}}
+                    <div class="mb-6">
+                        <h4 class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">Logistics</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Target Participants</p>
+                                <p class="text-sm text-gray-700">{{ $activity->target_participants ?? '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Persons Involved</p>
+                                <p class="text-sm text-gray-700">{{ $activity->person_in_charge ?? '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Preceding Activity</p>
+                                <p class="text-sm text-gray-700">{{ $activity->preceding_activity ?? 'None — first activity' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- RESOURCES SECTION --}}
+                    <div>
+                        <h4 class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">Resources</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Facilities / Materials</p>
+                                <p class="text-sm text-gray-700">{{ $activity->facilities_materials ?? '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Source of Funds</p>
+                                <p class="text-sm text-gray-700">{{ $activity->source_of_funds ?? '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-1">Remarks</p>
+                                <p class="text-sm text-gray-700">{{ $activity->remarks ?? '—' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </td>
             </tr>
             @endforeach
         </tbody>

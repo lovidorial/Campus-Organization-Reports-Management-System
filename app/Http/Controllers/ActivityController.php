@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\ActivityRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -161,45 +162,101 @@ class ActivityController extends Controller
 
     public function publicActivities(Request $request)
     {
-        $query = Activity::where('status', 'approved')->with('user', 'user.organization');
+        $query = ActivityRequest::with(['user', 'report.photos']);
 
-        // Search filter
-        if ($request->has('search') && $request->search) {
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%$search%")
-                  ->orWhereHas('user', function($u) use ($search) {
-                      $u->where('org_name', 'like', "%$search%")
-                        ->orWhere('name', 'like', "%$search%");
-                  })
-                  ->orWhere('description', 'like', "%$search%");
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('org_name', 'like', "%{$search}%")
+                          ->orWhere('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
-        // Organization filter - filter by user_id (since each user is an organization)
-        if ($request->has('organization') && $request->organization) {
+        if ($request->filled('organization')) {
             $query->where('user_id', $request->organization);
         }
 
-        // School Year filter
-        if ($request->has('school_year') && $request->school_year) {
-            $query->where('school_year', $request->school_year);
+        if ($request->filled('school_year')) {
+            $query->whereHas('gpoaActivity.gpoa', function ($q) use ($request) {
+                $q->where('school_year', $request->school_year);
+            });
         }
 
-        $activities = $query->orderBy('date', 'desc')->paginate(12);
-        
-        // Get all organizations (users with activities) for filter dropdown
-        $organizations = User::whereHas('activities', function($q) {
-            $q->where('status', 'approved');
+        $query->with('gpoaActivity.gpoa')->orderBy('date', 'desc');
+
+        $allActivityRequests = $query->get();
+
+        $upcoming = $allActivityRequests->filter(function ($activity) {
+            return $activity->status === ActivityRequest::STATUS_APPROVED
+                && $activity->date->isFuture();
+        })->take(12);
+
+        $ongoing = $allActivityRequests->filter(function ($activity) {
+            return in_array($activity->status, [
+                ActivityRequest::STATUS_IN_PROGRESS,
+                ActivityRequest::STATUS_AWAITING_REPORT,
+            ], true);
+        })->take(12);
+
+        $completed = $allActivityRequests->filter(function ($activity) {
+            return in_array($activity->status, [
+                ActivityRequest::STATUS_REPORT_SUBMITTED,
+                ActivityRequest::STATUS_CLOSED,
+            ], true);
+        })->take(12);
+
+        $stats = [
+            'total' => $allActivityRequests->filter(fn($activity) => in_array($activity->status, [
+                ActivityRequest::STATUS_APPROVED,
+                ActivityRequest::STATUS_IN_PROGRESS,
+                ActivityRequest::STATUS_AWAITING_REPORT,
+                ActivityRequest::STATUS_REPORT_SUBMITTED,
+                ActivityRequest::STATUS_CLOSED,
+            ], true))->count(),
+            'organizations' => $allActivityRequests->pluck('user_id')->unique()->count(),
+            'school_years' => $allActivityRequests->pluck('school_year')->filter()->unique()->count(),
+        ];
+
+        $organizations = User::whereHas('activityRequests', function ($q) use ($request) {
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            }
+            if ($request->filled('school_year')) {
+                $q->where('school_year', $request->school_year);
+            }
         })->with('organization')->get();
-        
-        // Get all school years for filter dropdown
-        $schoolYears = Activity::where('status', 'approved')
-            ->distinct()
-            ->whereNotNull('school_year')
-            ->orderBy('school_year', 'desc')
-            ->pluck('school_year');
-        
-        return view('public.activities', compact('activities', 'organizations', 'schoolYears'));
+
+        $schoolYears = ActivityRequest::when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($query) use ($search) {
+                    $query->where('title', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->filled('organization'), fn($q) => $q->where('user_id', $request->organization))
+            ->whereHas('gpoaActivity.gpoa', function ($q) {
+                $q->whereNotNull('school_year');
+            })
+            ->get()
+            ->map(fn($activity) => $activity->gpoaActivity?->gpoa?->school_year)
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        return view('public.activities', compact(
+            'upcoming',
+            'ongoing',
+            'completed',
+            'stats',
+            'organizations',
+            'schoolYears'
+        ));
     }
 }

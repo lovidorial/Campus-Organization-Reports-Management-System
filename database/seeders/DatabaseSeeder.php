@@ -17,5 +17,8 @@ class DatabaseSeeder extends Seeder
     {
         // Call the AdminUserSeeder to create test users
         $this->call(AdminUserSeeder::class);
+
+        // Load organization classification reference data for auto-detection
+        $this->call(OrganizationClassificationSeeder::class);
     }
 }

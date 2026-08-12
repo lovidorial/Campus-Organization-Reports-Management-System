@@ -23,9 +23,40 @@
             @error('narrative_report')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
         </div>
 
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Upload photos of the finished activity (optional, up to 10)</label>
+            <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <p class="text-xs text-gray-500 mt-1">Add supporting images for your final report.</p>
+            @error('photos')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+            @error('photos.*')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+            <div id="photoPreview" class="grid grid-cols-3 gap-3 mt-3"></div>
+        </div>
+
         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg">
             Submit Final Report
         </button>
+    </form>
+</div>
+
+<script>
+    document.querySelector('input[name="photos[]"]').addEventListener('change', function(event) {
+        const preview = document.getElementById('photoPreview');
+        preview.innerHTML = '';
+
+        Array.from(event.target.files).slice(0, 10).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'w-full h-24 object-cover rounded-lg border border-gray-200';
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+</script>
+</x-app-layout>
     </form>
 </div>
 </x-app-layout>

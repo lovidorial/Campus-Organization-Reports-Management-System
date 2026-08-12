@@ -31,6 +31,17 @@ class ProfileController extends Controller
         // handle profile photo if provided
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('profile-photos', 'public');
+            $publicPath = public_path('storage/' . $path);
+            $publicDir = dirname($publicPath);
+
+            if (! is_dir($publicDir)) {
+                mkdir($publicDir, 0777, true);
+            }
+
+            if (file_exists(storage_path('app/public/' . $path))) {
+                copy(storage_path('app/public/' . $path), $publicPath);
+            }
+
             $data['profile_photo_path'] = $path;
         }
 

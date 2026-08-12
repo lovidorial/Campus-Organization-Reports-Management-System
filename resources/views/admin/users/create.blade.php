@@ -55,6 +55,24 @@
             @error('position') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
+        <!-- Organization Name -->
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Organization Name</label>
+            <input type="text" name="org_name" value="{{ old('org_name') }}"
+                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                   placeholder="e.g., City College Student Council">
+            @error('org_name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <!-- Organization Type -->
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Organization Type</label>
+            <input type="text" name="org_type" value="{{ old('org_type') }}"
+                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                   placeholder="e.g., Student Council, Academic Org">
+            @error('org_type') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
         <!-- College -->
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">College/Department</label>

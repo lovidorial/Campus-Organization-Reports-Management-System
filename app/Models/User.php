@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -21,10 +22,36 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    protected $appends = ['avatar_url'];
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
     ];
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        $organizationLogo = $this->organization?->logo_path;
+        $photoPath = $this->profile_photo_path;
+
+        if (! empty($organizationLogo)) {
+            $path = str_replace('\\', '/', $organizationLogo);
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::disk('public')->url($path);
+            }
+            return asset('storage/' . ltrim($path, '/'));
+        }
+
+        if (! empty($photoPath)) {
+            $path = str_replace('\\', '/', $photoPath);
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::disk('public')->url($path);
+            }
+            return asset('storage/' . ltrim($path, '/'));
+        }
+
+        return asset('images/osdw.logo.jpg');
+    }
 
     public function activities()
     {

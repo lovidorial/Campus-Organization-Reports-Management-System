@@ -13,10 +13,6 @@
                 <button type="submit" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset Password</button>
             </form>
             @if($organization->is_active)
-            <form action="{{ route('admin.organizations.deactivate', $organization) }}" method="POST" class="inline" onsubmit="return confirm('Deactivate this organization account?');">
-                @csrf
-                <button type="submit" class="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700">Deactivate</button>
-            </form>
             @endif
             <form action="{{ route('admin.organizations.destroy', $organization) }}" method="POST" class="inline" onsubmit="return confirm('Delete this organization account? This cannot be undone.');">
                 @csrf

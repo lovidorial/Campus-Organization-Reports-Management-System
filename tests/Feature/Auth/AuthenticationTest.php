@@ -72,4 +72,17 @@ class AuthenticationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('storage/organization-logos/test-logo.jpg');
-    }}
+    }
+
+    public function test_public_storage_files_are_served_from_storage_route(): void
+    {
+        $path = 'organization-logos/test-route-logo.jpg';
+        $content = 'fake-image-content';
+        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $content);
+
+        $response = $this->get('/storage/' . $path);
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'image/jpeg');
+    }
+}

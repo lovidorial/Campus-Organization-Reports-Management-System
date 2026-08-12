@@ -56,15 +56,28 @@ class ActivityReportController extends Controller
 
         $validated = $request->validate([
             'narrative_report' => 'required|file|mimes:pdf|max:20480',
+            'photos' => 'nullable|array|max:10',
+            'photos.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         $path = $request->file('narrative_report')->store('uploads/narratives', 'public');
 
-        ActivityReport::create([
+        $report = ActivityReport::create([
             'activity_request_id' => $activityRequest->id,
             'narrative_report'    => $path,
             'submitted_at'        => now(),
         ]);
+
+        if ($request->hasFile('photos')) {
+            $sortOrder = 0;
+            foreach ($request->file('photos') as $photoFile) {
+                $photoPath = $photoFile->store('uploads/activity-photos', 'public');
+                $report->photos()->create([
+                    'path' => $photoPath,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+        }
 
         $activityRequest->update(['status' => ActivityRequest::STATUS_REPORT_SUBMITTED]);
 

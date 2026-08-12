@@ -40,7 +40,9 @@
 
             <div class="mt-3 flex flex-wrap gap-2">
                 @if($sub->file_path || ($sub->gpoa && $sub->gpoa->document_path))
-                <a href="{{ route('admin.workflows.submissions.document', $sub) }}" target="_blank" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded font-semibold">View Document</a>
+                <button type="button" onclick="openDocumentModal('{{ route('admin.workflows.submissions.document', $sub) }}')" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded font-semibold">View Document</button>
+                @else
+                <span class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded font-medium">No attachment (data-only GPOA)</span>
                 @endif
                 @if($sub->gpoa)
                 <a href="{{ route('admin.gpoa.show', $sub->gpoa) }}" class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded font-semibold">View GPOA Details</a>
@@ -118,4 +120,32 @@
         @endforelse
     </div>
 </div>
+
+<div id="documentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 p-4 overflow-y-auto">
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-800">Document Preview</h3>
+            <button type="button" onclick="closeDocumentModal()" class="text-gray-500 hover:text-gray-700">Close</button>
+        </div>
+        <div class="p-4">
+            <iframe id="documentFrame" class="w-full h-[80vh] border rounded" src="" title="Document Preview"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openDocumentModal(url) {
+        const modal = document.getElementById('documentModal');
+        const frame = document.getElementById('documentFrame');
+        frame.src = url + '#toolbar=0&navpanes=0&scrollbar=0';
+        modal.classList.remove('hidden');
+    }
+
+    function closeDocumentModal() {
+        const modal = document.getElementById('documentModal');
+        const frame = document.getElementById('documentFrame');
+        frame.src = '';
+        modal.classList.add('hidden');
+    }
+</script>
 </x-app-layout>

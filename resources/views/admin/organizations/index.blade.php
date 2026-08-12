@@ -63,13 +63,6 @@
                 <option value="Other" {{ request('type')=='Other' ? 'selected' : '' }}>Other</option>
             </select>
 
-            <!-- Status Dropdown -->
-            <select name="status" onchange="this.form.submit()" class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100">
-                <option value="">All Status</option>
-                <option value="active" {{ request('status')=='active' ? 'selected' : '' }}>Active</option>
-                <option value="inactive" {{ request('status')=='inactive' ? 'selected' : '' }}>Inactive</option>
-                <option value="pending" {{ request('status')=='pending' ? 'selected' : '' }}>Pending</option>
-            </select>
         </div>
     </div>
 
@@ -92,8 +85,8 @@
                     <tr class="group hover:bg-slate-50 transition-all duration-150">
                         <td class="px-4 py-3 align-middle">
                             <div class="flex items-center gap-4">
-                                @if($org->logo_path)
-                                    <img src="{{ asset('storage/'.$org->logo_path) }}" alt="{{ $org->name }} logo" class="h-16 w-16 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
+                                @if($org->logo_url)
+                                    <img src="{{ $org->logo_url }}" alt="{{ $org->name }} logo" class="h-16 w-16 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
                                 @else
                                     <div class="h-16 w-16 flex items-center justify-center rounded-lg bg-orange-100 text-sm font-bold text-orange-700 uppercase flex-shrink-0">{{ Illuminate\Support\Str::limit($org->name, 2, '') }}</div>
                                 @endif
@@ -136,14 +129,6 @@
                                 <a href="{{ route('admin.organizations.edit', $org) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-slate-200 transition" title="Edit" aria-label="Edit">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h6m3 0a2 2 0 012 2v6m0 3v1a2 2 0 01-2 2H9m6-3l-5 5m0 0l-5-5m5 5V5" /></svg>
                                 </a>
-                                @if($org->is_active)
-                                <form action="{{ route('admin.organizations.deactivate', $org) }}" method="POST" onsubmit="return confirm('Deactivate this organization account?');" class="inline">
-                                    @csrf
-                                    <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-slate-200 transition" title="Deactivate" aria-label="Deactivate">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" /></svg>
-                                    </button>
-                                </form>
-                                @endif
                                 <form action="{{ route('admin.organizations.destroy', $org) }}" method="POST" onsubmit="return confirm('Delete this organization account? This cannot be undone.');" class="inline">
                                     @csrf
                                     @method('DELETE')

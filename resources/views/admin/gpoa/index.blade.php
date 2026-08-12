@@ -30,22 +30,33 @@
                 <th class="p-3 text-left">Term / SY</th>
                 <th class="p-3 text-left">College</th>
                 <th class="p-3 text-left">Activities</th>
-                <th class="p-3 text-left">Document</th>
+                <th class="p-3 text-left">Activity Levels</th>
                 <th class="p-3 text-left">Status</th>
                 <th class="p-3 text-center">Actions</th>
             </tr>
         </thead>
         <tbody>
             @forelse($gpoas as $gpoa)
+            @php
+                $levelSummary = $gpoa->activities->groupBy('activity_level')->map(fn ($items) => $items->count());
+            @endphp
             <tr class="border-b hover:bg-gray-50">
                 <td class="p-3">{{ $gpoa->user->org_name ?? $gpoa->user->name }}</td>
                 <td class="p-3">{{ $gpoa->term }}<br><span class="text-xs text-gray-500">{{ $gpoa->school_year }}</span></td>
                 <td class="p-3">{{ $gpoa->college ?? '—' }}</td>
                 <td class="p-3">{{ $gpoa->activities_count }}</td>
                 <td class="p-3">
-                    @if($gpoa->document_path)
-                    <a href="{{ route('admin.gpoa.document', $gpoa) }}" target="_blank" class="text-blue-600 text-xs hover:underline">View PDF</a>
-                    @else — @endif
+                    @if($levelSummary->isNotEmpty())
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($levelSummary as $level => $count)
+                            <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                                {{ $level ?: 'Unspecified' }}: {{ $count }}
+                            </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="text-xs text-gray-400">—</span>
+                    @endif
                 </td>
                 <td class="p-3">
                     <span class="px-2 py-1 rounded-full text-xs font-bold

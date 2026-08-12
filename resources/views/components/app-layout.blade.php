@@ -127,8 +127,15 @@
         <div class="p-4 border-t border-white/10">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3 flex-1">
-                    @if(auth()->user()->profile_photo_path)
-                        <img src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" class="w-9 h-9 rounded-full object-cover border-2 border-white/40"/>
+                    @php
+                        $sidebarAvatarPath = auth()->user()->organization?->logo_path
+                            ?: auth()->user()->profile_photo_path;
+                        $sidebarAvatarUrl = $sidebarAvatarPath
+                            ? Storage::disk('public')->url($sidebarAvatarPath)
+                            : asset('images/osdw.logo.jpg');
+                    @endphp
+                    @if($sidebarAvatarPath)
+                        <img src="{{ $sidebarAvatarUrl }}" class="w-9 h-9 rounded-full object-cover border-2 border-white/40"/>
                     @else
                         <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" class="w-9 h-9 rounded-full object-cover border-2 border-white/40" onerror="this.style.display='none'"/>
                     @endif
@@ -220,8 +227,15 @@
                 </svg>
             </button>
             <span class="font-bold text-gray-800">CORMS</span>
-            @if(auth()->user()->profile_photo_path)
-                <img src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" class="w-9 h-9 rounded-full object-cover"/>
+            @php
+                $mobileAvatarPath = auth()->user()->organization?->logo_path
+                    ?: auth()->user()->profile_photo_path;
+                $mobileAvatarUrl = $mobileAvatarPath
+                    ? Storage::disk('public')->url($mobileAvatarPath)
+                    : asset('images/osdw.logo.jpg');
+            @endphp
+            @if($mobileAvatarPath)
+                <img src="{{ $mobileAvatarUrl }}" class="w-9 h-9 rounded-full object-cover"/>
             @else
                 <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" class="w-9 h-9 rounded-full object-cover" onerror="this.style.display='none'"/>
             @endif

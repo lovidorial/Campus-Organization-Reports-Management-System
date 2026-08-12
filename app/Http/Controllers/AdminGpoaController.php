@@ -16,7 +16,34 @@ class AdminGpoaController extends Controller
 
     public function index(Request $request)
     {
-        return redirect()->route('admin.workflows.index', $request->query());
+        $query = Gpoa::with(['user', 'activities'])
+            ->withCount('activities')
+            ->when($request->search, function ($query) use ($request) {
+                $search = trim($request->search);
+
+                $query->where(function ($inner) use ($search) {
+                    $inner->whereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('org_name', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    })->orWhere('term', 'like', "%{$search}%")
+                    ->orWhere('school_year', 'like', "%{$search}%")
+                    ->orWhere('college', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            });
+
+        $gpoas = $query->latest()->paginate(20)->appends($request->query());
+
+        $stats = [
+            'total' => Gpoa::count(),
+            'pending' => Gpoa::where('status', 'pending')->count(),
+            'approved' => Gpoa::whereIn('status', ['approved', 'stored'])->count(),
+            'rejected' => Gpoa::where('status', 'rejected')->count(),
+        ];
+
+        return view('admin.gpoa.index', compact('gpoas', 'stats'));
     }
 
     public function show(Gpoa $gpoa)
