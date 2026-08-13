@@ -3,11 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gpoa;
-use App\Models\GpoaActivity;
 use App\Models\OrganizationWorkflow;
 use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class GpoaController extends Controller
@@ -19,7 +17,7 @@ class GpoaController extends Controller
     public function index()
     {
         $gpoas = Gpoa::where('user_id', auth()->id())
-            ->withCount('activities')
+            ->withCount(['activities', 'activityRequests'])
             ->latest()
             ->paginate(10);
 
@@ -143,24 +141,6 @@ class GpoaController extends Controller
             'school_year'         => 'required|string|max:20',
             'document_path'       => 'nullable|file|mimes:pdf|max:20480',
             'verify'              => 'required|accepted',
-            'activities'          => 'required|array|min:1',
-            'activities.*.title'   => 'required|string|max:255',
-            'activities.*.date'    => 'required|date',
-            'activities.*.venue'   => 'required|string|max:255',
-            'activities.*.category' => 'required|string|max:100',
-            'activities.*.objectives' => 'required|string',
-            'activities.*.expected_outcome' => 'required|string',
-            'activities.*.target_participants' => 'required|string|max:255',
-            'activities.*.estimated_budget' => 'required|numeric|min:0',
-            'activities.*.source_of_funds' => 'required|string|max:100',
-            'activities.*.person_in_charge' => 'required|string|max:255',
-            'activities.*.sdgs' => 'required|array|min:1|max:17',
-            'activities.*.sdgs.*' => 'integer|between:1,17',
-            'activities.*.plan_key_strategy' => 'required|string',
-            'activities.*.facilities_materials' => 'required|string|max:255',
-            'activities.*.remarks' => 'nullable|string|max:255',
-            'activities.*.preceding_activity' => 'nullable|string|max:255',
-            'activities.*.activity_level' => 'required|string|max:100',
         ]);
 
         $workflow = $this->workflowService->getOrCreateForUser(
@@ -185,28 +165,6 @@ class GpoaController extends Controller
             'document_path' => $documentPath,
             'status'        => 'pending',
         ]);
-
-        foreach ($validated['activities'] as $activity) {
-            GpoaActivity::create([
-                'gpoa_id'            => $gpoa->id,
-                'title'              => $activity['title'],
-                'date'               => $activity['date'],
-                'venue'              => $activity['venue'],
-                'category'           => $activity['category'],
-                'objectives'         => $activity['objectives'],
-                'expected_outcome'   => $activity['expected_outcome'],
-                'plan_key_strategy'  => $activity['plan_key_strategy'],
-                'facilities_materials' => $activity['facilities_materials'],
-                'target_participants'=> $activity['target_participants'],
-                'estimated_budget'   => $activity['estimated_budget'],
-                'source_of_funds'    => $activity['source_of_funds'],
-                'person_in_charge'   => $activity['person_in_charge'],
-                'sdgs'               => $activity['sdgs'],
-                'preceding_activity' => $activity['preceding_activity'] ?? null,
-                'activity_level'     => $activity['activity_level'],
-                'remarks'            => $activity['remarks'] ?? null,
-            ]);
-        }
 
         $this->workflowService->recordGpoaSubmission($workflow, $gpoa);
 
@@ -250,24 +208,6 @@ class GpoaController extends Controller
             'colleges' => 'required|string|max:100',
             'document_path' => 'nullable|file|mimes:pdf|max:20480',
             'verify' => 'required|accepted',
-            'activities' => 'required|array|min:1',
-            'activities.*.title' => 'required|string|max:255',
-            'activities.*.date' => 'required|date',
-            'activities.*.venue' => 'required|string|max:255',
-            'activities.*.category' => 'required|string|max:100',
-            'activities.*.objectives' => 'required|string',
-            'activities.*.expected_outcome' => 'required|string',
-            'activities.*.target_participants' => 'required|string|max:255',
-            'activities.*.estimated_budget' => 'required|numeric|min:0',
-            'activities.*.source_of_funds' => 'required|string|max:100',
-            'activities.*.person_in_charge' => 'required|string|max:255',
-            'activities.*.sdgs' => 'required|array|min:1|max:17',
-            'activities.*.sdgs.*' => 'integer|between:1,17',
-            'activities.*.plan_key_strategy' => 'required|string',
-            'activities.*.facilities_materials' => 'required|string|max:255',
-            'activities.*.remarks' => 'nullable|string|max:255',
-            'activities.*.preceding_activity' => 'nullable|string|max:255',
-            'activities.*.activity_level' => 'required|string|max:100',
         ]);
 
         if ($request->hasFile('document_path')) {
@@ -283,30 +223,6 @@ class GpoaController extends Controller
             'status' => 'pending',
             'reject_reason' => null,
         ]);
-
-        $gpoa->activities()->delete();
-
-        foreach ($validated['activities'] as $activity) {
-            GpoaActivity::create([
-                'gpoa_id'            => $gpoa->id,
-                'title'              => $activity['title'],
-                'date'               => $activity['date'],
-                'venue'              => $activity['venue'],
-                'category'           => $activity['category'],
-                'objectives'         => $activity['objectives'],
-                'expected_outcome'   => $activity['expected_outcome'],
-                'plan_key_strategy'  => $activity['plan_key_strategy'],
-                'facilities_materials' => $activity['facilities_materials'],
-                'target_participants'=> $activity['target_participants'],
-                'estimated_budget'   => $activity['estimated_budget'],
-                'source_of_funds'    => $activity['source_of_funds'],
-                'person_in_charge'   => $activity['person_in_charge'],
-                'sdgs'               => $activity['sdgs'],
-                'preceding_activity' => $activity['preceding_activity'] ?? null,
-                'activity_level'     => $activity['activity_level'],
-                'remarks'            => $activity['remarks'] ?? null,
-            ]);
-        }
 
         $submission->update([
             'file_path' => $gpoa->document_path,
@@ -326,6 +242,7 @@ class GpoaController extends Controller
         }
 
         $gpoa->load('activities');
+        $gpoa->loadCount('activityRequests');
 
         return view('gpoa.show', compact('gpoa'));
     }

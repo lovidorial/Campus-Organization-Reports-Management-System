@@ -2,7 +2,7 @@
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">Activity Requests</h2>
-        <p class="text-sm text-gray-500">Request permission to conduct activities from your approved GPOA.</p>
+        <p class="text-sm text-gray-500">Submit detailed activity requests under your approved GPOA.</p>
     </div>
     <a href="{{ route('activity-requests.create') }}"
        class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">+ Request Activity</a>
@@ -30,17 +30,16 @@
 @if($grouped->isEmpty())
     <div class="bg-white rounded-xl border p-8 text-center text-slate-500">
         <p class="text-lg font-semibold mb-2">No activity requests yet.</p>
-        <p class="text-sm mb-4">Create a request from one of your approved GPOA activities.</p>
+        <p class="text-sm mb-4">Submit your first activity request under an approved GPOA.</p>
         <a href="{{ route('activity-requests.create') }}" class="inline-flex px-4 py-2 bg-sky-600 text-white rounded-lg text-sm">Request your first activity</a>
     </div>
 @else
     @foreach($grouped as $index => $group)
         @php
-            $gpoa = optional($group->first()->gpoaActivity->gpoa);
-            $plannedCount = $gpoa?->activities->count() ?? 0;
+            $gpoa = optional($group->first()->gpoa ?? $group->first()->gpoaActivity?->gpoa);
             $requestedCount = $group->count();
+            $approvedRequestsCount = $group->where('status', 'approved')->count();
         @endphp
-
         <div class="mb-6 border rounded-3xl bg-white shadow-sm">
             <button type="button" class="w-full px-5 py-4 flex items-center justify-between gap-3 text-left" onclick="this.nextElementSibling.classList.toggle('hidden')">
                 <div>
@@ -48,7 +47,7 @@
                     <h3 class="text-xl font-semibold text-slate-900">{{ $gpoa->term ?? 'Unknown Term' }} / SY {{ $gpoa->school_year ?? '—' }}</h3>
                 </div>
                 <div class="text-right">
-                    <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $requestedCount }} of {{ $plannedCount }} requested</span>
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $requestedCount }} requests</span>
                     <span class="ml-3 text-xs text-slate-500">Toggle</span>
                 </div>
             </button>

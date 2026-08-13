@@ -38,7 +38,7 @@
             <tr class="hover:bg-gray-50">
                 <td class="px-4 py-4">{{ $gpoa->term }}<br><span class="text-xs text-gray-500">{{ $gpoa->school_year }}</span></td>
                 <td class="px-4 py-4">{{ $gpoa->college ?? '—' }}</td>
-                <td class="px-4 py-4">{{ $gpoa->activities_count }} planned</td>
+                <td class="px-4 py-4">{{ $gpoa->activity_requests_count }} requests</td>
                 <td class="px-4 py-4">
                     @php
                         $colors = [

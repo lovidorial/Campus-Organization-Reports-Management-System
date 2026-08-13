@@ -15,8 +15,8 @@
         <p class="text-lg font-bold mt-1">{{ $gpoa->college ?? '—' }}</p>
     </div>
     <div class="bg-white rounded-xl border p-4">
-        <p class="text-xs text-gray-500 uppercase">Planned Activities</p>
-        <p class="text-lg font-bold mt-1">{{ $gpoa->activities->count() }}</p>
+        <p class="text-xs text-gray-500 uppercase">Activity Requests</p>
+        <p class="text-lg font-bold mt-1">{{ $gpoa->activity_requests_count ?? $gpoa->activityRequests()->count() }}</p>
     </div>
 </div>
 

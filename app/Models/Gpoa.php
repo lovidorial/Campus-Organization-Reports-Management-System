@@ -33,6 +33,11 @@ class Gpoa extends Model
         return $this->hasMany(GpoaActivity::class);
     }
 
+    public function activityRequests(): HasMany
+    {
+        return $this->hasMany(ActivityRequest::class);
+    }
+
     public function isApproved(): bool
     {
         return in_array($this->status, ['approved', 'stored']);

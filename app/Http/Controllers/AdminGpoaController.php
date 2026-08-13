@@ -16,8 +16,8 @@ class AdminGpoaController extends Controller
 
     public function index(Request $request)
     {
-        $query = Gpoa::with(['user', 'activities'])
-            ->withCount('activities')
+        $query = Gpoa::with(['user', 'activities', 'activityRequests'])
+            ->withCount(['activities', 'activityRequests'])
             ->when($request->search, function ($query) use ($request) {
                 $search = trim($request->search);
 
@@ -49,6 +49,7 @@ class AdminGpoaController extends Controller
     public function show(Gpoa $gpoa)
     {
         $gpoa->load(['user', 'activities', 'approver']);
+        $gpoa->loadCount('activityRequests');
 
         $workflow = OrganizationWorkflow::where('user_id', $gpoa->user_id)
             ->where('term', $gpoa->term)

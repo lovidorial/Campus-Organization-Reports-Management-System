@@ -7,13 +7,51 @@
                 <div>
                     <p class="eyebrow">Activity Request</p>
                     <h1>Request an Activity</h1>
-                    <p class="page-description">Choose an activity from your approved GPOA and submit the request with matching details.</p>
-                </div>
-                <a href="{{ route('activity-requests.index') }}" class="icon-close">×</a>
-            </div>
-
+                        <p class="page-description">Submit a detailed activity request under your approved GPOA submission.</p>
             <form action="{{ route('activity-requests.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="requestForm">
                 @csrf
+
+                {{-- Organization Information (read-only reference) --}}
+                @php
+                    $org = $organization ?? auth()->user()->organization ?? null;
+                    $limitObj = $activityLimitTemplate ?? $activityLimit ?? null;
+                    $usedCount = $limitObj->used ?? $limitObj->used_count ?? $limitObj->usedActivities ?? null;
+                    $limitCount = $limitObj->limit ?? $limitObj->max ?? $limitObj->allowed ?? null;
+                    $atCap = ($usedCount !== null && $limitCount !== null && $usedCount >= $limitCount);
+                @endphp
+
+                <div class="org-info-block" aria-label="Organization Information">
+                    <div class="org-info-title">Organization Information</div>
+                    <div class="org-info-grid">
+                        <div class="cell label">Organization Name</div>
+                        <div class="cell value">{{ $org?->org_name ?? $org?->name ?? '—' }}
+                            @php
+                                $status = strtolower($gpoa?->status ?? 'not submitted');
+                                $statusClass = match($status) {
+                                    'approved' => 'badge-approved',
+                                    'pending' => 'badge-pending',
+                                    default => 'badge-not-submitted',
+                                };
+                                $statusLabel = $gpoa?->status ? ucfirst($gpoa->status) : 'Not Submitted';
+                            @endphp
+                            <span class="gpoa-status-badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                        </div>
+
+                        <div class="cell label">Organization Type</div>
+                        <div class="cell value"><span class="value-badge">{{ $org?->type ?? $org?->organization_classification?->name ?? '—' }}</span></div>
+
+                        <div class="cell label">Executive Secretary</div>
+                        <div class="cell value">{{ auth()->user()->name ?? '—' }}</div>
+
+                        <div class="cell label">Allowed Activities</div>
+                        <div class="cell value">@if($usedCount !== null && $limitCount !== null)
+                                <span @class(['allowed-warning' => $atCap])>{{ $usedCount }} / {{ $limitCount }}</span>
+                            @else
+                                —
+                            @endif
+                        </div>
+                    </div>
+                </div>
 
                 <div class="mb-6">
                     <p class="text-sm text-gray-500">Planning Activity Under</p>
@@ -38,180 +76,269 @@
                 <section class="form-section">
                     <div class="section-heading">
                         <div>
-                            <h2 class="section-title">Choose Planned Activity</h2>
-                            <p class="section-description">Select one approved GPOA line item. Request data is locked to the chosen activity's planning details.</p>
+                            <h2 class="section-title">Plan the Activity Request</h2>
+                            <p class="section-description">Enter the activity details you want to request under the selected GPOA.</p>
                         </div>
                     </div>
 
-                    @if($lineItems->isEmpty())
-                        <div class="activity-card bg-yellow-50 border-yellow-200 text-yellow-800">
-                            <p>No pending GPOA activities are available for request in this GPOA.</p>
-                        </div>
-                    @else
-                        @php
-                            $selectedLineItem = $lineItems->firstWhere('id', old('gpoa_activity_id', $lineItems->first()->id));
-                        @endphp
+                    <input type="hidden" name="gpoa_id" value="{{ $gpoa->id }}">
 
-                        <div class="form-group">
-                            <label>GPOA Activity *</label>
-                            <select name="gpoa_activity_id" id="gpoa_activity_id" required onchange="fillFromGpoa(this)">
-                                <option value="">Select from approved GPOA</option>
-                                @foreach($lineItems as $item)
-                                    <option value="{{ $item->id }}"
-                                            data-title="{{ e($item->title) }}"
-                                            data-category="{{ e($item->category) }}"
-                                            data-activity-level="{{ e($item->activity_level) }}"
-                                            data-sdgs="{{ implode(',', $item->sdgs ?? []) }}"
-                                            data-objectives="{{ e($item->objectives) }}"
-                                            data-expected-outcome="{{ e($item->expected_outcome) }}"
-                                            data-plan-key-strategy="{{ e($item->plan_key_strategy) }}"
-                                            data-target-participants="{{ e($item->target_participants) }}"
-                                            data-person-in-charge="{{ e($item->person_in_charge) }}"
-                                            data-facilities-materials="{{ e($item->facilities_materials) }}"
-                                            data-estimated-budget="{{ $item->estimated_budget }}"
-                                            data-remarks="{{ e($item->remarks) }}"
-                                            data-source-of-funds="{{ e($item->source_of_funds) }}"
-                                            data-preceding-activity="{{ e($item->preceding_activity) }}"
-                                            {{ old('gpoa_activity_id', $selectedLineItem?->id) == $item->id ? 'selected' : '' }}>
-                                        {{ $item->title }} — {{ $item->date->format('M d, Y') }} @ {{ $item->venue }}
-                                    </option>
+                    <div class="mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Selected GPOA</p>
+                        <p class="mt-2 text-sm text-slate-900 font-semibold">{{ $gpoa->college }} — {{ $gpoa->term }} / SY {{ $gpoa->school_year }}</p>
+                        <p class="text-sm text-slate-600 mt-1">Status: {{ ucfirst($gpoa->status) }}</p>
+                    </div>
+
+                    @if(count($activityLimits))
+                        <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900">
+                            <p class="font-semibold">Category request limits</p>
+                            <ul class="mt-2 space-y-1 text-sm">
+                                @foreach($activityLimits as $category => $limit)
+                                    <li>{{ $category }}: {{ $limit }} requests max</li>
                                 @endforeach
-                            </select>
-                            @error('gpoa_activity_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-
-                        <div class="activity-card bg-slate-50 border-slate-200">
-                            <div class="mb-4">
-                                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Classification</h3>
-                            </div>
-                            <div class="grid gap-4 md:grid-cols-3">
-                                <div>
-                                    <p class="text-xs text-slate-500">Category</p>
-                                    <p id="summary-category" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->category ?? '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">Activity Level</p>
-                                    <p id="summary-activity_level" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->activity_level ?? '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">SDGs</p>
-                                    <p id="summary-sdgs" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->sdgs ? 'SDG '.implode(', SDG ', $selectedLineItem->sdgs) : '—' }}</p>
-                                </div>
-                            </div>
-
-                            <div class="mt-6">
-                                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Planning</h3>
-                                <div class="grid gap-4 md:grid-cols-2 mt-3">
-                                    <div>
-                                        <p class="text-xs text-slate-500">Objectives</p>
-                                        <p id="summary-objectives" class="mt-1 text-sm text-slate-900 whitespace-pre-line">{{ $selectedLineItem?->objectives ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Expected Outcome</p>
-                                        <p id="summary-expected_outcome" class="mt-1 text-sm text-slate-900 whitespace-pre-line">{{ $selectedLineItem?->expected_outcome ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Key Strategy</p>
-                                        <p id="summary-plan_key_strategy" class="mt-1 text-sm text-slate-900 whitespace-pre-line">{{ $selectedLineItem?->plan_key_strategy ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Preceding Activity</p>
-                                        <p id="summary-preceding_activity" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->preceding_activity ?? '—' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-6">
-                                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Logistics</h3>
-                                <div class="grid gap-4 md:grid-cols-3 mt-3">
-                                    <div>
-                                        <p class="text-xs text-slate-500">Target Participants</p>
-                                        <p id="summary-target_participants" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->target_participants ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Person in Charge</p>
-                                        <p id="summary-person_in_charge" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->person_in_charge ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Facilities / Materials</p>
-                                        <p id="summary-facilities_materials" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->facilities_materials ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Estimated Budget</p>
-                                        <p id="summary-estimated_budget" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->estimated_budget !== null ? number_format($selectedLineItem->estimated_budget, 2) : '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Source of Funds</p>
-                                        <p id="summary-source_of_funds" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->source_of_funds ?? '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-slate-500">Remarks</p>
-                                        <p id="summary-remarks" class="mt-1 text-sm text-slate-900">{{ $selectedLineItem?->remarks ?? '—' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-row grid-2 mt-6">
-                            <div class="form-group">
-                                <label>Additional Notes</label>
-                                <textarea name="description" id="description" rows="4">{{ old('description') }}</textarea>
-                                @error('description')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                            </div>
-                            <div class="form-group">
-                                <label>Participants Override</label>
-                                <input type="number" name="participants_count" id="participants_count" min="1" value="{{ old('participants_count') }}" placeholder="Leave blank to use planned amount">
-                                @error('participants_count')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                            </div>
-                        </div>
-
-                        <div class="form-group mt-6">
-                            <label>Communication Letter (PDF) *</label>
-                            <input type="file" name="communication_letter" accept=".pdf" required>
-                            @error('communication_letter')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                            </ul>
                         </div>
                     @endif
-                </section>
 
-                <div class="activity-card" style="background:#eef2ff;border-color:#dbeafe;margin-bottom:24px;">
-                    <p class="text-sm text-sky-900">This request will carry the selected activity's approved GPOA planning details into the request record.</p>
-                </div>
+                    <div class="grid gap-6 md:grid-cols-2">
+                        <div class="form-group">
+                            <label for="title">Activity Title *</label>
+                            <input id="title" type="text" name="title" value="{{ old('title') }}" required>
+                            @error('title')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Category *</label>
+                            <select id="category" name="category" required>
+                                <option value="">Select category</option>
+                                <option value="Symposium" {{ old('category') == 'Symposium' ? 'selected' : '' }}>Symposium</option>
+                                <option value="Convocation" {{ old('category') == 'Convocation' ? 'selected' : '' }}>Convocation</option>
+                                <option value="Religious Activity" {{ old('category') == 'Religious Activity' ? 'selected' : '' }}>Religious Activity</option>
+                                <option value="Socio-Cultural and Sports" {{ old('category') == 'Socio-Cultural and Sports' ? 'selected' : '' }}>Socio-Cultural and Sports</option>
+                                <option value="Makakalikasan (Clean and Green)" {{ old('category') == 'Makakalikasan (Clean and Green)' ? 'selected' : '' }}>Makakalikasan (Clean and Green)</option>
+                                <option value="Extension Services Conducted" {{ old('category') == 'Extension Services Conducted' ? 'selected' : '' }}>Extension Services Conducted</option>
+                            </select>
+                            @error('category')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 md:grid-cols-1 mt-6">
+                        <div class="form-group">
+                            <label for="sdgSelect">SDGs *</label>
+                            @php
+                                $sdgList = [
+                                    1 => 'No Poverty',
+                                    2 => 'Zero Hunger',
+                                    3 => 'Good Health',
+                                    4 => 'Quality Education',
+                                    5 => 'Gender Equality',
+                                    6 => 'Clean Water',
+                                    7 => 'Affordable Energy',
+                                    8 => 'Decent Work',
+                                    9 => 'Industry, Innovation',
+                                    10 => 'Reduced Inequality',
+                                    11 => 'Sustainable Cities',
+                                    12 => 'Responsible Consumption',
+                                    13 => 'Climate Action',
+                                    14 => 'Life Below Water',
+                                    15 => 'Life on Land',
+                                    16 => 'Peace/Justice',
+                                    17 => 'Partnerships'
+                                ];
+                                $oldSdgs = old('sdgs');
+                                if (is_array($oldSdgs)) {
+                                    $oldNums = $oldSdgs;
+                                } else {
+                                    $oldSdgs = $oldSdgs ?: '';
+                                    preg_match_all('/\b(\d{1,2})\b/', $oldSdgs, $m);
+                                    $oldNums = $m[1] ?? [];
+                                }
+                            @endphp
+                            <style>
+                                /* SDG chips */
+                                #sdgChips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:6px}
+                                .sdg-chip{background:#E8EBF2;color:#1B2A4A;padding:6px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:0.875rem}
+                                .sdg-chip button{background:transparent;border:none;color:#1B2A4A;cursor:pointer;padding:0;margin:0;font-weight:700}
+                                .sdg-chip button:focus{outline:2px solid rgba(27,42,74,0.12);border-radius:4px}
+                                .sdg-placeholder{color:#6B7280;font-size:0.875rem}
+                            </style>
+
+                            <select id="sdgSelect" name="sdgs[]" multiple size="6" class="" aria-describedby="sdgHelp">
+                                @foreach($sdgList as $num => $label)
+                                    <option value="{{ $num }}" data-label="SDG {{ $num }} - {{ $label }}" {{ in_array((string)$num, $oldNums) ? 'selected' : '' }}>SDG {{ $num }} - {{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <div id="sdgChips" aria-live="polite" aria-atomic="true">
+                                <div class="sdg-placeholder">No SDGs selected yet</div>
+                            </div>
+                            <p id="sdgHelp" class="help-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple SDGs.</p>
+                            @error('sdgs')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                        <div class="form-group mt-6">
+                            <label for="objectives">Objectives *</label>
+                            <textarea id="objectives" name="objectives" rows="4" required>{{ old('objectives') }}</textarea>
+                        @error('objectives')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="form-group mt-6">
+                        <label for="expected_outcome">Expected Outcome *</label>
+                        <textarea id="expected_outcome" name="expected_outcome" rows="4" required>{{ old('expected_outcome') }}</textarea>
+                        @error('expected_outcome')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="form-group mt-6">
+                        <label for="plan_key_strategy">Plan / Key Strategy *</label>
+                        <textarea id="plan_key_strategy" name="plan_key_strategy" rows="4" required>{{ old('plan_key_strategy') }}</textarea>
+                        @error('plan_key_strategy')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="grid gap-6 md:grid-cols-2 mt-6">
+                        <div class="form-group">
+                            <label for="date">Date *</label>
+                            <input id="date" type="date" name="date" value="{{ old('date') }}" required>
+                            @error('date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="venue">Venue *</label>
+                            <input id="venue" type="text" name="venue" value="{{ old('venue') }}" required>
+                            @error('venue')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 md:grid-cols-2 mt-6">
+                        <div class="form-group">
+                            <label for="target_participants">Target Participants *</label>
+                            <input id="target_participants" type="text" name="target_participants" value="{{ old('target_participants') }}" required>
+                            @error('target_participants')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="person_in_charge">Person in Charge *</label>
+                            <input id="person_in_charge" type="text" name="person_in_charge" value="{{ old('person_in_charge') }}" required>
+                            @error('person_in_charge')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 md:grid-cols-2 mt-6">
+                        <div class="form-group">
+                            <label for="facilities_materials">Facilities / Materials *</label>
+                            <input id="facilities_materials" type="text" name="facilities_materials" value="{{ old('facilities_materials') }}" required>
+                            @error('facilities_materials')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="estimated_budget">Estimated Budget *</label>
+                            <input id="estimated_budget" type="number" step="0.01" name="estimated_budget" value="{{ old('estimated_budget') }}" required>
+                            @error('estimated_budget')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 md:grid-cols-2 mt-6">
+                        <div class="form-group">
+                            <label for="source_of_funds">Source of Funds *</label>
+                            <select id="source_of_funds" name="source_of_funds" required>
+                                <option value="">Select source of funds</option>
+                                <option value="Organization Funds" {{ old('source_of_funds') == 'Organization Funds' ? 'selected' : '' }}>Organization Funds</option>
+                                <option value="Student Council Funds" {{ old('source_of_funds') == 'Student Council Funds' ? 'selected' : '' }}>Student Council Funds</option>
+                                <option value="School-Generated Funds / MOOE" {{ old('source_of_funds') == 'School-Generated Funds / MOOE' ? 'selected' : '' }}>School-Generated Funds / MOOE</option>
+                                <option value="Sponsorship / Donations" {{ old('source_of_funds') == 'Sponsorship / Donations' ? 'selected' : '' }}>Sponsorship / Donations</option>
+                                <option value="Others" {{ old('source_of_funds') == 'Others' ? 'selected' : '' }}>Others</option>
+                            </select>
+                            @error('source_of_funds')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="preceding_activity">Preceding Activity</label>
+                            <input id="preceding_activity" type="text" name="preceding_activity" value="{{ old('preceding_activity') }}">
+                            @error('preceding_activity')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-6">
+                        <label for="remarks">Remarks</label>
+                        <textarea id="remarks" name="remarks" rows="4">{{ old('remarks') }}</textarea>
+                        @error('remarks')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="form-row grid-2 mt-6">
+                        <div class="form-group">
+                            <label for="description">Additional Notes</label>
+                            <textarea name="description" id="description" rows="4">{{ old('description') }}</textarea>
+                            @error('description')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="participants_count">Participants Override</label>
+                            <input id="participants_count" type="number" name="participants_count" min="1" value="{{ old('participants_count') }}" placeholder="Leave blank to use planned amount">
+                            @error('participants_count')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-6">
+                        <label for="communication_letter">Communication Letter (PDF) *</label>
+                        <input id="communication_letter" type="file" name="communication_letter" accept=".pdf" required>
+                        @error('communication_letter')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+                </section>
 
                 <button type="submit" class="btn-secondary">Submit Activity Request</button>
             </form>
         </div>
     </main>
+</x-app-layout>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const sdgSelect = document.getElementById('sdgSelect');
+    const sdgInput = document.getElementById('sdgsInput');
 
-    <script>
-        function fillFromGpoa(select) {
-            const opt = select.options[select.selectedIndex];
-            if (!opt.value) return;
+    if(sdgSelect && sdgInput){
+        const sdgChips = document.getElementById('sdgChips');
 
-            const setText = (id, value) => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.textContent = value || '—';
-                }
-            };
+        function renderChips(selectedOptions){
+            if(!sdgChips) return;
+            sdgChips.innerHTML = '';
+            const arr = Array.from(selectedOptions || []);
+            if(arr.length === 0){
+                const ph = document.createElement('div');
+                ph.className = 'sdg-placeholder';
+                ph.textContent = 'No SDGs selected yet';
+                sdgChips.appendChild(ph);
+                return;
+            }
 
-            setText('summary-category', opt.dataset.category);
-            setText('summary-activity_level', opt.dataset.activityLevel);
-            setText('summary-sdgs', opt.dataset.sdgs ? 'SDG ' + opt.dataset.sdgs.split(',').join(', SDG ') : '—');
-            setText('summary-objectives', opt.dataset.objectives);
-            setText('summary-expected_outcome', opt.dataset.expectedOutcome);
-            setText('summary-plan_key_strategy', opt.dataset.planKeyStrategy);
-            setText('summary-preceding_activity', opt.dataset.precedingActivity);
-            setText('summary-target_participants', opt.dataset.targetParticipants);
-            setText('summary-person_in_charge', opt.dataset.personInCharge);
-            setText('summary-facilities_materials', opt.dataset.facilitiesMaterials);
-            setText('summary-estimated_budget', opt.dataset.estimatedBudget ? parseFloat(opt.dataset.estimatedBudget).toFixed(2) : '—');
-            setText('summary-source_of_funds', opt.dataset.sourceOfFunds);
-            setText('summary-remarks', opt.dataset.remarks);
+            arr.forEach(opt => {
+                const num = opt.value;
+                const label = opt.dataset.label || opt.textContent.trim();
+                const chip = document.createElement('span');
+                chip.className = 'sdg-chip';
+                chip.setAttribute('data-value', num);
+
+                const text = document.createElement('span');
+                text.textContent = label;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.setAttribute('aria-label', 'Remove ' + label);
+                btn.innerHTML = '\u00D7';
+                btn.addEventListener('click', function(e){
+                    e.preventDefault();
+                    opt.selected = false;
+                    syncSdgs();
+                });
+
+                chip.appendChild(text);
+                chip.appendChild(btn);
+                sdgChips.appendChild(chip);
+            });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const sel = document.getElementById('gpoa_activity_id');
-            if (sel && sel.value) fillFromGpoa(sel);
-        });
-    </script>
-</x-app-layout>
+        function syncSdgs(){
+            const selectedOpts = Array.from(sdgSelect.selectedOptions);
+            renderChips(selectedOpts);
+        }
+
+        sdgSelect.addEventListener('change', syncSdgs);
+        // initialize on load
+        syncSdgs();
+    }
+});
+</script>
+@endpush

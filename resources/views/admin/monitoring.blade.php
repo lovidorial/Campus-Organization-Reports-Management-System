@@ -157,50 +157,11 @@
 
 <div class="mt-4">{{ $activities->links() }}</div>
 
-@if(isset($plannedActivities) && $plannedActivities->count())
-<div class="mt-10">
-    <h3 class="text-xl font-semibold text-gray-800 mb-4">Planned GPOA Activities</h3>
-    <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
-        <table class="w-full text-sm min-w-[1000px]">
-            <thead class="bg-gray-50 border-b">
-                <tr>
-                    <th class="p-3 text-left text-gray-500">Activity</th>
-                    <th class="p-3 text-left text-gray-500">Organization</th>
-                    <th class="p-3 text-left text-gray-500">College</th>
-                    <th class="p-3 text-left text-gray-500">Category</th>
-                    <th class="p-3 text-left text-gray-500">Date</th>
-                    <th class="p-3 text-left text-gray-500">Venue</th>
-                    <th class="p-3 text-left text-gray-500">GPOA Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($plannedActivities as $planned)
-                <tr class="border-b last:border-0 hover:bg-gray-50">
-                    <td class="p-3 font-medium max-w-[140px] truncate" title="{{ $planned->title }}">{{ $planned->title }}</td>
-                    <td class="p-3">{{ $planned->gpoa->user->org_name ?? $planned->gpoa->user->name ?? '—' }}</td>
-                    <td class="p-3">{{ $planned->gpoa->college ?? '—' }}</td>
-                    <td class="p-3">
-                        @if($planned->category)
-                        <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $planned->category }}</span>
-                        @else — @endif
-                    </td>
-                    <td class="p-3">{{ optional($planned->date)->format('M d, Y') }}</td>
-                    <td class="p-3">{{ $planned->venue }}</td>
-                    <td class="p-3"><span class="text-xs text-slate-600">{{ ucfirst($planned->gpoa->status) }}</span></td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-    <div class="mt-4">{{ $plannedActivities->links('pagination::tailwind', ['pageName' => 'plannedPage']) }}</div>
-</div>
-@endif
-
 <!-- Approve Modal -->
 <div id="approveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
         <h3 class="text-lg font-bold text-gray-800 mb-3">Confirm Approval</h3>
-        <p class="text-gray-600 text-sm mb-6">Approve only if this request matches the organization's approved GPOA entry.</p>
+        <p class="text-gray-600 text-sm mb-6">Approve only if the activity request details are correct and appropriate for the organization's approved GPOA.</p>
         <div class="flex gap-3 justify-end">
             <button type="button" onclick="closeApproveModal()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm">Cancel</button>
             <a id="approveLink" href="" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">Yes, Approve</a>
@@ -228,7 +189,7 @@
 <div id="monitoringModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
         <h3 class="text-lg font-bold text-gray-800 mb-3">Record Monitoring Results</h3>
-        <p class="text-gray-600 text-sm mb-4">Evaluate the activity against the approved GPOA line item.</p>
+        <p class="text-gray-600 text-sm mb-4">Evaluate the activity against the organization's approved GPOA submission.</p>
         <form id="monitoringForm" method="POST">
             @csrf
             <div class="mb-4">

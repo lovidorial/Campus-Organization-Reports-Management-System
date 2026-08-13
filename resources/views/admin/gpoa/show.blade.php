@@ -51,7 +51,7 @@
 @endif
 
 <div class="bg-white rounded-xl shadow-sm border overflow-x-auto mb-6">
-    <div class="p-4 border-b font-semibold">Planned Activities ({{ $gpoa->activities->count() }})</div>
+    <div class="p-4 border-b font-semibold">Legacy Planned Activities ({{ $gpoa->activities->count() }})</div>
     <table class="w-full text-sm min-w-[1100px]">
         <thead class="bg-gray-50 border-b">
             <tr>

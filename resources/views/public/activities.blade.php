@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public Activities | CORMS</title>
+    <title>Public Activities | Orgtrack</title>
 
     {{-- Google Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
@@ -740,7 +740,7 @@
         <div class="container">
               <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
                   <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CORMS" style="height:26px;width:26px;object-fit:cover;border-radius:50%;margin-right:8px;">
-                  <span style="color: #f5a623; font-weight:800;">CORMS</span>
+                  <span style="color: #f57c00; font-weight:800;">Orgtrack</span>
               </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

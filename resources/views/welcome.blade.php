@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORMS | Campus Student Organization Narrative Accomplishment and Summary Reports</title>
+    <title>Orgtrack | Campus Student Organization Narrative Accomplishment and Summary Reports</title>
 
     {{-- Google Fonts: Poppins, Raleway, Oswald, Source Sans 3 --}}
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Raleway:wght@600;700;800&family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -25,8 +25,8 @@
     <nav class="site-navbar">
         <div class="navbar-inner">
             <a href="{{ url('/') }}" class="nav-brand">
-                <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CORMS logo" class="nav-logo-img">
-                <span class="nav-brand-text">CORMS</span>
+                <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="Org-track logo" class="nav-logo-img">
+                <span class="nav-brand-text">Orgtrack</span>
             </a>
 
             <ul class="nav-links">
@@ -104,7 +104,7 @@
     <section id="features" class="section-block section-benefits">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Why Use CSORMS?</h2>
+                <h2 class="section-title">Why Use Org-track?</h2>
                 <p class="section-subtitle">Streamlined management for student organizations</p>
             </div>
 
@@ -185,7 +185,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="footer-brand"><i class="fas fa-university me-2"></i><span style="color:#f5a623; font-weight:700;">CSORMS</span></div>
+                    <div class="footer-brand"><i class="fas fa-university me-2"></i><span style="color:#f5a623; font-weight:700;">Orgtrack</span></div>
                     <p class="footer-desc">
                         Campus Student Organization Reports Monitoring  System.<br>
                         A comprehensive platform for monitoring and managing student organization activities.
@@ -194,10 +194,10 @@
                 <div class="col-md-6 text-md-end mb-3">
                     <p class="footer-contact-title">Contact Us</p>
                     <p class="mb-1"><i class="fas fa-envelope me-2"></i>
-                        <a href="mailto:activities@campus.edu" class="footer-link">activities@campus.edu</a>
+                        <a href="mailto:osdwcsuaparri@gmail.com" class="footer-link">osdwcsuaparri@gmail.com</a>
                     </p>
-                    <p class="mb-0"><i class="fas fa-phone me-2"></i>
-                        <a href="tel:+1234567890" class="footer-link">+1 234 567 890</a>
+                    <p class="mb-0"><i class="fa-brands fa-facebook"></i>
+                        <a href="https://www.facebook.com/CSUAparri-OSDW" class="footer-link" target="_blank">CSUAparri-OSDW</a>
                     </p>
                 </div>
             </div>
@@ -213,15 +213,15 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="learnMoreModalLabel">About CSORMS</h5>
+                    <h5 class="modal-title" id="learnMoreModalLabel">About Orgtrack</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <!-- System Overview -->
                     <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is CSORMS?</h6>
+                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is Orgtrack?</h6>
                         <p style="color: #555; line-height: 1.6;">
-                            <strong>Campus Student Organization Reporting Management System (CSORMS)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
+                            <strong>Campus Student Organization Reporting Management System (Orgtrack)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
                         </p>
                     </div>
 
@@ -239,9 +239,9 @@
 
                     <!-- System Benefits -->
                     <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Why Choose CSORMS?</h6>
+                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Why Choose Orgtrack?</h6>
                         <p style="color: #555; line-height: 1.6;">
-                            CSORMS eliminates paperwork, reduces administrative burden, and ensures all student organization activities are properly documented and tracked. The system promotes transparency, enhances collaboration, and provides real-time insights into organizational activities and performance.
+                            Orgtrack eliminates paperwork, reduces administrative burden, and ensures all student organization activities are properly documented and tracked. The system promotes transparency, enhances collaboration, and provides real-time insights into organizational activities and performance.
                         </p>
                     </div>
 
@@ -249,7 +249,7 @@
                     <div class="border-top pt-4">
                         <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Development Team</h6>
                         <p style="color: #666; font-size: 0.95rem; margin-bottom: 1.5rem;">
-                            CSORMS was developed by a dedicated team of student developers and IT professionals committed to improving campus life through technology.
+                            Orgtrack was developed by a dedicated team of student developers and IT professionals committed to improving campus life through technology.
                         </p>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">

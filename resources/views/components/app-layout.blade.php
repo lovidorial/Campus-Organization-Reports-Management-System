@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORMS</title>
+    <title>Orgtrack</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100">
@@ -12,7 +12,7 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background-color: #d97706;">
         <div class="p-5 border-b border-white/10">
-            <h1 class="text-xl font-bold text-white">CSORMS  </h1>
+            <h1 class="text-xl font-bold text-white">Orgtrack  </h1>
             <p class="text-xs text-white-400 mt-0.5">Activity Tracking System</p>
         </div>
         <nav class="p-4 flex-1 overflow-y-auto">

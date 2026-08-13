@@ -38,13 +38,13 @@
         <tbody>
             @forelse($gpoas as $gpoa)
             @php
-                $levelSummary = $gpoa->activities->groupBy('activity_level')->map(fn ($items) => $items->count());
+                $levelSummary = $gpoa->activityRequests->groupBy('activity_level')->map(fn ($items) => $items->count());
             @endphp
             <tr class="border-b hover:bg-gray-50">
                 <td class="p-3">{{ $gpoa->user->org_name ?? $gpoa->user->name }}</td>
                 <td class="p-3">{{ $gpoa->term }}<br><span class="text-xs text-gray-500">{{ $gpoa->school_year }}</span></td>
                 <td class="p-3">{{ $gpoa->college ?? '—' }}</td>
-                <td class="p-3">{{ $gpoa->activities_count }}</td>
+                <td class="p-3">{{ $gpoa->activity_requests_count }}</td>
                 <td class="p-3">
                     @if($levelSummary->isNotEmpty())
                         <div class="flex flex-wrap gap-1">

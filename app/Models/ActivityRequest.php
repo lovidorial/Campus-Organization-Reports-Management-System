@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ActivityRequest extends Model
 {
     protected $fillable = [
-        'user_id', 'gpoa_activity_id', 'title', 'date', 'venue',
-        'category', 'activity_level', 'sdgs', 'objectives', 'expected_outcome',
+        'user_id', 'gpoa_id', 'gpoa_activity_id', 'title', 'date', 'venue',
+        'category', 'sdgs', 'objectives', 'expected_outcome',
         'plan_key_strategy', 'target_participants', 'person_in_charge',
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
         'preceding_activity', 'description', 'participants_count',
@@ -37,6 +37,11 @@ class ActivityRequest extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function gpoa(): BelongsTo
+    {
+        return $this->belongsTo(Gpoa::class);
+    }
+
     public function gpoaActivity(): BelongsTo
     {
         return $this->belongsTo(GpoaActivity::class);
@@ -54,6 +59,14 @@ class ActivityRequest extends Model
 
     public function getGpoaAttribute(): ?Gpoa
     {
+        if ($this->relationLoaded('gpoa')) {
+            return $this->getRelation('gpoa');
+        }
+
+        if ($this->gpoa_id) {
+            return $this->belongsTo(Gpoa::class)->getResults();
+        }
+
         return $this->gpoaActivity?->gpoa;
     }
 

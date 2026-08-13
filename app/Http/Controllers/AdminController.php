@@ -5,14 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
-use App\Models\GpoaActivity;
 use App\Models\MonitoringResult;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\OrganizationWorkflow;
 use App\Models\WorkflowEvent;
 use App\Models\WorkflowSubmission;
-use App\Services\GpoaMatchValidator;
 use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -179,26 +177,11 @@ class AdminController extends Controller
 
     public function monitor(Request $request)
     {
-        $query = ActivityRequest::with(['user', 'gpoaActivity.gpoa', 'report', 'monitoringResult']);
-        $plannedQuery = GpoaActivity::with(['gpoa.user'])
-            ->whereHas('gpoa', function ($q) {
-                $q->whereIn('status', ['approved', 'stored']);
-            })
-            ->whereDoesntHave('activityRequests', function ($q) {
-                $q->whereNotIn('status', ['rejected', 'report_submitted', 'closed']);
-            });
+        $query = ActivityRequest::with(['user', 'gpoa', 'report', 'monitoringResult']);
 
         if ($request->filled('search')) {
             $term = $request->search;
             $query->where(function ($q) use ($term) {
-                $q->where('venue', 'like', "%{$term}%")
-                  ->orWhere('title', 'like', "%{$term}%");
-                try {
-                    $date = Carbon::parse($term)->toDateString();
-                    $q->orWhereDate('date', $date);
-                } catch (\Exception $e) {}
-            });
-            $plannedQuery->where(function ($q) use ($term) {
                 $q->where('venue', 'like', "%{$term}%")
                   ->orWhere('title', 'like', "%{$term}%");
                 try {
@@ -214,16 +197,13 @@ class AdminController extends Controller
 
         if ($request->filled('organization')) {
             $query->where('user_id', $request->organization);
-            $plannedQuery->whereHas('gpoa', fn($q) => $q->where('user_id', $request->organization));
         }
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
-            $plannedQuery->where('category', $request->category);
         }
 
         $activities = $query->latest()->paginate(10)->withQueryString();
-        $plannedActivities = $plannedQuery->latest()->paginate(10, ['*'], 'plannedPage')->withQueryString();
 
         foreach ($activities as $activity) {
             $activity->refreshLifecycleStatus();
@@ -240,25 +220,15 @@ class AdminController extends Controller
         $organizations = User::whereHas('activityRequests')->select('id', 'org_name', 'name')->get();
         $categories    = ActivityRequest::distinct()->pluck('category')->filter()->sort()->values();
 
-        return view('admin.monitoring', compact('activities', 'plannedActivities', 'stats', 'organizations', 'categories'));
+        return view('admin.monitoring', compact('activities', 'stats', 'organizations', 'categories'));
     }
 
     public function approve($id)
     {
-        $activity = ActivityRequest::with('gpoaActivity')->findOrFail($id);
+        $activity = ActivityRequest::findOrFail($id);
 
         if ($activity->status !== ActivityRequest::STATUS_PENDING) {
             return back()->with('error', 'Only pending activity requests can be approved.');
-        }
-
-        $matchError = GpoaMatchValidator::validate($activity->gpoaActivity, [
-            'title' => $activity->title,
-            'date'  => $activity->date->toDateString(),
-            'venue' => $activity->venue,
-        ]);
-
-        if ($matchError) {
-            return back()->with('error', 'Cannot approve: ' . $matchError);
         }
 
         $conflict = ActivityRequest::where('date', $activity->date)
