@@ -32,7 +32,7 @@
                     <p class="login-subtitle">Cagayan State University</p>
                     <div class="login-badge">OFFICE OF STUDENT DEVELOPMENT AND WELFARE</div>
                     <p class="login-description">
-                        Campus Student Organization Activities Tracking System — manage, monitor, and celebrate student activities.
+                       Orgtrack- Campus Student Organization Narrative & Sumarry Reports — manage, monitor, and celebrate student activities.
                     </p>
                 </div>
 

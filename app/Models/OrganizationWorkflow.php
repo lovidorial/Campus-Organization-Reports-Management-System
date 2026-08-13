@@ -86,20 +86,13 @@ class OrganizationWorkflow extends Model
         ]);
     }
 
+    /**
+     * @deprecated Communication letters are now scoped to individual activities, not org-level.
+     * Use ActivityRequest::communication_letter instead.
+     */
     public function canSubmitCommunicationLetter(): bool
     {
-        if ($this->is_locked) {
-            return false;
-        }
-
-        $gpoa = $this->currentSubmission(self::DOC_GPOA);
-        if (!$gpoa || $gpoa->status !== WorkflowSubmission::STATUS_APPROVED) {
-            return false;
-        }
-
-        $comm = $this->currentSubmission(self::DOC_COMMUNICATION);
-
-        return !$comm || $comm->status === WorkflowSubmission::STATUS_REJECTED;
+        return false;
     }
 
     public function canSubmitSummaryReport(): bool
@@ -108,13 +101,37 @@ class OrganizationWorkflow extends Model
             return false;
         }
 
-        $comm = $this->currentSubmission(self::DOC_COMMUNICATION);
-        if (!$comm || $comm->status !== WorkflowSubmission::STATUS_APPROVED) {
+        // GPOA must be approved first
+        $gpoa = $this->currentSubmission(self::DOC_GPOA);
+        if (!$gpoa || $gpoa->status !== WorkflowSubmission::STATUS_APPROVED) {
+            return false;
+        }
+
+        // Check if there are any activity requests
+        $activityRequests = ActivityRequest::where('user_id', $this->user_id)
+            ->where('gpoa_id', $gpoa->gpoa_id)
+            ->count();
+
+        // If no activities exist, allow summary report (org may have no planned activities)
+        if ($activityRequests === 0) {
+            $summary = $this->currentSubmission(self::DOC_SUMMARY);
+            return !$summary || $summary->status === WorkflowSubmission::STATUS_REJECTED;
+        }
+
+        // All activity requests must have reports submitted
+        $completedActivities = ActivityRequest::where('user_id', $this->user_id)
+            ->where('gpoa_id', $gpoa->gpoa_id)
+            ->whereIn('status', [
+                ActivityRequest::STATUS_REPORT_SUBMITTED,
+                ActivityRequest::STATUS_CLOSED,
+            ])
+            ->count();
+
+        if ($completedActivities !== $activityRequests) {
             return false;
         }
 
         $summary = $this->currentSubmission(self::DOC_SUMMARY);
-
         return !$summary || $summary->status === WorkflowSubmission::STATUS_REJECTED;
     }
 
@@ -128,7 +145,6 @@ class OrganizationWorkflow extends Model
     public function progressStages(): array
     {
         $gpoa = $this->currentSubmission(self::DOC_GPOA);
-        $comm = $this->currentSubmission(self::DOC_COMMUNICATION);
         $summary = $this->currentSubmission(self::DOC_SUMMARY);
 
         return [
@@ -147,30 +163,14 @@ class OrganizationWorkflow extends Model
                 'submission' => $gpoa,
             ],
             [
-                'key' => 'comm_submitted',
-                'label' => 'Communication Letter Submitted',
-                'status' => $this->stageStatusForSubmission($comm, $this->isGpoaApproved()),
-                'submission' => $comm,
-                'locked' => !$this->isGpoaApproved(),
-            ],
-            [
-                'key' => 'comm_approved',
-                'label' => 'Communication Letter Approved',
-                'status' => $comm && $comm->status === WorkflowSubmission::STATUS_APPROVED
-                    ? WorkflowSubmission::STATUS_APPROVED
-                    : WorkflowSubmission::STATUS_PENDING,
-                'submission' => $comm,
-                'locked' => !$this->isGpoaApproved(),
-            ],
-            [
                 'key' => 'summary_submitted',
                 'label' => 'Summary Report Submitted',
                 'status' => $this->stageStatusForSubmission(
                     $summary,
-                    $comm && $comm->status === WorkflowSubmission::STATUS_APPROVED
+                    $this->isGpoaApproved()
                 ),
                 'submission' => $summary,
-                'locked' => !($comm && $comm->status === WorkflowSubmission::STATUS_APPROVED),
+                'locked' => !$this->isGpoaApproved(),
             ],
             [
                 'key' => 'summary_approved',
@@ -179,7 +179,7 @@ class OrganizationWorkflow extends Model
                     ? WorkflowSubmission::STATUS_APPROVED
                     : WorkflowSubmission::STATUS_PENDING,
                 'submission' => $summary,
-                'locked' => !($comm && $comm->status === WorkflowSubmission::STATUS_APPROVED),
+                'locked' => !$this->isGpoaApproved(),
             ],
             [
                 'key' => 'completed',
@@ -212,7 +212,6 @@ class OrganizationWorkflow extends Model
         }
 
         $gpoa = $this->currentSubmission(self::DOC_GPOA);
-        $comm = $this->currentSubmission(self::DOC_COMMUNICATION);
         $summary = $this->currentSubmission(self::DOC_SUMMARY);
 
         if (!$gpoa || $gpoa->status === WorkflowSubmission::STATUS_PENDING) {
@@ -225,18 +224,6 @@ class OrganizationWorkflow extends Model
 
         if ($gpoa->status === WorkflowSubmission::STATUS_REJECTED) {
             return 'GPOA Rejected';
-        }
-
-        if (!$comm || $comm->status === WorkflowSubmission::STATUS_PENDING) {
-            return 'Communication Letter Pending';
-        }
-
-        if (in_array($comm->status, [WorkflowSubmission::STATUS_SUBMITTED, WorkflowSubmission::STATUS_UNDER_REVIEW], true)) {
-            return 'Communication Letter Under Review';
-        }
-
-        if ($comm->status === WorkflowSubmission::STATUS_REJECTED) {
-            return 'Communication Letter Rejected';
         }
 
         if (!$summary || $summary->status === WorkflowSubmission::STATUS_PENDING) {
@@ -318,7 +305,6 @@ class OrganizationWorkflow extends Model
         }
 
         $gpoa = $this->currentSubmission(self::DOC_GPOA);
-        $comm = $this->currentSubmission(self::DOC_COMMUNICATION);
         $summary = $this->currentSubmission(self::DOC_SUMMARY);
 
         if (!$gpoa || $gpoa->status === WorkflowSubmission::STATUS_PENDING) {
@@ -326,7 +312,7 @@ class OrganizationWorkflow extends Model
                 'type' => 'action_required',
                 'title' => 'Action Required',
                 'message' => 'Please submit your General Plan of Activities (GPOA) to begin the workflow.',
-                'submessage' => 'Your Communication Letter and Summary Report will unlock after GPOA approval.',
+                'submessage' => 'Your Summary Report will unlock after GPOA approval.',
                 'action_url' => route('gpoa.create'),
                 'action_label' => 'Submit GPOA',
                 'deadline' => null,
@@ -360,55 +346,14 @@ class OrganizationWorkflow extends Model
             ];
         }
 
-        if ($this->canSubmitCommunicationLetter() && (!$comm || $comm->status === WorkflowSubmission::STATUS_PENDING)) {
+        if ($this->canSubmitSummaryReport() && (!$summary || $summary->status === WorkflowSubmission::STATUS_PENDING)) {
             $deadline = $gpoa->approved_at?->copy()->addDays(30);
 
             return [
                 'type' => 'action_required',
                 'title' => 'Action Required',
-                'message' => 'Please upload your Communication Letter.',
-                'submessage' => 'Your GPOA has been approved. Submit your Communication Letter to proceed.',
-                'action_url' => route('workflow.communication-letter'),
-                'action_label' => 'Upload Communication Letter',
-                'deadline' => $deadline,
-                'estimated_review' => null,
-            ];
-        }
-
-        if ($comm && $comm->status === WorkflowSubmission::STATUS_REJECTED) {
-            return [
-                'type' => 'action_required',
-                'title' => 'Action Required',
-                'message' => 'Your Communication Letter was rejected. Please review the feedback and resubmit.',
-                'submessage' => $comm->reject_reason,
-                'action_url' => route('workflow.communication-letter'),
-                'action_label' => 'Resubmit Communication Letter',
-                'deadline' => $comm->updated_at?->copy()->addDays(14),
-                'estimated_review' => null,
-            ];
-        }
-
-        if ($comm && in_array($comm->status, [WorkflowSubmission::STATUS_SUBMITTED, WorkflowSubmission::STATUS_UNDER_REVIEW], true)) {
-            return [
-                'type' => 'waiting',
-                'title' => 'Current Action',
-                'message' => 'Your Communication Letter has been submitted successfully.',
-                'submessage' => 'It is currently under review by the OSDW Office. No action is required at this time.',
-                'action_url' => null,
-                'action_label' => null,
-                'deadline' => null,
-                'estimated_review' => '3–5 Working Days',
-            ];
-        }
-
-        if ($this->canSubmitSummaryReport() && (!$summary || $summary->status === WorkflowSubmission::STATUS_PENDING)) {
-            $deadline = $comm->approved_at?->copy()->addDays(30);
-
-            return [
-                'type' => 'action_required',
-                'title' => 'Action Required',
                 'message' => 'Please submit your Summary Report.',
-                'submessage' => 'Your Communication Letter has been approved. Submit your Summary Report to complete the workflow.',
+                'submessage' => 'Your GPOA has been approved. All activities must have reports submitted before you can submit the Summary Report.',
                 'action_url' => route('workflow.summary-report'),
                 'action_label' => 'Submit Summary Report',
                 'deadline' => $deadline,

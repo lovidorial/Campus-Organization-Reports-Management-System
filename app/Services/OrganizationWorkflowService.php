@@ -64,6 +64,11 @@ class OrganizationWorkflowService
         string $documentType,
         string $filePath
     ): WorkflowSubmission {
+        // Deprecated: DOC_COMMUNICATION is now activity-level, not org-level
+        if ($documentType === OrganizationWorkflow::DOC_COMMUNICATION) {
+            throw new \InvalidArgumentException('Communication letters are now scoped to individual activities.');
+        }
+
         $this->archiveCurrentSubmission($workflow, $documentType);
 
         $version = $workflow->submissions()
@@ -81,7 +86,6 @@ class OrganizationWorkflowService
         ]);
 
         $stage = match ($documentType) {
-            OrganizationWorkflow::DOC_COMMUNICATION => OrganizationWorkflow::STAGE_COMM_SUBMITTED,
             OrganizationWorkflow::DOC_SUMMARY => OrganizationWorkflow::STAGE_SUMMARY_SUBMITTED,
             default => $workflow->current_stage,
         };
@@ -123,7 +127,6 @@ class OrganizationWorkflowService
 
         $nextStage = match ($submission->document_type) {
             OrganizationWorkflow::DOC_GPOA => OrganizationWorkflow::STAGE_GPOA_APPROVED,
-            OrganizationWorkflow::DOC_COMMUNICATION => OrganizationWorkflow::STAGE_COMM_APPROVED,
             OrganizationWorkflow::DOC_SUMMARY => OrganizationWorkflow::STAGE_SUMMARY_APPROVED,
             default => $workflow->current_stage,
         };
@@ -156,17 +159,8 @@ class OrganizationWorkflowService
             $this->notifyUser(
                 $workflow->user_id,
                 'stage_unlocked',
-                'Communication Letter Unlocked',
-                'Your GPOA has been approved. You may now submit your Communication Letter.'
-            );
-        }
-
-        if ($submission->document_type === OrganizationWorkflow::DOC_COMMUNICATION) {
-            $this->notifyUser(
-                $workflow->user_id,
-                'stage_unlocked',
                 'Summary Report Unlocked',
-                'Your Communication Letter has been approved. You may now submit your Summary Report.'
+                'Your GPOA has been approved. Complete all activities and submit reports before submitting the Summary Report.'
             );
         }
 

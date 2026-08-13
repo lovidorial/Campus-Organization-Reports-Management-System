@@ -155,7 +155,7 @@
                     <div class="feat-card">
                         <h5 class="feat-title">Learn More</h5>
                         <p class="feat-desc">
-                            CORMS simplifies how student organizations submit, track, and manage activities. Our platform provides transparency, real-time updates, and streamlined workflows for seamless collaboration.
+                            Orgtrack simplifies how student organizations submit, track, and manage activities. Our platform provides transparency, real-time updates, and streamlined workflows for seamless collaboration.
                         </p>
                         <a href="#" class="btn-feat btn-feat-teal" data-bs-toggle="modal" data-bs-target="#learnMoreModal">Learn More</a>
                     </div>
@@ -185,9 +185,9 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="footer-brand"><i class="fas fa-university me-2"></i><span style="color:#f5a623; font-weight:700;">Orgtrack</span></div>
+                    <div class="footer-brand"><span style="color:#f5a623; font-weight:700;">Orgtrack</span></div>
                     <p class="footer-desc">
-                        Campus Student Organization Reports Monitoring  System.<br>
+                        Campus Student Organization Narrative & Summary Reports.<br>
                         A comprehensive platform for monitoring and managing student organization activities.
                     </p>
                 </div>
@@ -213,7 +213,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="learnMoreModalLabel">About Orgtrack</h5>
+                    <h5 class="modal-title" id="learnMoreModalLabel">About</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -221,7 +221,7 @@
                     <div class="mb-4">
                         <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is Orgtrack?</h6>
                         <p style="color: #555; line-height: 1.6;">
-                            <strong>Campus Student Organization Reporting Management System (Orgtrack)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
+                            <strong>Campus Student Organization Narrative and Sumamary Reports for the Office  of the Social Development and Welfare at CSU-Aparri (Orgtrack)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
                         </p>
                     </div>
 

@@ -2,12 +2,12 @@
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-2">Submit Summary Report</h2>
-        <p class="text-sm text-gray-500 mb-6">Upload your organization's summary report after completing your activity or event.</p>
+        <p class="text-sm text-gray-500 mb-6">Upload your organization's summary report after completing all activities and submitting their reports.</p>
 
         @if(!$canSubmit)
         <div class="mb-6 rounded-lg border border-orange-200 bg-orange-50 text-orange-800 px-4 py-3">
             <p class="font-semibold">Summary Report is not yet available</p>
-            <p class="text-sm mt-1">You have not uploaded your Communication Letter yet. Please upload your Communication Letter to proceed with the summary report submission.</p>
+            <p class="text-sm mt-1">All activity requests must have their activity reports submitted before you can submit the Summary Report. Please complete all activities and upload their reports to proceed.</p>
         </div>
         @endif
 

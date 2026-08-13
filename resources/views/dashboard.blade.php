@@ -18,7 +18,6 @@
     ];
 
     $gpoaSub = $workflow->currentSubmission('gpoa');
-    $commSub = $workflow->currentSubmission('communication_letter');
     $summarySub = $workflow->currentSubmission('summary_report');
 
     $documents = [
@@ -38,16 +37,16 @@
         ],
         [
             'step' => 2,
-            'title' => 'Communication Letter',
-            'subtitle' => 'Official correspondence document',
-            'submission' => $commSub,
+            'title' => 'Activity Requests',
+            'subtitle' => 'Individual activity plans with communication letters',
+            'submission' => null,
             'locked' => !$workflow->isGpoaApproved() || $workflow->is_locked,
             'lock_reason' => 'Awaiting GPOA approval',
-            'can_submit' => $workflow->canSubmitCommunicationLetter(),
-            'submit_url' => route('workflow.communication-letter'),
-            'submit_label' => $commSub?->status === 'rejected' ? 'Resubmit Letter' : 'Upload Letter',
+            'can_submit' => $workflow->isGpoaApproved() && !$workflow->is_locked,
+            'submit_url' => route('activity-requests.create'),
+            'submit_label' => 'Submit Activity Request',
             'edit_url' => null,
-            'view_url' => $commSub ? route('workflow.communication-letter') : null,
+            'view_url' => route('activity-requests.index'),
             'awaiting' => !$workflow->isGpoaApproved() ? 'Awaiting GPOA approval' : null,
         ],
         [
@@ -56,13 +55,13 @@
             'subtitle' => 'End-of-term activity summary',
             'submission' => $summarySub,
             'locked' => !$workflow->canSubmitSummaryReport() && !($summarySub) || ($workflow->is_locked && !$workflow->is_completed),
-            'lock_reason' => 'Awaiting Communication Letter approval',
+            'lock_reason' => 'All activity requests must have reports submitted',
             'can_submit' => $workflow->canSubmitSummaryReport(),
             'submit_url' => route('workflow.summary-report'),
             'submit_label' => $summarySub?->status === 'rejected' ? 'Resubmit Report' : 'Submit Report',
             'edit_url' => null,
             'view_url' => $summarySub ? route('workflow.summary-report') : null,
-            'awaiting' => !($commSub?->status === 'approved') ? 'Awaiting Communication Letter approval' : null,
+            'awaiting' => !$workflow->canSubmitSummaryReport() ? 'Awaiting all activity reports' : null,
         ],
     ];
 

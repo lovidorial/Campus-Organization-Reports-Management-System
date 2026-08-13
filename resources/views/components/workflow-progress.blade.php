@@ -1,10 +1,9 @@
 @php
     $gpoa = $workflow->currentSubmission('gpoa');
-    $communication = $workflow->currentSubmission('communication_letter');
     $summary = $workflow->currentSubmission('summary_report');
     $steps = [
         ['label' => 'GPOA Submitted', 'status' => $gpoa && in_array($gpoa->status, ['approved', 'submitted', 'under_review', 'stored']) ? 'completed' : 'pending'],
-        ['label' => 'Communication Letter', 'status' => $communication && in_array($communication->status, ['approved', 'submitted', 'under_review']) ? 'completed' : 'pending'],
+        ['label' => 'Activity Requests', 'status' => $gpoa && in_array($gpoa->status, ['approved', 'stored']) ? 'completed' : 'pending'],
         ['label' => 'Summary Report', 'status' => $summary && in_array($summary->status, ['approved', 'submitted', 'under_review']) ? 'completed' : 'pending'],
         ['label' => 'Completed', 'status' => $workflow->is_completed ? 'completed' : 'pending'],
     ];
@@ -18,7 +17,7 @@
     <div class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
         <div>
             <h3 class="text-2xl font-semibold text-slate-900">Workflow Progress</h3>
-            <p class="text-sm text-slate-500 mt-1">GPOA → Communication Letter → Summary Report → Completed</p>
+            <p class="text-sm text-slate-500 mt-1">GPOA → Activity Requests → Summary Report → Completed</p>
         </div>
         <div class="flex items-center gap-6 w-full xl:w-auto">
             <div class="text-right">

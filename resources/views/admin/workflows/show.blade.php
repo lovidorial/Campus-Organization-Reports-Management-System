@@ -25,8 +25,8 @@
 @include('components.workflow-progress', ['workflow' => $workflow, 'progressStages' => $workflow->progressStages()])
 
 <!-- Current Submissions for Review -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    @foreach(['gpoa' => 'GPOA', 'communication_letter' => 'Communication Letter', 'summary_report' => 'Summary Report'] as $type => $label)
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    @foreach(['gpoa' => 'GPOA', 'summary_report' => 'Summary Report'] as $type => $label)
     @php $sub = $workflow->currentSubmission($type); @endphp
     <div class="bg-white rounded-xl border p-5 shadow-sm">
         <h4 class="font-bold text-gray-800 mb-3">{{ $label }}</h4>
@@ -68,6 +68,11 @@
         @endif
     </div>
     @endforeach
+</div>
+
+<!-- Communication Letters Note -->
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <p class="text-sm text-blue-800"><strong>Note:</strong> Communication letters are now scoped to individual activity requests, not submitted at the organization level. Review activity requests and their communication letters in the Activity Monitoring section.</p>
 </div>
 
 <!-- Submission History -->

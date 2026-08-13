@@ -15,7 +15,7 @@
             <div class="flex items-center justify-between mb-8">
                 <div>
                     <h1 class="text-3xl font-extrabold text-slate-900">Dashboard</h1>
-                    <p class="text-sm text-slate-500 mt-1">Campus Organization Reports Management System</p>
+                    <p class="text-sm text-slate-500 mt-1">Orgtrack-Campus Student Organization Narrative & Summary Reports</p>
                     <p class="text-xs text-slate-400 mt-1">{{ $currentTerm }} • {{ $currentSY }}</p>
                 </div>
                 <div class="relative">

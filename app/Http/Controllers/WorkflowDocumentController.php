@@ -15,38 +15,16 @@ class WorkflowDocumentController extends Controller
 
     public function communicationLetter()
     {
-        $user = auth()->user();
-        $workflow = $this->workflowService->getOrCreateForUser($user);
-        $canSubmit = $workflow->canSubmitCommunicationLetter();
-        $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_COMMUNICATION);
-
-        return view('workflow.communication-letter', compact('workflow', 'submission', 'canSubmit'));
+        // Deprecated: Communication letters are now scoped to individual activities
+        // This view is deprecated and will redirect users to activity requests
+        return redirect()->route('activity-requests.index')
+            ->with('info', 'Communication letters are now submitted with individual activity requests. Please review and submit your activity requests.');
     }
 
     public function storeCommunicationLetter(Request $request)
     {
-        $user = auth()->user();
-        $workflow = $this->workflowService->getOrCreateForUser($user);
-
-        if (!$workflow->canSubmitCommunicationLetter()) {
-            return back()->with('error', 'Communication Letter submission is not available at this stage.');
-        }
-
-        $validated = $request->validate([
-            'communication_letter' => 'required|file|mimes:pdf|max:20480',
-            'verify' => 'required|accepted',
-        ]);
-
-        $path = $request->file('communication_letter')->store('uploads/communication-letters', 'public');
-
-        $this->workflowService->recordDocumentSubmission(
-            $workflow,
-            OrganizationWorkflow::DOC_COMMUNICATION,
-            $path
-        );
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Communication Letter submitted successfully. Awaiting OSDW review.');
+        // Deprecated: Communication letters are now scoped to individual activities
+        return back()->with('error', 'Communication letter submission is no longer available at the organization level. Please submit your activity requests instead.');
     }
 
     public function summaryReport()
