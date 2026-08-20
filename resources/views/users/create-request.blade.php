@@ -123,7 +123,13 @@
 
                     <div class="grid gap-6 md:grid-cols-1 mt-6">
                         <div class="form-group">
-                            <label for="sdgSelect">SDGs *</label>
+                            <div class="sdg-label-row">
+                                <label for="sdgCheckboxes">SDGs *</label>
+                                <div id="sdgSummary" class="sdg-summary-badges" aria-live="polite" aria-atomic="true">
+                                    <span class="sdg-placeholder">No SDGs selected yet</span>
+                                </div>
+                            </div>
+
                             @php
                                 $sdgList = [
                                     1 => 'No Poverty',
@@ -153,24 +159,121 @@
                                     $oldNums = $m[1] ?? [];
                                 }
                             @endphp
+
                             <style>
-                                /* SDG chips */
-                                #sdgChips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:6px}
-                                .sdg-chip{background:#E8EBF2;color:#1B2A4A;padding:6px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:0.875rem}
-                                .sdg-chip button{background:transparent;border:none;color:#1B2A4A;cursor:pointer;padding:0;margin:0;font-weight:700}
-                                .sdg-chip button:focus{outline:2px solid rgba(27,42,74,0.12);border-radius:4px}
-                                .sdg-placeholder{color:#6B7280;font-size:0.875rem}
+                                .sdg-label-row {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                    gap: 12px;
+                                    margin-bottom: 12px;
+                                }
+                                .sdg-label-row label {
+                                    margin: 0;
+                                    flex-shrink: 0;
+                                }
+                                .sdg-summary-badges {
+                                    display: flex;
+                                    gap: 6px;
+                                    flex-wrap: wrap;
+                                    flex: 1;
+                                    padding: 6px 8px;
+                                    background: #F3F4F6;
+                                    border-radius: 4px;
+                                    min-height: 24px;
+                                    align-items: center;
+                                }
+                                .sdg-badge {
+                                    background: #3B82F6;
+                                    color: white;
+                                    padding: 2px 8px;
+                                    border-radius: 999px;
+                                    font-size: 0.75rem;
+                                    font-weight: 600;
+                                    display: inline-block;
+                                    white-space: nowrap;
+                                }
+                                .sdg-placeholder {
+                                    color: #9CA3AF;
+                                    font-size: 0.875rem;
+                                }
+                                .sdg-checkbox-list {
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 8px;
+                                    max-height: 240px;
+                                    overflow-y: auto;
+                                    padding: 8px 0;
+                                    border: 1px solid #D1D5DB;
+                                    border-radius: 4px;
+                                    background: #FFFFFF;
+                                    padding: 8px;
+                                    margin-bottom: 8px;
+                                }
+                                .sdg-checkbox-item {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 4px;
+                                    cursor: pointer;
+                                    user-select: none;
+                                }
+                                .sdg-checkbox-item input[type="checkbox"] {
+                                    cursor: pointer;
+                                    accent-color: #3B82F6;
+                                }
+                                .sdg-checkbox-item input[type="checkbox"]:disabled {
+                                    cursor: not-allowed;
+                                    opacity: 0.5;
+                                }
+                                .sdg-checkbox-item label {
+                                    cursor: pointer;
+                                    margin: 0;
+                                    font-size: 0.875rem;
+                                    flex: 1;
+                                }
+                                .sdg-checkbox-item input[type="checkbox"]:disabled + label {
+                                    opacity: 0.5;
+                                    cursor: not-allowed;
+                                }
+                                .sdg-count-message {
+                                    font-size: 0.75rem;
+                                    color: #6B7280;
+                                    display: block;
+                                    margin-bottom: 8px;
+                                    font-weight: 500;
+                                }
+                                .sdg-helper-text {
+                                    font-size: 0.75rem;
+                                    color: #6B7280;
+                                    display: block;
+                                    margin-bottom: 8px;
+                                    font-weight: 500;
+                                }
+                                .sdg-validation-error {
+                                    color: #DC2626;
+                                    font-size: 0.875rem;
+                                    margin-top: 6px;
+                                    display: none;
+                                }
+                                .sdg-validation-error.show {
+                                    display: block;
+                                }
                             </style>
 
-                            <select id="sdgSelect" name="sdgs[]" multiple size="6" class="" aria-describedby="sdgHelp">
+                            <div class="sdg-checkbox-list" id="sdgCheckboxes">
                                 @foreach($sdgList as $num => $label)
-                                    <option value="{{ $num }}" data-label="SDG {{ $num }} - {{ $label }}" {{ in_array((string)$num, $oldNums) ? 'selected' : '' }}>SDG {{ $num }} - {{ $label }}</option>
+                                    <div class="sdg-checkbox-item">
+                                        <input type="checkbox" id="sdg{{ $num }}" name="sdgs[]" value="{{ $num }}" 
+                                               {{ in_array((string)$num, $oldNums) ? 'checked' : '' }}>
+                                        <label for="sdg{{ $num }}">SDG {{ $num }} - {{ $label }}</label>
+                                    </div>
                                 @endforeach
-                            </select>
-                            <div id="sdgChips" aria-live="polite" aria-atomic="true">
-                                <div class="sdg-placeholder">No SDGs selected yet</div>
                             </div>
-                            <p id="sdgHelp" class="help-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple SDGs.</p>
+
+                            <div id="sdgHelperText" class="sdg-helper-text">Must select 1-8 SDGs aligned with the activity</div>
+                            <div id="sdgValidationError" class="sdg-validation-error"></div>
+
                             @error('sdgs')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
@@ -286,59 +389,84 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    const sdgSelect = document.getElementById('sdgSelect');
-    const sdgInput = document.getElementById('sdgsInput');
+    const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
+    const sdgSummary = document.getElementById('sdgSummary');
+    const sdgValidationError = document.getElementById('sdgValidationError');
+    const requestForm = document.getElementById('requestForm');
+    const MAX_SDGS = 8;
+    const MIN_SDGS = 1;
 
-    if(sdgSelect && sdgInput){
-        const sdgChips = document.getElementById('sdgChips');
+    if(!sdgCheckboxContainer) return;
 
-        function renderChips(selectedOptions){
-            if(!sdgChips) return;
-            sdgChips.innerHTML = '';
-            const arr = Array.from(selectedOptions || []);
-            if(arr.length === 0){
-                const ph = document.createElement('div');
-                ph.className = 'sdg-placeholder';
-                ph.textContent = 'No SDGs selected yet';
-                sdgChips.appendChild(ph);
-                return;
-            }
+    const allCheckboxes = sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]');
 
-            arr.forEach(opt => {
-                const num = opt.value;
-                const label = opt.dataset.label || opt.textContent.trim();
-                const chip = document.createElement('span');
-                chip.className = 'sdg-chip';
-                chip.setAttribute('data-value', num);
+    /**
+     * Update the summary badges area with currently selected SDGs
+     */
+    function updateSdgSummary() {
+        const checkedBoxes = Array.from(allCheckboxes).filter(cb => cb.checked);
+        sdgSummary.innerHTML = '';
 
-                const text = document.createElement('span');
-                text.textContent = label;
-
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.setAttribute('aria-label', 'Remove ' + label);
-                btn.innerHTML = '\u00D7';
-                btn.addEventListener('click', function(e){
-                    e.preventDefault();
-                    opt.selected = false;
-                    syncSdgs();
-                });
-
-                chip.appendChild(text);
-                chip.appendChild(btn);
-                sdgChips.appendChild(chip);
+        if (checkedBoxes.length === 0) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'sdg-placeholder';
+            placeholder.textContent = 'No SDGs selected yet';
+            sdgSummary.appendChild(placeholder);
+        } else {
+            checkedBoxes.forEach(checkbox => {
+                const badge = document.createElement('span');
+                badge.className = 'sdg-badge';
+                badge.textContent = `SDG ${checkbox.value}`;
+                sdgSummary.appendChild(badge);
             });
         }
+    }
 
-        function syncSdgs(){
-            const selectedOpts = Array.from(sdgSelect.selectedOptions);
-            renderChips(selectedOpts);
+    /**
+     * Clear validation error
+     */
+    function clearValidationError() {
+        sdgValidationError.classList.remove('show');
+        sdgValidationError.textContent = '';
+    }
+
+    /**
+     * Validate SDG selection on form submit
+     */
+    function validateSdgSelection() {
+        const checkedBoxes = Array.from(allCheckboxes).filter(cb => cb.checked);
+        const count = checkedBoxes.length;
+
+        if (count < MIN_SDGS || count > MAX_SDGS) {
+            sdgValidationError.textContent = `Please select between ${MIN_SDGS} and ${MAX_SDGS} SDGs. You have selected ${count}.`;
+            sdgValidationError.classList.add('show');
+            return false;
         }
 
-        sdgSelect.addEventListener('change', syncSdgs);
-        // initialize on load
-        syncSdgs();
+        clearValidationError();
+        return true;
     }
+
+    // Add event listeners to all checkboxes
+    allCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSdgSummary();
+            clearValidationError();
+        });
+    });
+
+    // Validate on form submit
+    if (requestForm) {
+        requestForm.addEventListener('submit', function(e) {
+            if (!validateSdgSelection()) {
+                e.preventDefault();
+                sdgCheckboxContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+
+    // Initialize on page load - update badges to reflect any pre-checked checkboxes
+    updateSdgSummary();
 });
 </script>
 @endpush

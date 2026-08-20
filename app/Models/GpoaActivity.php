@@ -10,6 +10,7 @@ class GpoaActivity extends Model
 {
     protected $fillable = [
         'gpoa_id',
+        'activity_request_id',
         'title',
         'date',
         'venue',
@@ -37,6 +38,11 @@ class GpoaActivity extends Model
     public function gpoa(): BelongsTo
     {
         return $this->belongsTo(Gpoa::class);
+    }
+
+    public function activityRequest(): BelongsTo
+    {
+        return $this->belongsTo(ActivityRequest::class);
     }
 
     public function activityRequests(): HasMany

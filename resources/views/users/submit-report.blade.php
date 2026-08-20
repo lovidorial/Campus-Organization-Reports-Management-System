@@ -56,7 +56,6 @@
         });
     });
 </script>
-</x-app-layout>
     </form>
 </div>
 </x-app-layout>

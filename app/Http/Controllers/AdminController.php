@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
+use App\Models\GpoaActivity;
 use App\Models\MonitoringResult;
 use App\Models\Organization;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Models\WorkflowEvent;
 use App\Models\WorkflowSubmission;
 use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -241,7 +243,52 @@ class AdminController extends Controller
             return back()->with('error', 'Cannot approve. Conflict detected at same venue/date.');
         }
 
-        $activity->update(['status' => ActivityRequest::STATUS_APPROVED, 'reject_reason' => null]);
+        // Use DB transaction to ensure both status update and GpoaActivity creation succeed or fail together
+        DB::transaction(function () use ($activity) {
+            // Update activity request status
+            $activity->update(['status' => ActivityRequest::STATUS_APPROVED, 'reject_reason' => null]);
+
+            // Get or create the parent GPOA
+            $gpoa = $activity->gpoa;
+            if (!$gpoa) {
+                return; // No parent GPOA, just update the activity status
+            }
+
+            $gpoaActivityData = [
+                'gpoa_id' => $gpoa->id,
+                'activity_request_id' => $activity->id,
+                'title' => $activity->title,
+                'date' => $activity->date,
+                'venue' => $activity->venue,
+                'category' => $activity->category,
+                'objectives' => $activity->objectives,
+                'expected_outcome' => $activity->expected_outcome,
+                'target_participants' => $activity->target_participants,
+                'sdgs' => $activity->sdgs,
+                'plan_key_strategy' => $activity->plan_key_strategy,
+                'person_in_charge' => $activity->person_in_charge,
+                'facilities_materials' => $activity->facilities_materials,
+                'estimated_budget' => $activity->estimated_budget,
+                'source_of_funds' => $activity->source_of_funds,
+                'preceding_activity' => $activity->preceding_activity,
+                'remarks' => $activity->remarks,
+            ];
+
+            // Prefer an existing GPOA line item link; otherwise key by activity_request_id.
+            if ($activity->gpoa_activity_id) {
+                $gpoaActivity = GpoaActivity::updateOrCreate(
+                    ['id' => $activity->gpoa_activity_id],
+                    $gpoaActivityData
+                );
+            } else {
+                $gpoaActivity = GpoaActivity::updateOrCreate(
+                    ['activity_request_id' => $activity->id],
+                    $gpoaActivityData
+                );
+                $activity->update(['gpoa_activity_id' => $gpoaActivity->id]);
+            }
+        });
+
         return back()->with('success', 'Activity request approved. Organization may now conduct the activity.');
     }
 
@@ -331,6 +378,23 @@ class AdminController extends Controller
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
         ]);
+    }
+
+    public function viewFile($activityId, $fileType)
+    {
+        $activity = ActivityRequest::with('report')->findOrFail($activityId);
+
+        $filePath = match ($fileType) {
+            'communication' => $activity->communication_letter,
+            'narrative'     => $activity->report?->narrative_report,
+            default         => null,
+        };
+
+        if (!$filePath || !file_exists(storage_path('app/public/' . $filePath))) {
+            abort(404, 'File not found');
+        }
+
+        return response()->file(storage_path('app/public/' . $filePath));
     }
 
     public function downloadFile($activityId, $fileType)

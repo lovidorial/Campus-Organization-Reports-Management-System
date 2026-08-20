@@ -1,14 +1,35 @@
 @php
     $gpoa = $workflow->currentSubmission('gpoa');
     $summary = $workflow->currentSubmission('summary_report');
+    
+    // Determine Activity Requests step status based on actual activity requests
+    $activityRequestsStatus = 'pending';
+    if ($gpoa && in_array($gpoa->status, ['approved', 'stored'])) {
+        // GPOA is approved, check if there are activity requests
+        $gpoaModel = \App\Models\Gpoa::find($gpoa->id);
+        $activityRequestCount = $gpoaModel ? $gpoaModel->activityRequests()->count() : 0;
+        
+        if ($activityRequestCount === 0) {
+            // No activity requests yet
+            $activityRequestsStatus = 'in_progress';
+        } else {
+            // Check if all activity requests are closed
+            $allClosed = $gpoaModel->activityRequests()
+                ->where('status', '!=', 'closed')
+                ->doesntExist();
+            $activityRequestsStatus = $allClosed ? 'completed' : 'in_progress';
+        }
+    }
+    
     $steps = [
         ['label' => 'GPOA Submitted', 'status' => $gpoa && in_array($gpoa->status, ['approved', 'submitted', 'under_review', 'stored']) ? 'completed' : 'pending'],
-        ['label' => 'Activity Requests', 'status' => $gpoa && in_array($gpoa->status, ['approved', 'stored']) ? 'completed' : 'pending'],
+        ['label' => 'Activity Requests', 'status' => $activityRequestsStatus],
         ['label' => 'Summary Report', 'status' => $summary && in_array($summary->status, ['approved', 'submitted', 'under_review']) ? 'completed' : 'pending'],
         ['label' => 'Completed', 'status' => $workflow->is_completed ? 'completed' : 'pending'],
     ];
     $badgeClasses = [
         'pending' => 'bg-slate-100 text-slate-600 border-slate-200',
+        'in_progress' => 'bg-amber-50 text-amber-700 border-amber-200',
         'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
     ];
 @endphp
@@ -36,7 +57,7 @@
         <div class="grid grid-cols-4 gap-6 relative">
             @foreach($steps as $index => $step)
                 <div class="flex flex-col items-center text-center">
-                    <div class="w-16 h-16 rounded-full border-2 flex items-center justify-center text-lg font-bold mb-4 transition-all duration-300 {{ $step['status'] === 'completed' ? 'border-emerald-500 text-emerald-700 bg-white shadow-sm' : 'border-slate-300 text-slate-500 bg-white' }}">
+                    <div class="w-16 h-16 rounded-full border-2 flex items-center justify-center text-lg font-bold mb-4 transition-all duration-300 {{ $step['status'] === 'completed' ? 'border-emerald-500 text-emerald-700 bg-white shadow-sm' : ($step['status'] === 'in_progress' ? 'border-amber-500 text-amber-700 bg-white shadow-sm' : 'border-slate-300 text-slate-500 bg-white') }}">
                         {{ $index + 1 }}
                     </div>
                     <p class="text-sm font-semibold text-slate-900 leading-snug">{{ $step['label'] }}</p>
@@ -52,7 +73,7 @@
         @foreach($steps as $index => $step)
             <div class="flex items-start gap-4">
                 <div class="flex flex-col items-center">
-                    <div class="w-12 h-12 rounded-full border-2 flex items-center justify-center text-base font-bold {{ $step['status'] === 'completed' ? 'border-emerald-500 text-emerald-700 bg-white shadow-sm' : 'border-slate-300 text-slate-500 bg-white' }}">
+                    <div class="w-12 h-12 rounded-full border-2 flex items-center justify-center text-base font-bold {{ $step['status'] === 'completed' ? 'border-emerald-500 text-emerald-700 bg-white shadow-sm' : ($step['status'] === 'in_progress' ? 'border-amber-500 text-amber-700 bg-white shadow-sm' : 'border-slate-300 text-slate-500 bg-white') }}">
                         {{ $index + 1 }}
                     </div>
                     @if(!$loop->last)

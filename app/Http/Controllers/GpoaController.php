@@ -139,6 +139,7 @@ class GpoaController extends Controller
             'colleges'            => 'required|string|max:100',
             'term'                => 'required|string|max:50',
             'school_year'         => 'required|string|max:20',
+            'prepared_by'         => 'required|string|max:255',
             'document_path'       => 'nullable|file|mimes:pdf|max:20480',
             'verify'              => 'required|accepted',
         ]);
@@ -163,6 +164,7 @@ class GpoaController extends Controller
             'school_year'   => $validated['school_year'],
             'college'       => $validated['colleges'],
             'document_path' => $documentPath,
+            'prepared_by'   => $validated['prepared_by'],
             'status'        => 'pending',
         ]);
 
@@ -206,6 +208,7 @@ class GpoaController extends Controller
 
         $validated = $request->validate([
             'colleges' => 'required|string|max:100',
+            'prepared_by' => 'required|string|max:255',
             'document_path' => 'nullable|file|mimes:pdf|max:20480',
             'verify' => 'required|accepted',
         ]);
@@ -219,6 +222,7 @@ class GpoaController extends Controller
 
         $gpoa->update([
             'college' => $validated['colleges'],
+            'prepared_by' => $validated['prepared_by'],
             'document_path' => $gpoa->document_path,
             'status' => 'pending',
             'reject_reason' => null,

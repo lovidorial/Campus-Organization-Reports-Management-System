@@ -56,6 +56,13 @@
                 </div>
 
                 <div class="form-group mt-6">
+                    <label for="prepared_by">Prepared By *</label>
+                    <input type="text" id="prepared_by" name="prepared_by" required placeholder="e.g. John Doe, Officer"
+                           value="{{ old('prepared_by', $gpoa->prepared_by ?? '') }}">
+                    @error('prepared_by')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                </div>
+
+                <div class="form-group mt-6">
                     <label for="document_path">GPOA Document (PDF)</label>
                     <input type="file" id="document_path" name="document_path" accept=".pdf">
                     @if($gpoa->document_path)

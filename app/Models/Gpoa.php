@@ -10,7 +10,7 @@ class Gpoa extends Model
 {
     protected $fillable = [
         'user_id', 'term', 'school_year', 'college', 'document_path',
-        'status', 'approved_by', 'approved_at', 'stored_at', 'reject_reason',
+        'status', 'approved_by', 'approved_at', 'stored_at', 'reject_reason', 'prepared_by',
     ];
 
     protected $casts = [

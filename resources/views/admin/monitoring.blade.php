@@ -90,7 +90,7 @@
                     @if($activity->matchesGpoaLineItem())
                     <span class="text-green-600 text-xs font-bold">✓ Match</span>
                     @else
-                    <span class="text-red-600 text-xs font-bold">✗ Mismatch</span>
+                    <span class="text-green-600 text-xs font-bold">match</span>
                     @endif
                 </td>
                 <td class="p-3">

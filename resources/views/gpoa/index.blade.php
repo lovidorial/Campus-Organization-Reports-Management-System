@@ -17,7 +17,7 @@
 @if($hasApprovedGpoa)
 <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
     Your GPOA for <strong>{{ $term }}</strong> / SY <strong>{{ $schoolYear }}</strong> is approved.
-    <a href="{{ route('workflow.communication-letter') }}" class="underline font-semibold ml-1">Proceed to Communication Letter →</a>
+    <a href="{{ route('activity-requests.create') }}" class="underline font-semibold ml-1">Submit an Activity Request →</a>
 </div>
 @endif
 
