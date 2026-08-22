@@ -31,10 +31,12 @@ class Organization extends Model
         }
 
         if (Storage::disk('public')->exists($path)) {
-            return Storage::disk('public')->url($path);
+            $baseUrl = app()->runningInConsole() ? '' : request()->getBaseUrl();
+
+            return $baseUrl . '/storage/' . ltrim($path, '/');
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        return null;
     }
 
     public function members()

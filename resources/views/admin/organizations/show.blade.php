@@ -25,8 +25,8 @@
     <div class="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
         <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex flex-col items-center gap-3 text-center">
-                @if($organization->logo_path)
-                    <img src="{{ asset('storage/'.$organization->logo_path) }}" alt="{{ $organization->name }} logo" class="h-24 w-24 rounded-3xl object-cover border border-slate-200" />
+                @if($organization->logo_url)
+                    <img src="{{ $organization->logo_url }}" alt="{{ $organization->name }} logo" class="h-24 w-24 rounded-3xl object-cover border border-slate-200" />
                 @else
                     <div class="flex h-24 w-24 items-center justify-center rounded-3xl bg-orange-100 text-3xl font-bold text-orange-700 uppercase">{{ Illuminate\Support\Str::limit($organization->name, 2, '') }}</div>
                 @endif

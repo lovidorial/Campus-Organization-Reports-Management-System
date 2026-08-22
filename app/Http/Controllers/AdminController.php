@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\OrganizationWorkflow;
 use App\Models\WorkflowEvent;
 use App\Models\WorkflowSubmission;
+use App\Services\GpoaActivityLinker;
 use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -254,39 +255,7 @@ class AdminController extends Controller
                 return; // No parent GPOA, just update the activity status
             }
 
-            $gpoaActivityData = [
-                'gpoa_id' => $gpoa->id,
-                'activity_request_id' => $activity->id,
-                'title' => $activity->title,
-                'date' => $activity->date,
-                'venue' => $activity->venue,
-                'category' => $activity->category,
-                'objectives' => $activity->objectives,
-                'expected_outcome' => $activity->expected_outcome,
-                'target_participants' => $activity->target_participants,
-                'sdgs' => $activity->sdgs,
-                'plan_key_strategy' => $activity->plan_key_strategy,
-                'person_in_charge' => $activity->person_in_charge,
-                'facilities_materials' => $activity->facilities_materials,
-                'estimated_budget' => $activity->estimated_budget,
-                'source_of_funds' => $activity->source_of_funds,
-                'preceding_activity' => $activity->preceding_activity,
-                'remarks' => $activity->remarks,
-            ];
-
-            // Prefer an existing GPOA line item link; otherwise key by activity_request_id.
-            if ($activity->gpoa_activity_id) {
-                $gpoaActivity = GpoaActivity::updateOrCreate(
-                    ['id' => $activity->gpoa_activity_id],
-                    $gpoaActivityData
-                );
-            } else {
-                $gpoaActivity = GpoaActivity::updateOrCreate(
-                    ['activity_request_id' => $activity->id],
-                    $gpoaActivityData
-                );
-                $activity->update(['gpoa_activity_id' => $gpoaActivity->id]);
-            }
+            $this->linkGpoaActivity($activity);
         });
 
         return back()->with('success', 'Activity request approved. Organization may now conduct the activity.');
@@ -308,7 +277,7 @@ class AdminController extends Controller
 
     public function recordMonitoring(Request $request, $id)
     {
-        $activity = ActivityRequest::with(['gpoaActivity', 'report'])->findOrFail($id);
+        $activity = ActivityRequest::with(['gpoa', 'gpoaActivity', 'report'])->findOrFail($id);
 
         if ($activity->status !== ActivityRequest::STATUS_REPORT_SUBMITTED) {
             return back()->with('error', 'Monitoring can only be recorded after the organization submits a final report.');
@@ -318,6 +287,11 @@ class AdminController extends Controller
             'compliance_status' => 'required|in:aligned,partial,not_aligned',
             'compliance_notes'  => 'nullable|string|max:1000',
         ]);
+
+        if (! $activity->gpoa_activity_id) {
+            $this->linkGpoaActivity($activity);
+            $activity->refresh();
+        }
 
         MonitoringResult::updateOrCreate(
             ['activity_request_id' => $activity->id],
@@ -332,7 +306,13 @@ class AdminController extends Controller
 
         $activity->update(['status' => ActivityRequest::STATUS_CLOSED]);
 
-        return back()->with('success', 'Monitoring results recorded against GPOA. Activity closed.');
+        return redirect()->route('admin.activities')
+            ->with('success', 'Monitoring results recorded against GPOA. Activity closed.');
+    }
+
+    private function linkGpoaActivity(ActivityRequest $activity): GpoaActivity
+    {
+        return (new GpoaActivityLinker())->link($activity);
     }
 
     public function exportActivities(Request $request, $format)

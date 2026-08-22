@@ -31,23 +31,18 @@ class User extends Authenticatable
 
     public function getAvatarUrlAttribute(): ?string
     {
-        $organizationLogo = $this->organization?->logo_path;
         $photoPath = $this->profile_photo_path;
+        $organizationLogo = $this->organization?->logo_path;
 
-        if (! empty($organizationLogo)) {
-            $path = str_replace('\\', '/', $organizationLogo);
-            if (Storage::disk('public')->exists($path)) {
-                return Storage::disk('public')->url($path);
+        foreach ([$photoPath, $organizationLogo] as $imagePath) {
+            if (empty($imagePath)) {
+                continue;
             }
-            return asset('storage/' . ltrim($path, '/'));
-        }
 
-        if (! empty($photoPath)) {
-            $path = str_replace('\\', '/', $photoPath);
+            $path = str_replace('\\', '/', $imagePath);
             if (Storage::disk('public')->exists($path)) {
-                return Storage::disk('public')->url($path);
+                return rtrim(config('app.url'), '/') . '/storage/' . ltrim($path, '/');
             }
-            return asset('storage/' . ltrim($path, '/'));
         }
 
         return asset('images/osdw.logo.jpg');

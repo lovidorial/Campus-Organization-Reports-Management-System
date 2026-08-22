@@ -141,7 +141,7 @@
                                 class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Reject</button>
                     </div>
                     @elseif($activity->status == 'report_submitted')
-                    <button onclick="openMonitoringModal({{ $activity->id }})"
+                    <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
                             class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Record Monitoring</button>
                     @elseif(in_array($activity->status, ['approved','in_progress','awaiting_report']))
                     <span class="text-xs text-sky-600">Monitoring</span>
@@ -190,7 +190,7 @@
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
         <h3 class="text-lg font-bold text-gray-800 mb-3">Record Monitoring Results</h3>
         <p class="text-gray-600 text-sm mb-4">Evaluate the activity against the organization's approved GPOA submission.</p>
-        <form id="monitoringForm" method="POST">
+        <form id="monitoringForm" method="POST" action="/admin/monitoring/0/record" data-route-base="/admin/monitoring/">
             @csrf
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Compliance Status *</label>
@@ -227,7 +227,9 @@ function openRejectModal(id) {
 }
 function closeRejectModal() { document.getElementById('rejectModal').classList.add('hidden'); }
 function openMonitoringModal(id) {
-    document.getElementById('monitoringForm').action = '/admin/monitoring/' + id + '/record';
+    const form = document.getElementById('monitoringForm');
+    const baseRoute = form.getAttribute('data-route-base');
+    form.action = baseRoute + id + '/record';
     document.getElementById('monitoringModal').classList.remove('hidden');
 }
 function closeMonitoringModal() { document.getElementById('monitoringModal').classList.add('hidden'); }
@@ -240,6 +242,7 @@ function closePDFViewer() {
     document.getElementById('pdfViewerModal').classList.add('hidden');
     document.getElementById('pdfFrame').src = '';
 }
+</script>
 </script>
 @endpush
 

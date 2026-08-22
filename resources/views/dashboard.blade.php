@@ -19,6 +19,7 @@
 
     $gpoaSub = $workflow->currentSubmission('gpoa');
     $summarySub = $workflow->currentSubmission('summary_report');
+    $activityRequestCount = $stats['total'] ?? 0;
 
     $documents = [
         [
@@ -40,6 +41,7 @@
             'title' => 'Activity Requests',
             'subtitle' => 'Individual activity plans with communication letters',
             'submission' => null,
+            'activity_count' => $activityRequestCount,
             'locked' => !$workflow->isGpoaApproved() || $workflow->is_locked,
             'lock_reason' => 'Awaiting GPOA approval',
             'can_submit' => $workflow->isGpoaApproved() && !$workflow->is_locked,
@@ -62,6 +64,7 @@
             'edit_url' => null,
             'view_url' => $summarySub ? route('workflow.summary-report') : null,
             'awaiting' => !$workflow->canSubmitSummaryReport() ? 'Awaiting all activity reports' : null,
+            'activity_count' => null,
         ],
     ];
 
@@ -138,45 +141,45 @@
 </div>
 
 {{-- Current Action Card --}}
-<div class="rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md {{ $actionCardStyles[$action['type']] ?? $actionCardStyles['waiting'] }}">
-    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+<div class="rounded-2xl border border-gray-100 shadow-sm p-3 md:p-4 mb-5 transition-all duration-300 hover:shadow-md {{ $actionCardStyles[$action['type']] ?? $actionCardStyles['waiting'] }}">
+    <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
         <div class="flex-1">
-            <div class="flex items-center gap-2 mb-2">
+            <div class="flex items-center gap-2 mb-1">
                 @if($action['type'] === 'action_required')
-                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-amber-100 text-amber-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span class="flex items-center justify-center w-6 h-6 rounded-lg bg-amber-100 text-amber-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </span>
                 @elseif($action['type'] === 'completed')
-                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-green-100 text-green-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="flex items-center justify-center w-6 h-6 rounded-lg bg-green-100 text-green-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </span>
                 @else
-                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-green-100 text-green-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span class="flex items-center justify-center w-6 h-6 rounded-lg bg-green-100 text-green-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 </span>
                 @endif
-                <h2 class="text-lg font-bold text-gray-900">{{ $action['title'] }}</h2>
+                <h2 class="text-base font-bold text-gray-900">{{ $action['title'] }}</h2>
             </div>
-            <p class="text-gray-800 font-medium leading-relaxed">{{ $action['message'] }}</p>
+            <p class="text-sm text-gray-800 font-medium leading-snug">{{ $action['message'] }}</p>
             @if($action['submessage'])
-            <p class="text-sm mt-2 leading-relaxed {{ str_contains($action['message'], 'rejected') ? 'bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-700' : 'text-gray-600' }}">
+            <p class="text-xs mt-1 leading-snug {{ str_contains($action['message'], 'rejected') ? 'bg-red-50 border border-red-100 rounded-lg px-2 py-1 text-red-700' : 'text-gray-600' }}">
                 {{ $action['submessage'] }}
             </p>
             @endif
 
-            <div class="flex flex-wrap gap-4 mt-4">
+            <div class="flex flex-wrap gap-3 mt-2">
                 @if($action['estimated_review'])
-                <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span class="text-gray-500">Estimated Review Time:</span>
+                <div class="flex items-center gap-1 text-xs">
+                    <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-gray-500">Estimated:</span>
                     <span class="font-semibold text-gray-800">{{ $action['estimated_review'] }}</span>
                 </div>
                 @endif
                 @if($action['deadline'])
-                <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <div class="flex items-center gap-1 text-xs">
+                    <svg class="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span class="text-gray-500">Deadline:</span>
-                    <span class="font-semibold text-amber-700">{{ $action['deadline']->format('F j, Y') }}</span>
+                    <span class="font-semibold text-amber-700">{{ $action['deadline']->format('M d, Y') }}</span>
                 </div>
                 @endif
             </div>
@@ -184,9 +187,9 @@
 
         @if($action['action_url'] && $action['action_label'])
         <a href="{{ $action['action_url'] }}"
-           class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shrink-0"
+           class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shrink-0"
            style="background: linear-gradient(135deg, #f5a623, #e89600);">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             {{ $action['action_label'] }}
         </a>
         @endif
@@ -280,6 +283,12 @@
                     <p class="text-xs text-green-700 leading-relaxed">{{ $sub->approval_remarks }}</p>
                 </div>
                 @endif
+                @elseif($doc['step'] === 2 && ($doc['activity_count'] ?? 0) > 0)
+                <div>
+                    <span class="inline-flex text-xs px-2.5 py-1 rounded-full border font-semibold bg-green-50 text-green-700 border-green-200">
+                        {{ $doc['activity_count'] }} Submitted
+                    </span>
+                </div>
                 @else
                 <div>
                     <span class="inline-flex text-xs px-2.5 py-1 rounded-full border font-semibold bg-gray-50 text-gray-500 border-gray-200">Not Submitted</span>

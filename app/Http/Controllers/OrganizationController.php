@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Organization;
 use App\Models\Activity;
+use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Services\OrganizationClassifierService;
 use Illuminate\Http\Request;
@@ -169,26 +170,17 @@ class OrganizationController extends Controller
         $members = $organization->members()->paginate(10);
         $secretary = $organization->members()->first();
 
-        // Activities submitted by members of this org
-        $activities = Activity::whereIn('user_id', $organization->members->pluck('id'))
-            ->orWhere('organization', $organization->name)
+        // Current student submissions are stored as activity requests.
+        $memberIds = $organization->members->pluck('id');
+        $activities = ActivityRequest::whereIn('user_id', $memberIds)
             ->latest()
             ->paginate(10);
 
         $stats = [
             'total'    => $activities->total(),
-            'approved' => Activity::where(function($q) use ($organization) {
-                $q->whereIn('user_id', $organization->members->pluck('id'))
-                  ->orWhere('organization', $organization->name);
-            })->where('status', 'approved')->count(),
-            'pending'  => Activity::where(function($q) use ($organization) {
-                $q->whereIn('user_id', $organization->members->pluck('id'))
-                  ->orWhere('organization', $organization->name);
-            })->where('status', 'pending')->count(),
-            'rejected' => Activity::where(function($q) use ($organization) {
-                $q->whereIn('user_id', $organization->members->pluck('id'))
-                  ->orWhere('organization', $organization->name);
-            })->where('status', 'rejected')->count(),
+            'approved' => ActivityRequest::whereIn('user_id', $memberIds)->where('status', 'approved')->count(),
+            'pending'  => ActivityRequest::whereIn('user_id', $memberIds)->where('status', 'pending')->count(),
+            'rejected' => ActivityRequest::whereIn('user_id', $memberIds)->where('status', 'rejected')->count(),
         ];
 
         return view('admin.organizations.show', compact('organization', 'members', 'activities', 'stats', 'secretary'));

@@ -11,19 +11,19 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl border p-4 text-center">
         <p class="text-xs text-gray-500 uppercase">Total</p>
-        <p class="text-2xl font-bold text-blue-600">{{ $grouped->sum(fn($group) => $group->count()) }}</p>
+        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->count()) }}</p>
     </div>
     <div class="bg-white rounded-xl border p-4 text-center">
         <p class="text-xs text-gray-500 uppercase">Pending</p>
-        <p class="text-2xl font-bold text-yellow-500">{{ $grouped->sum(fn($group) => $group->where('status','pending')->count()) }}</p>
+        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->where('status','pending')->count()) }}</p>
     </div>
     <div class="bg-white rounded-xl border p-4 text-center">
         <p class="text-xs text-gray-500 uppercase">In Progress</p>
-        <p class="text-2xl font-bold text-sky-500">{{ $grouped->sum(fn($group) => $group->whereIn('status',['approved','in_progress','awaiting_report'])->count()) }}</p>
+        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->whereIn('status',['approved','in_progress','awaiting_report'])->count()) }}</p>
     </div>
     <div class="bg-white rounded-xl border p-4 text-center">
         <p class="text-xs text-gray-500 uppercase">Closed</p>
-        <p class="text-2xl font-bold text-green-500">{{ $grouped->sum(fn($group) => $group->where('status','closed')->count()) }}</p>
+        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->where('status','closed')->count()) }}</p>
     </div>
 </div>
 
