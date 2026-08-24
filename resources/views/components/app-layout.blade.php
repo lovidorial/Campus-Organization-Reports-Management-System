@@ -10,6 +10,7 @@
 <div class="flex min-h-screen">
 
     <!-- Sidebar -->
+    <div x-data="{ notificationsOpen: false }">
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background-color: #d97706;">
         <div class="p-5 border-b border-white/10">
             <h1 class="text-xl font-bold text-white">Orgtrack  </h1>
@@ -133,7 +134,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
                 @if(!auth()->user()->isAdmin())
-                <button type="button" @click="$dispatch('open-modal', 'notifications-modal')" class="relative ml-2 text-white focus:outline-none">
+                <button type="button" @click="notificationsOpen = true" class="relative ml-2 text-white focus:outline-none" aria-label="Open notifications">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                     </svg>
@@ -150,13 +151,15 @@
         $modalNotifications = auth()->user()?->notifications()->latest()->take(10)->get();
     @endphp
 
-    <x-modal name="notifications-modal" maxWidth="lg">
+    <div x-show="notificationsOpen" x-cloak x-on:keydown.escape.window="notificationsOpen = false" class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0" role="dialog" aria-modal="true" aria-label="Notifications">
+        <div class="fixed inset-0 bg-gray-500 opacity-75" x-on:click="notificationsOpen = false"></div>
+        <div class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl sm:w-full sm:max-w-lg sm:mx-auto">
         <div class="bg-white rounded-t-lg px-6 py-5 border-b border-gray-200 flex items-center justify-between">
             <div>
                 <h2 class="text-xl font-bold text-gray-900">Notifications</h2>
                 <p class="text-sm text-gray-500">Recent updates on your workflow and submissions.</p>
             </div>
-            <button type="button" @click="$dispatch('close-modal', 'notifications-modal')" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+            <button type="button" @click="notificationsOpen = false" class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close notifications">
                 <span class="sr-only">Close</span>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -197,7 +200,8 @@
                 </div>
             @endif
         </div>
-    </x-modal>
+        </div>
+    </div>
 
     <!-- Mobile overlay -->
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
@@ -243,6 +247,7 @@
             {{ $slot }}
         </main>
     </div>
+</div>
 </div>
 
 <script>

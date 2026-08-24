@@ -25,7 +25,7 @@
     <nav class="site-navbar">
         <div class="navbar-inner">
             <a href="{{ url('/') }}" class="nav-brand">
-                <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="Org-track logo" class="nav-logo-img">
+                <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo" class="nav-logo-img">
                 <span class="nav-brand-text">Orgtrack</span>
             </a>
 
@@ -58,7 +58,7 @@
                     Manage Student<br>Organization Activities<br>with Ease
                 </h1>
                 <p class="hero-sub">
-                    A comprehensive platform designed to streamline submission, tracking, and approval of student organization activities. Simplify reporting, enhance transparency, and monitor progress in real-time.
+                    A comprehensive platform designed to streamline the planning, request, and approval of student organization activities under an approved GPOA. Simplify narrative and summary reporting, enhance transparency between organizations and OSDW, and monitor progress every step of the way.
                 </p>
                 <div class="hero-btns">
                     @auth

@@ -106,14 +106,14 @@
         </div>
 
         @if($unreadCount > 0)
-        <a href="{{ route('notifications.index') }}"
-           class="inline-flex items-center gap-2 self-start lg:self-center bg-white/15 hover:bg-white/25 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border border-white/20">
+        <button type="button" @click="notificationsOpen = true"
+              class="inline-flex items-center gap-2 self-start lg:self-center bg-white/15 hover:bg-white/25 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border border-white/20">
             <span class="relative flex h-2.5 w-2.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
             </span>
             {{ $unreadCount }} new notification{{ $unreadCount > 1 ? 's' : '' }}
-        </a>
+        </button>
         @endif
     </div>
 
@@ -322,31 +322,6 @@
         @endforeach
     </div>
 </div>
-
-{{-- Notifications --}}
-@if($notifications->count())
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md">
-    <div class="flex justify-between items-center mb-4">
-        <div>
-            <h3 class="font-bold text-gray-900">Recent Notifications</h3>
-            <p class="text-xs text-gray-500 mt-0.5">Updates from OSDW on your submissions</p>
-        </div>
-        <a href="{{ route('notifications.index') }}" class="text-sm font-semibold hover:underline transition-colors" style="color:#e89600;">View all →</a>
-    </div>
-    <div class="space-y-2">
-        @foreach($notifications as $notification)
-        <div class="flex items-start gap-3 p-3.5 rounded-xl transition-colors duration-200 {{ $notification->read_at ? 'bg-gray-50 hover:bg-gray-100' : 'bg-orange-50/50 border border-orange-100 hover:bg-orange-50' }}">
-            <div class="w-2 h-2 rounded-full mt-2 shrink-0 {{ $notification->read_at ? 'bg-gray-300' : 'bg-orange-500' }}"></div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800">{{ $notification->title }}</p>
-                <p class="text-xs text-gray-600 mt-0.5">{{ $notification->message }}</p>
-                <p class="text-[10px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
-            </div>
-        </div>
-        @endforeach
-    </div>
-</div>
-@endif
 
 {{-- Submission History --}}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md">

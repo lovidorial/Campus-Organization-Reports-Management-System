@@ -7,7 +7,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100">
-<div class="flex min-h-screen">
+<div class="flex min-h-screen" x-data="{ notificationsOpen: false }">
 
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
@@ -137,19 +137,68 @@
                         <p class="text-xs text-slate-400 uppercase">{{ auth()->user()->role }}</p>
                     </div>
                 </div>
-                @if(!auth()->user()->isAdmin())
-                <a href="{{ route('notifications.index') }}" class="relative ml-2">
+                <button type="button" @click="notificationsOpen = true" class="relative ml-2 text-white focus:outline-none" aria-label="Open notifications">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                     </svg>
                     @if(auth()->user()->unreadNotificationsCount() > 0)
                     <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ auth()->user()->unreadNotificationsCount() }}</span>
                     @endif
-                </a>
-                @endif
+                </button>
             </div>
         </div>
     </aside>
+
+    @php
+        $modalNotifications = auth()->user()->notifications()->latest()->take(10)->get();
+    @endphp
+
+    <div x-show="notificationsOpen" x-on:keydown.escape.window="notificationsOpen = false" class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0" role="dialog" aria-modal="true" aria-label="Notifications">
+        <div class="fixed inset-0 bg-gray-500 opacity-75" x-on:click="notificationsOpen = false"></div>
+        <div class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl sm:w-full sm:max-w-lg sm:mx-auto">
+        <div class="bg-white rounded-t-lg px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Notifications</h2>
+                <p class="text-sm text-gray-500">Recent updates on your workflow and submissions.</p>
+            </div>
+            <button type="button" @click="notificationsOpen = false" class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close notifications">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-5">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-sm text-gray-600">Showing the latest notifications.</p>
+                <form action="{{ route('notifications.read-all') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="text-sm px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 font-semibold">Mark all as read</button>
+                </form>
+            </div>
+
+            @forelse($modalNotifications as $notification)
+                <div class="rounded-xl border p-4 mb-3 flex items-start justify-between gap-4 {{ $notification->read_at ? 'border-gray-200 bg-white' : 'border-blue-300 bg-blue-50' }}">
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">{{ $notification->title }}</p>
+                        <p class="text-sm text-gray-600 mt-1">{{ $notification->message }}</p>
+                        <p class="text-xs text-gray-400 mt-2">{{ $notification->created_at->format('M d, Y h:i A') }}</p>
+                    </div>
+                    @if(!$notification->read_at)
+                        <form action="{{ route('notifications.read', $notification) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded font-semibold">Mark read</button>
+                        </form>
+                    @endif
+                </div>
+            @empty
+                <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-500">
+                    No notifications yet.
+                </div>
+            @endforelse
+        </div>
+        </div>
+    </div>
 
     <!-- Mobile overlay -->
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>

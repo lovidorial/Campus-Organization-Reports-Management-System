@@ -112,10 +112,9 @@ class OrganizationWorkflow extends Model
             ->where('gpoa_id', $gpoa->gpoa_id)
             ->count();
 
-        // If no activities exist, allow summary report (org may have no planned activities)
+        // Activity requests must be submitted before the summary report becomes available.
         if ($activityRequests === 0) {
-            $summary = $this->currentSubmission(self::DOC_SUMMARY);
-            return !$summary || $summary->status === WorkflowSubmission::STATUS_REJECTED;
+            return false;
         }
 
         // All activity requests must have reports submitted
@@ -343,6 +342,23 @@ class OrganizationWorkflow extends Model
                 'action_label' => null,
                 'deadline' => null,
                 'estimated_review' => '3–5 Working Days',
+            ];
+        }
+
+        $activityRequestCount = ActivityRequest::where('user_id', $this->user_id)
+            ->where('gpoa_id', $gpoa->gpoa_id)
+            ->count();
+
+        if ($activityRequestCount === 0) {
+            return [
+                'type' => 'action_required',
+                'title' => 'Action Required',
+                'message' => 'Please submit an Activity Request.',
+                'submessage' => 'Your GPOA has been approved. Submit your activity details before completing the Summary Report.',
+                'action_url' => route('activity-requests.create'),
+                'action_label' => 'Submit Activity Request',
+                'deadline' => null,
+                'estimated_review' => null,
             ];
         }
 

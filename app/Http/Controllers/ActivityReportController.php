@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityReport;
 use App\Models\ActivityRequest;
+use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Http\Request;
 
 class ActivityReportController extends Controller
@@ -80,6 +82,15 @@ class ActivityReportController extends Controller
         }
 
         $activityRequest->update(['status' => ActivityRequest::STATUS_REPORT_SUBMITTED]);
+
+        User::where('role', 'admin')->each(function (User $admin) use ($activityRequest) {
+            UserNotification::create([
+                'user_id' => $admin->id,
+                'type' => 'activity_report_submitted',
+                'title' => 'New Activity Report',
+                'message' => "A final report was submitted for {$activityRequest->title} by " . auth()->user()->org_name . '.',
+            ]);
+        });
 
         return redirect()->route('activity-requests.index')
             ->with('success', 'Final report submitted. Awaiting admin monitoring review.');

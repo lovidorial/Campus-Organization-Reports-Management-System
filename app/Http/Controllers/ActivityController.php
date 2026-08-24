@@ -162,7 +162,7 @@ class ActivityController extends Controller
 
     public function publicActivities(Request $request)
     {
-        $query = ActivityRequest::with(['user', 'report.photos']);
+        $query = ActivityRequest::with(['user', 'gpoa', 'report.photos']);
 
         if ($request->filled('search')) {
             $search = $request->search;

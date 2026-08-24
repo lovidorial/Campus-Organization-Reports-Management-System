@@ -71,7 +71,7 @@
                 <th class="p-3 text-left text-gray-500">Activity</th>
                 <th class="p-3 text-left text-gray-500">Organization</th>
                 <th class="p-3 text-left text-gray-500">Source</th>
-                <th class="p-3 text-left text-gray-500">GPOA Match</th>
+                <th class="p-3 text-left text-gray-500">GPOA</th>
                 <th class="p-3 text-left text-gray-500">Category</th>
                 <th class="p-3 text-left text-gray-500">Date</th>
                 <th class="p-3 text-left text-gray-500">Venue</th>
@@ -87,10 +87,13 @@
                 <td class="p-3">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
                 <td class="p-3"><span class="text-xs text-slate-600 font-semibold">Activity Request</span></td>
                 <td class="p-3">
-                    @if($activity->matchesGpoaLineItem())
-                    <span class="text-green-600 text-xs font-bold">✓ Match</span>
+                    @if($activity->gpoa)
+                    <span class="text-xs font-semibold">{{ $activity->gpoa->term }} / SY {{ $activity->gpoa->school_year }}</span>
+                    @if($activity->gpoa->college)
+                    <span class="block text-xs text-gray-500">{{ $activity->gpoa->college }}</span>
+                    @endif
                     @else
-                    <span class="text-green-600 text-xs font-bold">match</span>
+                    <span class="text-gray-400">—</span>
                     @endif
                 </td>
                 <td class="p-3">

@@ -337,7 +337,7 @@ class AdminController extends Controller
             abort(400, 'Unsupported export format');
         }
 
-        $headers = ['ID', 'Title', 'Organization', 'Venue', 'Date', 'Status', 'GPOA Match'];
+        $headers = ['ID', 'Title', 'Organization', 'Venue', 'Date', 'Status', 'GPOA'];
         $csv = implode(',', $headers) . "\n";
 
         foreach ($activities as $activity) {
@@ -348,7 +348,9 @@ class AdminController extends Controller
                 str_replace(',', ' ', $activity->venue),
                 $activity->date?->toDateString() ?? '',
                 $activity->status,
-                $activity->matchesGpoaLineItem() ? 'Match' : 'Mismatch',
+                $activity->gpoa
+                    ? $activity->gpoa->term . ' / SY ' . $activity->gpoa->school_year
+                    : 'N/A',
             ]) . "\n";
         }
 

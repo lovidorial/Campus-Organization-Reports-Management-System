@@ -355,18 +355,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group mt-6">
-                        <label for="remarks">Remarks</label>
-                        <textarea id="remarks" name="remarks" rows="4">{{ old('remarks') }}</textarea>
-                        @error('remarks')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                    </div>
-
                     <div class="form-row grid-2 mt-6">
-                        <div class="form-group">
-                            <label for="description">Additional Notes</label>
-                            <textarea name="description" id="description" rows="4">{{ old('description') }}</textarea>
-                            @error('description')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
                         <div class="form-group">
                             <label for="participants_count">Participants Override</label>
                             <input id="participants_count" type="number" name="participants_count" min="1" value="{{ old('participants_count') }}" placeholder="Leave blank to use planned amount">
@@ -381,7 +370,12 @@
                     </div>
                 </section>
 
-                <button type="submit" class="btn-secondary">Submit Activity Request</button>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('activity-requests.index') }}" class="inline-flex items-center justify-center rounded-lg bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-300">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn-secondary">Submit Activity Request</button>
+                </div>
             </form>
         </div>
     </main>

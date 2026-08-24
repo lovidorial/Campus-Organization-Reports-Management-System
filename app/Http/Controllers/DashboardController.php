@@ -30,7 +30,6 @@ class DashboardController extends Controller
         $progressStages = $workflow->progressStages();
         $submissionHistory = $workflow->submissions()->with('reviewer')->orderByDesc('created_at')->get();
         $recentEvents = $workflow->events()->with('user')->take(10)->get();
-        $notifications = $user->notifications()->latest()->take(5)->get();
         $unreadCount = $user->unreadNotificationsCount();
 
         $gpoa = \App\Models\Gpoa::where('user_id', auth()->id())
@@ -58,7 +57,7 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'activities', 'stats', 'gpoa', 'hasApprovedGpoa', 'term', 'schoolYear',
             'workflow', 'progressStages', 'submissionHistory', 'recentEvents',
-            'notifications', 'unreadCount'
+            'unreadCount'
         ));
     }
 }

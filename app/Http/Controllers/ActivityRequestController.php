@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
+use App\Models\OrganizationWorkflow;
+use App\Models\WorkflowSubmission;
+use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -29,14 +33,43 @@ class ActivityRequestController extends Controller
     {
         $availableGpoas = Gpoa::where('user_id', auth()->id())
             ->whereIn('status', ['approved', 'stored'])
+            ->whereNotIn('id', WorkflowSubmission::where('document_type', OrganizationWorkflow::DOC_GPOA)
+                ->where('is_current', true)
+                ->whereHas('workflow', function ($q) {
+                    $q->where(function ($workflowQuery) {
+                        $workflowQuery->where('is_completed', true)
+                            ->orWhere('current_stage', OrganizationWorkflow::STAGE_COMPLETED);
+                    });
+                })
+                ->select('gpoa_id'))
             ->orderBy('school_year', 'desc')
             ->orderByRaw("CASE WHEN term = '1st Term' THEN 0 ELSE 1 END")
             ->get();
 
         if ($availableGpoas->isEmpty()) {
+            $hasApprovedGpoas = Gpoa::where('user_id', auth()->id())
+                ->whereIn('status', ['approved', 'stored'])
+                ->exists();
+            $hasCompletedGpoa = $hasApprovedGpoas && $this->gpoaWorkflowCompleted(
+                Gpoa::where('user_id', auth()->id())
+                    ->whereIn('status', ['approved', 'stored'])
+                    ->value('id')
+            );
+
             return redirect()->route('gpoa.index')
-                ->with('error', 'No approved GPOAs available for activity requests.');
+                ->with('error', $hasCompletedGpoa
+                    ? 'This organization has completed its current GPOA cycle after the Summary Report was approved. Please submit a new GPOA before requesting new activities.'
+                    : 'No approved GPOAs available for activity requests.');
         }
+
+            $gpoaWithOutstandingActivity = $availableGpoas->first(function (Gpoa $gpoa) {
+                return $this->hasOutstandingActivityReport($gpoa->id);
+            });
+
+            if ($gpoaWithOutstandingActivity) {
+                return redirect()->route('activity-requests.index')
+                    ->with('error', 'Please submit the narrative report for your approved activity before requesting another activity.');
+            }
 
         $selectedGpoaId = $request->query('gpoa') ?: $availableGpoas->first()->id;
         $gpoa = $availableGpoas->firstWhere('id', $selectedGpoaId) ?: $availableGpoas->first();
@@ -78,13 +111,21 @@ class ActivityRequestController extends Controller
             'estimated_budget' => 'required|numeric|min:0',
             'source_of_funds' => 'required|string|max:100',
             'preceding_activity' => 'nullable|string|max:255',
-            'remarks' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
             'participants_count' => 'nullable|integer|min:1',
             'communication_letter' => 'required|file|mimes:pdf|max:20480',
         ]);
 
         $gpoa = Gpoa::findOrFail($validated['gpoa_id']);
+
+        if ($this->gpoaWorkflowCompleted($gpoa->id)) {
+            return back()->withErrors(['gpoa_id' => "This GPOA's cycle is already completed since its Summary Report was approved. Please submit a new GPOA before requesting new activities."])->withInput();
+        }
+
+            if ($this->hasOutstandingActivityReport($gpoa->id)) {
+                return back()
+                    ->withErrors(['gpoa_id' => 'Please submit the narrative report for your approved activity before requesting another activity.'])
+                    ->withInput();
+            }
 
         $categoryLimit = config('gpoa_activity_limits.' . $validated['category']);
         if ($categoryLimit !== null) {
@@ -120,7 +161,7 @@ class ActivityRequestController extends Controller
 
         $commPath = $request->file('communication_letter')->store('uploads/comm', 'public');
 
-        ActivityRequest::create([
+        $activityRequest = ActivityRequest::create([
             'user_id' => auth()->id(),
             'gpoa_id' => $gpoa->id,
             'gpoa_activity_id' => null,
@@ -138,14 +179,48 @@ class ActivityRequestController extends Controller
             'estimated_budget' => $validated['estimated_budget'],
             'source_of_funds' => $validated['source_of_funds'],
             'preceding_activity' => $validated['preceding_activity'] ?? null,
-            'remarks' => $validated['remarks'] ?? null,
-            'description' => $validated['description'] ?? null,
             'participants_count' => $validated['participants_count'] ?? null,
             'communication_letter' => $commPath,
             'status' => ActivityRequest::STATUS_PENDING,
         ]);
 
+        User::where('role', 'admin')->each(function (User $admin) use ($activityRequest) {
+            UserNotification::create([
+                'user_id' => $admin->id,
+                'type' => 'activity_request_submitted',
+                'title' => 'New Activity Request',
+                'message' => "{$activityRequest->title} was submitted by " . auth()->user()->org_name . '.',
+            ]);
+        });
+
         return redirect()->route('activity-requests.index')
             ->with('success', 'Activity request submitted. Awaiting admin approval.');
+    }
+
+    private function gpoaWorkflowCompleted(int $gpoaId): bool
+    {
+        return WorkflowSubmission::where('document_type', OrganizationWorkflow::DOC_GPOA)
+            ->where('gpoa_id', $gpoaId)
+            ->where('is_current', true)
+            ->whereHas('workflow', function ($q) {
+                $q->where(function ($workflowQuery) {
+                    $workflowQuery->where('is_completed', true)
+                        ->orWhere('current_stage', OrganizationWorkflow::STAGE_COMPLETED);
+                });
+            })
+            ->exists();
+    }
+
+    private function hasOutstandingActivityReport(int $gpoaId): bool
+    {
+        return ActivityRequest::where('user_id', auth()->id())
+            ->where('gpoa_id', $gpoaId)
+            ->whereIn('status', [
+                ActivityRequest::STATUS_APPROVED,
+                ActivityRequest::STATUS_IN_PROGRESS,
+                ActivityRequest::STATUS_AWAITING_REPORT,
+            ])
+            ->whereDoesntHave('report')
+            ->exists();
     }
 }

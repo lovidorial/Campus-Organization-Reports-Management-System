@@ -91,13 +91,11 @@ body  {
     color: var(--navy-light);
 }
 .nav-logo-img {
-    height: 45px;
-    width: auto;
+    height: 48px;
+    width: 72px;
     object-fit: contain;
     transition: all 0.3s ease;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-    border-radius: 60%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    filter: drop-shadow(0 2px 3px rgba(219, 116, 12, 0.2));
 }
 .nav-brand:hover .nav-logo-img {
     transform: scale(1.05);
@@ -105,10 +103,15 @@ body  {
 }
 .nav-brand-text {
     font-family: 'Raleway', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 800;
-    color: #f57c00;
-    letter-spacing: 1px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    background: linear-gradient(180deg, #ffc04d 0%, #ff8a1f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 .nav-links {
     list-style: none;
@@ -215,6 +218,13 @@ body  {
     .navbar-inner { grid-template-columns: auto auto; gap: 18px; }
     .nav-links { display: none; }
     .hamburger { display: flex; }
+}
+
+@media (max-width: 480px) {
+    .navbar-inner { padding: 0 14px; gap: 8px; }
+    .nav-brand { gap: 6px; margin-right: 0; }
+    .nav-brand-text { font-size: 1.05rem; letter-spacing: 0.1em; }
+    .nav-auth-link { padding: 10px 16px; }
 }
 
 /* ================================================================

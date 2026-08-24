@@ -57,11 +57,31 @@
         }
 
         .navbar-brand {
-            font-size: 1.35rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 1.3rem;
             font-weight: 800;
             color: #1a2b6d !important;
-            letter-spacing: 1px;
+            letter-spacing: 0.14em;
             margin-right: 24px;
+        }
+
+        .navbar-brand img {
+            height: 48px;
+            width: 72px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 3px rgba(219, 116, 12, 0.2));
+        }
+
+        .navbar-brand-wordmark {
+            text-transform: uppercase;
+            line-height: 1;
+            background: linear-gradient(180deg, #ffc04d 0%, #ff8a1f 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .nav-link {
@@ -441,14 +461,17 @@
 
         .activity-image-wrap {
             position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #f3f4f6;
+            overflow: hidden;
         }
 
         .activity-cover {
             width: 100%;
-            aspect-ratio: 16/9;
+            height: 100%;
             object-fit: cover;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
+            display: block;
             border-top-left-radius: 12px;
             border-top-right-radius: 12px;
         }
@@ -474,6 +497,7 @@
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
             margin-top: 20px;
+            width: 100%;
         }
 
         .gallery-grid img {
@@ -482,6 +506,12 @@
             object-fit: cover;
             border-radius: 12px;
             cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .gallery-grid img:hover {
+            transform: scale(1.04);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.18);
         }
 
         .lightbox {
@@ -491,11 +521,16 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1050;
+            z-index: 1080;
+            opacity: 0;
+            transform: scale(0.98);
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
 
         .lightbox.active {
             display: flex;
+            opacity: 1;
+            transform: scale(1);
         }
 
         .lightbox img {
@@ -511,6 +546,36 @@
             color: white;
             font-size: 2rem;
             cursor: pointer;
+            z-index: 1081;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1081;
+            border: 0;
+            background: rgba(255,255,255,0.16);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .lightbox-prev {
+            left: 24px;
+        }
+
+        .lightbox-next {
+            right: 24px;
         }
 
         .btn-view:hover {
@@ -609,6 +674,37 @@
             font-weight: 700;
             text-transform: uppercase;
             color: #b98106;
+        }
+
+        .gallery-label {
+            margin: 24px 0 10px;
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #b98106;
+        }
+
+        .gallery-label i {
+            margin-right: 4px;
+        }
+
+        .sdg-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .sdg-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-size: 0.78rem;
+            font-weight: 700;
         }
 
         .detail-card p {
@@ -739,8 +835,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
               <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-                  <img src="{{ asset('images/corms-logo.png.jpg') }}" alt="CORMS" style="height:26px;width:26px;object-fit:cover;border-radius:50%;margin-right:8px;">
-                  <span style="color: #f57c00; font-weight:800;">Orgtrack</span>
+                  <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo">
+                  <span class="navbar-brand-wordmark">Orgtrack</span>
               </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -843,6 +939,38 @@
             </div>
         </div>
 
+        @php
+            $formatActivityTerm = static function ($term): string {
+                $normalizedTerm = strtolower(trim((string) $term));
+
+                return match ($normalizedTerm) {
+                    '1', 'first', '1st', '1st term' => '1st Term',
+                    '2', 'second', '2nd', '2nd term' => '2nd Term',
+                    default => $term ? (string) $term : 'N/A',
+                };
+            };
+
+            $sdgLabels = [
+                1 => 'No Poverty',
+                2 => 'Zero Hunger',
+                3 => 'Good Health and Well-being',
+                4 => 'Quality Education',
+                5 => 'Gender Equality',
+                6 => 'Clean Water and Sanitation',
+                7 => 'Affordable and Clean Energy',
+                8 => 'Decent Work and Economic Growth',
+                9 => 'Industry, Innovation and Infrastructure',
+                10 => 'Reduced Inequality',
+                11 => 'Sustainable Cities and Communities',
+                12 => 'Responsible Consumption and Production',
+                13 => 'Climate Action',
+                14 => 'Life Below Water',
+                15 => 'Life on Land',
+                16 => 'Peace, Justice and Strong Institutions',
+                17 => 'Partnerships for the Goals',
+            ];
+        @endphp
+
         <div class="tabs-row">
             <button type="button" class="tab-btn active" data-tab="completed">
                 Completed Activities ({{ $completed->count() }})
@@ -862,7 +990,10 @@
                         <div class="activity-card completed-card">
                             @if($activity->report && $activity->report->photos->count())
                                 <div class="activity-image-wrap">
-                                    <img src="{{ Storage::disk('public')->url($activity->report->photos->first()->path) }}" alt="{{ $activity->title }}" class="activity-cover">
+                                     <img src="{{ Storage::disk('public')->url($activity->report->photos->first()->path) }}"
+                                         alt="{{ $activity->title }}"
+                                         class="activity-cover"
+                                         onerror="this.closest('.activity-image-wrap').style.display='none'">
                                     @if($activity->report->photos->count() > 1)
                                         <span class="photo-count">+{{ $activity->report->photos->count() - 1 }}</span>
                                     @endif
@@ -888,10 +1019,10 @@
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
                                     data-category="{{ $activity->category ?? 'N/A' }}"
                                     data-participants="{{ $activity->participants_count ?? '0' }}"
-                                    data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
-                                    data-term="{{ $activity->term ?? 'N/A' }}"
-                                    data-sy="{{ $activity->school_year ?? 'N/A' }}"
+                                    data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
+                                    data-sy="{{ $activity->gpoa?->school_year ?? 'N/A' }}"
                                     data-description="{{ $activity->description ?? '' }}"
+                                    data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='@json($activity->report?->photos->map(fn($photo) => ['url' => Storage::disk('public')->url($photo->path), 'caption' => $photo->caption])->all())'>
                                     <i class="fas fa-eye"></i> View Highlights
                                 </button>
@@ -929,10 +1060,10 @@
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
                                     data-category="{{ $activity->category ?? 'N/A' }}"
                                     data-participants="{{ $activity->participants_count ?? '0' }}"
-                                    data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
-                                    data-term="{{ $activity->term ?? 'N/A' }}"
-                                    data-sy="{{ $activity->school_year ?? 'N/A' }}"
+                                    data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
+                                    data-sy="{{ $activity->gpoa?->school_year ?? 'N/A' }}"
                                     data-description="{{ $activity->description ?? '' }}"
+                                    data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='[]'>
                                     <i class="fas fa-eye"></i> View Details
                                 </button>
@@ -970,10 +1101,10 @@
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
                                     data-category="{{ $activity->category ?? 'N/A' }}"
                                     data-participants="{{ $activity->participants_count ?? '0' }}"
-                                    data-basis="{{ $activity->basis_grading ?? 'N/A' }}"
-                                    data-term="{{ $activity->term ?? 'N/A' }}"
-                                    data-sy="{{ $activity->school_year ?? 'N/A' }}"
+                                    data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
+                                    data-sy="{{ $activity->gpoa?->school_year ?? 'N/A' }}"
                                     data-description="{{ $activity->description ?? '' }}"
+                                    data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='[]'>
                                     <i class="fas fa-eye"></i> View Details
                                 </button>
@@ -1022,15 +1153,21 @@
                             <h6>Participants</h6>
                             <p id="detailParticipants"></p>
                         </div>
-                        <div class="detail-card">
-                            <h6>Basis for Grading</h6>
-                            <p id="detailBasis"></p>
-                        </div>
                     </div>
 
                     <div id="descriptionSection" style="display: none;">
-                        <h6 style="color: #f5a623; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; font-size: 0.75rem;">Description</h6>
+                        <h6 class="gallery-label">Description</h6>
                         <p id="detailDescription" class="detail-description"></p>
+                    </div>
+
+                    <div id="sdgSection" style="display: none;">
+                        <h6 class="gallery-label">SDGs Aligned</h6>
+                        <div id="detailSdgs" class="sdg-chip-row"></div>
+                    </div>
+
+                    <div id="gallerySection" style="display: none;">
+                        <h6 class="gallery-label"><i class="fas fa-camera"></i> <span id="detailPhotoCount"></span> Photos</h6>
+                        <div id="detailGallery" class="gallery-grid"></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -1050,6 +1187,8 @@
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const sdgLabels = @json($sdgLabels);
+
         function showActivityDetails(button) {
             const title = button.getAttribute('data-title');
             const organization = button.getAttribute('data-organization');
@@ -1057,60 +1196,124 @@
             const venue = button.getAttribute('data-venue');
             const category = button.getAttribute('data-category');
             const participants = button.getAttribute('data-participants');
-            const basis = button.getAttribute('data-basis');
             const term = button.getAttribute('data-term');
             const sy = button.getAttribute('data-sy');
             const description = button.getAttribute('data-description');
-            const photos = JSON.parse(button.getAttribute('data-photos') || '[]');
 
-            document.getElementById('detailTitle').textContent = title;
-            document.getElementById('detailOrg').textContent = organization;
-            document.getElementById('detailCategoryMeta').textContent = category;
-            document.getElementById('detailDate').textContent = date;
-            document.getElementById('detailVenue').textContent = venue;
-            document.getElementById('detailParticipants').textContent = participants;
-            document.getElementById('detailBasis').textContent = basis;
-            document.getElementById('detailTermBadge').textContent = term;
-            document.getElementById('detailSYBadge').textContent = sy;
-            document.getElementById('detailStatusBadge').textContent = button.closest('.activity-card.completed-card') ? 'Completed' : button.closest('.activity-card')?.querySelector('.status-ongoing') ? 'Ongoing' : 'Upcoming';
-
-            const descriptionSection = document.getElementById('descriptionSection');
-            if (description && description.trim()) {
-                descriptionSection.style.display = 'block';
-                document.getElementById('detailDescription').textContent = description;
-            } else {
-                descriptionSection.style.display = 'none';
+            try {
+                document.getElementById('detailTitle').textContent = title;
+                document.getElementById('detailOrg').textContent = organization;
+                document.getElementById('detailCategoryMeta').textContent = category;
+                document.getElementById('detailDate').textContent = date;
+                document.getElementById('detailVenue').textContent = venue;
+                document.getElementById('detailParticipants').textContent = participants;
+                document.getElementById('detailTermBadge').textContent = term;
+                document.getElementById('detailSYBadge').textContent = sy;
+                document.getElementById('detailStatusBadge').textContent = button.closest('.activity-card.completed-card') ? 'Completed' : button.closest('.activity-card')?.querySelector('.status-ongoing') ? 'Ongoing' : 'Upcoming';
+            } catch (error) {
+                console.error('Activity details status/header rendering failed:', error);
             }
 
-            const gallery = document.getElementById('detailGallery');
-            if (gallery) {
-                gallery.innerHTML = '';
-                if (photos.length) {
-                    photos.forEach(photo => {
-                        const image = document.createElement('img');
-                        image.src = photo.url;
-                        image.alt = photo.caption || title;
-                        image.addEventListener('click', () => openLightbox(photo.url));
-                        gallery.appendChild(image);
-                    });
+            try {
+                console.log('description value:', description);
+                const descriptionSection = document.getElementById('descriptionSection');
+                const detailDescription = document.getElementById('detailDescription');
+                if (!descriptionSection || !detailDescription) {
+                    throw new Error('Description elements were not found.');
                 }
+
+                descriptionSection.style.display = 'block';
+                detailDescription.textContent = description && description.trim()
+                    ? description
+                    : 'No description available.';
+            } catch (error) {
+                console.error('Activity description rendering failed:', error);
+            }
+
+            try {
+                const sdgs = JSON.parse(button.getAttribute('data-sdgs') || '[]');
+                const sdgSection = document.getElementById('sdgSection');
+                const sdgContainer = document.getElementById('detailSdgs');
+                if (!sdgSection || !sdgContainer) {
+                    throw new Error('SDG elements were not found.');
+                }
+
+                sdgContainer.innerHTML = '';
+                if (sdgs.length) {
+                    sdgSection.style.display = 'block';
+                    sdgs.forEach(sdg => {
+                        const chip = document.createElement('span');
+                        chip.className = 'sdg-chip';
+                        chip.textContent = `SDG ${sdg} - ${sdgLabels[sdg] || 'Unknown'}`;
+                        sdgContainer.appendChild(chip);
+                    });
+                } else {
+                    sdgSection.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Activity SDG rendering failed:', error);
+            }
+
+            try {
+                const photos = JSON.parse(button.getAttribute('data-photos') || '[]');
+                const gallerySection = document.getElementById('gallerySection');
+                const photoCount = document.getElementById('detailPhotoCount');
+                const gallery = document.getElementById('detailGallery');
+                if (!gallerySection || !photoCount || !gallery) {
+                    throw new Error('Activity gallery elements were not found.');
+                }
+
+                gallery.innerHTML = '';
+                gallerySection.style.display = photos.length ? 'block' : 'none';
+                photoCount.textContent = photos.length;
+                photos.forEach((photo, index) => {
+                    const image = document.createElement('img');
+                    image.src = photo.url;
+                    image.alt = photo.caption || title;
+                    image.addEventListener('click', () => openLightbox(index, photos));
+                    gallery.appendChild(image);
+                });
+            } catch (error) {
+                console.error('Activity gallery rendering failed:', error);
             }
 
             const modal = new bootstrap.Modal(document.getElementById('activityModal'));
             modal.show();
         }
 
-        function openLightbox(url) {
+        let currentPhotoIndex = 0;
+        let currentPhotos = [];
+
+        function openLightbox(index, photos) {
             const lightbox = document.getElementById('lightbox');
             const lightboxImage = document.getElementById('lightboxImage');
-            lightboxImage.src = url;
+            currentPhotos = photos;
+            currentPhotoIndex = index;
+            lightboxImage.src = currentPhotos[currentPhotoIndex].url;
             lightbox.classList.add('active');
+        }
+
+        function showPhoto(direction) {
+            if (!currentPhotos.length) {
+                return;
+            }
+
+            currentPhotoIndex = (currentPhotoIndex + direction + currentPhotos.length) % currentPhotos.length;
+            document.getElementById('lightboxImage').src = currentPhotos[currentPhotoIndex].url;
         }
 
         function closeLightbox() {
             document.getElementById('lightbox').classList.remove('active');
             document.getElementById('lightboxImage').src = '';
+            currentPhotos = [];
         }
+
+        document.addEventListener('keydown', event => {
+            const lightbox = document.getElementById('lightbox');
+            if (event.key === 'Escape' && lightbox.classList.contains('active')) {
+                closeLightbox();
+            }
+        });
 
         document.querySelectorAll('.tab-btn').forEach(button => {
             button.addEventListener('click', () => {
@@ -1123,8 +1326,14 @@
     </script>
 
     <div id="lightbox" class="lightbox" onclick="closeLightbox()">
-        <div class="lightbox-close">&times;</div>
-        <img id="lightboxImage" src="" alt="Activity Photo">
+        <div class="lightbox-close" onclick="event.stopPropagation(); closeLightbox()">&times;</div>
+        <button type="button" class="lightbox-nav lightbox-prev" aria-label="Previous photo" onclick="event.stopPropagation(); showPhoto(-1)">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <img id="lightboxImage" src="" alt="Activity Photo" onclick="event.stopPropagation()">
+        <button type="button" class="lightbox-nav lightbox-next" aria-label="Next photo" onclick="event.stopPropagation(); showPhoto(1)">
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 </body>
 </html>
