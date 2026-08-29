@@ -32,7 +32,6 @@
                 <th class="p-3 text-left">Activities</th>
                 <th class="p-3 text-left">Activity Levels</th>
                 <th class="p-3 text-left">Status</th>
-                <th class="p-3 text-center">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -66,12 +65,9 @@
                         {{ ucfirst($gpoa->status) }}
                     </span>
                 </td>
-                <td class="p-3 text-center">
-                    <a href="{{ route('admin.gpoa.show', $gpoa) }}" class="text-sky-600 text-xs font-semibold hover:underline">Review</a>
-                </td>
             </tr>
             @empty
-            <tr><td colspan="7" class="p-8 text-center text-gray-400">No GPOA submissions yet.</td></tr>
+            <tr><td colspan="6" class="p-8 text-center text-gray-400">No GPOA submissions yet.</td></tr>
             @endforelse
         </tbody>
     </table>

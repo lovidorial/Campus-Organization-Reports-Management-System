@@ -18,6 +18,7 @@ class User extends Authenticatable
         'position', 'org_name', 'org_type', 'college',
         'username', 'student_number',
         'organization_id',
+        'officer_status', 'archived_at', 'archived_reason',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -27,6 +28,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
+        'archived_at'       => 'datetime',
     ];
 
     public function getAvatarUrlAttribute(): ?string
@@ -98,5 +100,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('officer_status', 'active');
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->where('officer_status', 'archived');
     }
 }

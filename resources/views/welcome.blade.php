@@ -112,7 +112,7 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
                         <h5 class="benefit-title">Easy Submission</h5>
-                        <p class="benefit-text">Quickly submit activities and reports without hassle. User-friendly forms guide you through each step.</p>
+                        <p class="benefit-text">Quickly submit activities and signed PDF narrative reports without hassle. User-friendly forms guide you through each step.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-4">
@@ -124,7 +124,7 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
                         <h5 class="benefit-title">Secure & Organized</h5>
-                        <p class="benefit-text">All documents and data stored safely. Organized archive for easy access and management.</p>
+                        <p class="benefit-text">Narrative Reports are stored as verified, signed PDF files-organized and easily accessible.</p>
                     </div>
                 </div>
             </div>
@@ -141,7 +141,7 @@
                     <div class="feat-card">
                         <h5 class="feat-title">Browse Activities</h5>
                         <p class="feat-desc">
-                            Discover various activities organized by student organizations on campus.
+                            Discover various activities and their verified reports form student organizations on Aparri campus.
                         </p>
                         @guest
                             <a href="{{ route('public.activities') }}" class="btn-feat btn-feat-blue">Browse Activities</a>
@@ -155,7 +155,7 @@
                     <div class="feat-card">
                         <h5 class="feat-title">Learn More</h5>
                         <p class="feat-desc">
-                            Orgtrack simplifies how student organizations submit, track, and manage activities. Our platform provides transparency, real-time updates, and streamlined workflows for seamless collaboration.
+                            Orgtrack simplifies how student organizations submit, track, and manage activities. Our platform provides verified reporting, and real-time updates, and streamlined workflows for seamless collaboration.
                         </p>
                         <a href="#" class="btn-feat btn-feat-teal" data-bs-toggle="modal" data-bs-target="#learnMoreModal">Learn More</a>
                     </div>
@@ -221,7 +221,7 @@
                     <div class="mb-4">
                         <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is Orgtrack?</h6>
                         <p style="color: #555; line-height: 1.6;">
-                            <strong>Campus Student Organization Narrative and Sumamary Reports for the Office  of the Social Development and Welfare at CSU-Aparri (Orgtrack)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
+                            <strong>Campus Student Organization Narrative and Summary Reports for the Office  of the Social Development and Welfare at CSU-Aparri (Orgtrack)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
                         </p>
                     </div>
 
@@ -229,9 +229,9 @@
                     <div class="mb-4">
                         <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Key Features</h6>
                         <ul style="color: #555; line-height: 1.8;">
-                            <li><strong>Easy Submission:</strong> User-friendly forms for submitting activity reports and documentation</li>
+                            <li><strong>Easy Submission:</strong> Easy Submission: User-friendly forms for submitting signed PDF narrative reports and supporting documentation</li>
                             <li><strong>Real-Time Tracking:</strong> Monitor approval status instantly with transparent feedback</li>
-                            <li><strong>Secure Storage:</strong> All documents and data are safely organized and easily accessible</li>
+                            <li><strong>Secure Storage:</strong> Reports are stored as verified PDF files with signatory tracking - keeping the database light and organized</li>
                             <li><strong>Organization Management:</strong> Browse and discover various activities organized by student groups</li>
                             <li><strong>Workflow Automation:</strong> Streamlined approval processes for efficient management</li>
                         </ul>

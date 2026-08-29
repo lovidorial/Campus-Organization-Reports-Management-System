@@ -66,6 +66,13 @@
                     </div>
                 </li>
                 <li>
+                    <a href="{{ route('organization.officers.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('organization.officers.*') ? '#e89600' : 'transparent' }};">
+                         Officer Archive
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('profile.edit') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('profile.edit') ? '#e89600' : 'transparent' }};">
@@ -94,6 +101,13 @@
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
                        style="background-color: {{ request()->routeIs('admin.activities') ? '#b45309' : 'transparent' }};">
                          Activity Monitoring
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('admin.summary-report') }}"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                       style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#b45309' : 'transparent' }};">
+                         Summary Report
                     </a>
                 </li>
                 <li class="mt-3">

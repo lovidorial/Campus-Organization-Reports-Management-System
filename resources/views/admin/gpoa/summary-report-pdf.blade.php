@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Summary Report</title>
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; }
+        h1 { margin: 0 0 4px; font-size: 18px; }
+        .meta { color: #6b7280; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; }
+        th { background: #f3f4f6; }
+        .number { text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>Campus Organization Activity Summary Report</h1>
+    <div class="meta">
+        Term: {{ $term ?: 'All Terms' }} | Date range: {{ $dateFrom ?: 'Any' }} to {{ $dateTo ?: 'Any' }}<br>
+        Generated: {{ now()->format('M d, Y h:i A') }}
+    </div>
+    <table>
+        <thead><tr><th>Organization</th><th>Term / SY</th><th>Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th class="number">Budget</th></tr></thead>
+        <tbody>
+            @forelse($activityRequests as $req)
+                @php $gpoa = $req->gpoaActivity?->gpoa ?? $req->gpoa; @endphp
+                <tr>
+                    <td>{{ $req->user->org_name ?? $req->user->name ?? '—' }}</td>
+                    <td>{{ $gpoa?->term ?? '—' }} / {{ $gpoa?->school_year ?? '—' }}</td>
+                    <td>{{ $req->title }}</td>
+                    <td>{{ $req->category ?? '—' }}</td>
+                    <td>{{ optional($req->date)->format('M d, Y') ?? '—' }}</td>
+                    <td>{{ $req->venue ?? '—' }}</td>
+                    <td>{{ str_replace('_', ' ', ucfirst($req->status)) }}</td>
+                    <td class="number">PHP {{ number_format((float) ($req->estimated_budget ?? 0), 2) }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="8">No activities match the selected filters.</td></tr>
+            @endforelse
+        </tbody>
+        <tfoot><tr><td colspan="7"><strong>Total Budget</strong></td><td class="number"><strong>PHP {{ number_format((float) $totalBudget, 2) }}</strong></td></tr></tfoot>
+    </table>
+</body>
+</html>

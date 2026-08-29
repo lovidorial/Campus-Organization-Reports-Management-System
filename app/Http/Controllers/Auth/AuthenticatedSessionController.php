@@ -26,10 +26,21 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $user = Auth::user();
+
+        if ($user && $user->officer_status === 'archived') {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'This account has been archived and can no longer log in. Contact OSDW if you believe this is a mistake.',
+            ]);
+        }
+
         $request->session()->regenerate();
 
         $role = $request->input('role', 'student');
-        $user = Auth::user();
 
         if ($role === 'admin') {
             if (! $user->isAdmin()) {

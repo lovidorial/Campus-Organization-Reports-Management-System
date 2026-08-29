@@ -104,17 +104,106 @@
                 <td class="p-3">{{ $activity->date->format('M d, Y') }}</td>
                 <td class="p-3">{{ $activity->venue }}</td>
                 <td class="p-3">
-                    <div class="flex flex-wrap gap-1">
-                        @if($activity->communication_letter)
-                            <button onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'communication']) }}', 'Communication Letter')"
-                                    class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Comm</button>
-                        @endif
-                        @if($activity->report)
-                            <button onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
-                                    class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Report</button>
-                        @endif
-                        @if(!$activity->communication_letter && !$activity->report) — @endif
-                    </div>
+                    @php
+                        $existingFiles = 0;
+                        if ($activity->communication_letter) { $existingFiles++; }
+                        if ($activity->report) { $existingFiles++; }
+
+                        $reportBadgeClasses = [
+                            'pending' => 'bg-orange-100 text-orange-700',
+                            'needs_revision' => 'bg-amber-100 text-amber-700',
+                            'approved' => 'bg-green-100 text-green-700',
+                            'rejected' => 'bg-red-100 text-red-700',
+                        ];
+
+                        $reportBadgeText = [
+                            'pending' => 'Pending Review',
+                            'needs_revision' => 'Needs Revision',
+                            'approved' => 'Approved',
+                            'rejected' => 'Rejected',
+                        ];
+                    @endphp
+
+                    @if($existingFiles > 0)
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Documents</span>
+                                <span class="text-[11px] font-semibold text-blue-700">{{ $existingFiles }} File{{ $existingFiles > 1 ? 's' : '' }}</span>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="flex items-start justify-between gap-3 border-b border-dashed border-gray-200 pb-2">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-semibold text-gray-800">Communication</div>
+                                        <div class="mt-1 text-xs text-gray-500 truncate" title="{{ $activity->communication_letter ?? '—' }}">
+                                            {{ $activity->communication_letter ? basename($activity->communication_letter) : '—' }}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        @if($activity->communication_letter)
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Submitted</span>
+                                            <button type="button"
+                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'communication']) }}', 'Communication Letter')"
+                                                    class="text-xs font-semibold text-blue-700 hover:underline">View</button>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">Not Submitted</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-semibold text-gray-800">Activity Report</div>
+                                        @if($activity->report)
+                                            <button type="button"
+                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
+                                                    class="mt-1 inline-block text-xs font-semibold text-green-700 hover:underline"
+                                                    title="{{ $activity->report->description ?: 'No report description' }}">View Report</button>
+                                        @else
+                                            <div class="mt-1 text-xs text-gray-500">—</div>
+                                        @endif
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        @if($activity->report)
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $reportBadgeClasses[$activity->report->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                                {{ $reportBadgeText[$activity->report->status] ?? ucfirst($activity->report->status) }}
+                                            </span>
+                                            <button type="button"
+                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
+                                                    class="text-xs font-semibold text-blue-700 hover:underline">View</button>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">Not Submitted</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if($activity->report)
+                                    <div class="border-t border-dashed border-gray-200 pt-2">
+                                        <div class="flex flex-wrap items-center gap-1">
+                                            <form method="POST" action="{{ route('admin.reports.approve', $activity->report) }}">
+                                                @csrf
+                                                <button type="submit" class="px-2 py-1 bg-green-100 text-green-700 rounded text-[11px] font-semibold">Approve</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('admin.reports.reject', $activity->report) }}" onsubmit="return promptReportRejection(this)">
+                                                @csrf
+                                                <input type="hidden" name="feedback">
+                                                <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 rounded text-[11px] font-semibold">Reject</button>
+                                            </form>
+                                            <form id="returnForCorrectionForm-{{ $activity->report->id }}" method="POST" action="{{ route('admin.reports.return-for-correction', $activity->report) }}">
+                                                @csrf
+                                                <input type="hidden" name="feedback">
+                                            </form>
+                                            <button type="button"
+                                                    onclick="returnForCorrectionPrompt({{ $activity->report->id }})"
+                                                    class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[11px] font-semibold">Return for Correction</button>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex h-full min-h-[64px] items-center justify-center text-gray-400">—</div>
+                    @endif
                 </td>
                 <td class="p-3">
                     @php
@@ -137,17 +226,28 @@
                 </td>
                 <td class="p-3 text-center">
                     @if($activity->status == 'pending')
-                    <div class="flex items-center justify-center gap-1 flex-wrap">
-                        <button onclick="openApproveModal({{ $activity->id }})"
-                                class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Approve</button>
-                        <button onclick="openRejectModal({{ $activity->id }})"
-                                class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Reject</button>
+                    <div class="flex flex-col items-center justify-center gap-1">
+                        <button type="button" onclick="openApproveModal({{ $activity->id }})"
+                                class="px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-semibold">Review</button>
+                        <div class="flex items-center justify-center gap-1 flex-wrap">
+                            <button onclick="openApproveModal({{ $activity->id }})"
+                                    class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Approve</button>
+                            <button onclick="openRejectModal({{ $activity->id }})"
+                                    class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Reject</button>
+                        </div>
                     </div>
                     @elseif($activity->status == 'report_submitted')
-                    <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
-                            class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Record Monitoring</button>
+                    <div class="flex flex-col items-center justify-center gap-1">
+                        <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
+                                class="px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-semibold">Review</button>
+                        <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
+                                class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Record Monitoring</button>
+                    </div>
                     @elseif(in_array($activity->status, ['approved','in_progress','awaiting_report']))
-                    <span class="text-xs text-sky-600">Monitoring</span>
+                    <div class="flex flex-col items-center justify-center gap-1">
+                        <span class="text-xs text-violet-600 font-semibold">Review</span>
+                        <span class="text-xs text-sky-600">Monitoring</span>
+                    </div>
                     @else
                     <span class="text-gray-300 text-xs">—</span>
                     @endif
@@ -236,6 +336,21 @@ function openMonitoringModal(id) {
     document.getElementById('monitoringModal').classList.remove('hidden');
 }
 function closeMonitoringModal() { document.getElementById('monitoringModal').classList.add('hidden'); }
+function promptReportRejection(form) {
+    const feedback = window.prompt('Enter feedback for rejecting this narrative report:');
+    if (!feedback || !feedback.trim()) return false;
+    form.querySelector('input[name="feedback"]').value = feedback.trim();
+    return true;
+}
+function returnForCorrectionPrompt(reportId) {
+    const feedback = window.prompt('Enter the corrections needed for this narrative report:');
+    if (!feedback || !feedback.trim()) return false;
+    const form = document.getElementById('returnForCorrectionForm-' + reportId);
+    if (!form) return false;
+    form.querySelector('input[name="feedback"]').value = feedback.trim();
+    form.submit();
+    return true;
+}
 function viewPDF(url, title) {
     document.getElementById('pdfTitle').textContent = title;
     document.getElementById('pdfFrame').src = url;

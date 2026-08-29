@@ -91,8 +91,18 @@
                                 <td class="px-4 py-4 text-center">
                                     @if(in_array($req->status, ['approved','in_progress','awaiting_report']) && !$req->report)
                                         <a href="{{ route('activity-reports.create', $req) }}" class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold hover:bg-green-200">Submit Report</a>
+                                    @elseif($req->report?->status === 'needs_revision')
+                                        <div class="text-left">
+                                            <span class="text-xs text-amber-600 font-semibold" title="{{ $req->report->feedback }}">Needs revision</span>
+                                            <div class="mt-1 text-[11px] text-slate-600" title="{{ $req->report->feedback }}">{{ Str::limit($req->report->feedback, 80) }}</div>
+                                            <a href="{{ route('activity-reports.create', $req) }}" class="mt-2 inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold hover:bg-amber-200">Fix & Resubmit</a>
+                                        </div>
+                                    @elseif($req->status === 'report_submitted' && $req->report?->status === 'rejected')
+                                        <span class="text-xs text-red-600" title="{{ $req->report->feedback }}">Report rejected: {{ $req->report->feedback }}</span>
+                                    @elseif($req->status === 'report_submitted' && $req->report?->status === 'approved')
+                                        <span class="text-xs text-green-600">Report approved</span>
                                     @elseif($req->status === 'report_submitted')
-                                        <span class="text-xs text-slate-500">Awaiting review</span>
+                                        <span class="text-xs text-slate-500">Awaiting report review</span>
                                     @elseif($req->monitoringResult)
                                         <span class="text-xs text-green-600">{{ ucfirst(str_replace('_',' ',$req->monitoringResult->compliance_status)) }}</span>
                                     @else

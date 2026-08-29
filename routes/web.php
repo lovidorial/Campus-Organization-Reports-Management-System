@@ -5,6 +5,7 @@ use App\Http\Controllers\ActivityReportController;
 use App\Http\Controllers\ActivityRequestController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminGpoaController;
+use App\Http\Controllers\AdminSummaryReportController;
 use App\Http\Controllers\AdminWorkflowController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GpoaController;
@@ -56,6 +57,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
     Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
+    Route::get('/organization/officers', [\App\Http\Controllers\OfficerController::class, 'userIndex'])->name('organization.officers.index');
+    Route::post('/organization/officers/{user}/archive', [\App\Http\Controllers\OfficerController::class, 'archive'])->name('organization.officers.archive');
+    Route::post('/organization/officers/{user}/restore', [\App\Http\Controllers\OfficerController::class, 'restore'])->name('organization.officers.restore');
+    Route::get('/organization/officers/history', [\App\Http\Controllers\OfficerController::class, 'userHistory'])->name('organization.officers.history');
+
     // Legacy routes redirect
     Route::get('/submit-activity', fn () => redirect()->route('activity-requests.create'))->name('user.submit');
     Route::get('/my-activities', fn () => redirect()->route('activity-requests.index'))->name('user.activities');
@@ -68,6 +74,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/activities', [AdminController::class, 'monitor'])->name('activities');
+        Route::post('/reports/{report}/approve', [ActivityReportController::class, 'approve'])->name('reports.approve');
+        Route::post('/reports/{report}/reject', [ActivityReportController::class, 'reject'])->name('reports.reject');
+        Route::post('/reports/{report}/return-for-correction', [ActivityReportController::class, 'returnForCorrection'])->name('reports.return-for-correction');
+        Route::get('/summary-report', [AdminSummaryReportController::class, 'index'])->name('summary-report');
+        Route::get('/summary-report/download', [AdminSummaryReportController::class, 'download'])->name('summary-report.download');
         Route::get('/approve/{id}', [AdminController::class, 'approve'])->name('approve');
         Route::post('/reject/{id}', [AdminController::class, 'reject'])->name('reject');
         Route::post('/monitoring/{id}/record', [AdminController::class, 'recordMonitoring'])->name('monitoring.record');
@@ -95,6 +106,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users/{user}/edit', [\App\Http\Controllers\AdminUserController::class, 'edit'])->name('users.edit');
         Route::patch('/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('/officers', [\App\Http\Controllers\OfficerController::class, 'index'])->name('officers.index');
+        Route::post('/officers/{user}/archive', [\App\Http\Controllers\OfficerController::class, 'archive'])->name('officers.archive');
+        Route::post('/officers/{user}/restore', [\App\Http\Controllers\OfficerController::class, 'restore'])->name('officers.restore');
+        Route::get('/officers/history', [\App\Http\Controllers\OfficerController::class, 'history'])->name('officers.history');
 
         Route::resource('/organizations', OrganizationController::class)->names([
             'index'   => 'organizations.index',

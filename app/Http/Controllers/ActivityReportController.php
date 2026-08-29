@@ -17,8 +17,16 @@ class ActivityReportController extends Controller
         }
 
         $activityRequest->refreshLifecycleStatus();
+        $existingReport = $activityRequest->report;
 
-        if (!in_array($activityRequest->status, [
+        $isReturnedForCorrection = $existingReport && $existingReport->status === 'needs_revision';
+
+        if ($existingReport && !$isReturnedForCorrection) {
+            return redirect()->route('activity-requests.index')
+                ->with('error', 'A final report has already been submitted for this activity.');
+        }
+
+        if (!$isReturnedForCorrection && !in_array($activityRequest->status, [
             ActivityRequest::STATUS_APPROVED,
             ActivityRequest::STATUS_IN_PROGRESS,
             ActivityRequest::STATUS_AWAITING_REPORT,
@@ -27,12 +35,7 @@ class ActivityReportController extends Controller
                 ->with('error', 'Final report can only be submitted after the activity is approved and conducted.');
         }
 
-        if ($activityRequest->report) {
-            return redirect()->route('activity-requests.index')
-                ->with('error', 'A final report has already been submitted for this activity.');
-        }
-
-        return view('users.submit-report', compact('activityRequest'));
+        return view('users.submit-report', compact('activityRequest', 'existingReport'));
     }
 
     public function store(Request $request, ActivityRequest $activityRequest)
@@ -42,8 +45,10 @@ class ActivityReportController extends Controller
         }
 
         $activityRequest->refreshLifecycleStatus();
+        $existingReport = $activityRequest->report;
+        $isReturnedForCorrection = $existingReport && $existingReport->status === 'needs_revision';
 
-        if (!in_array($activityRequest->status, [
+        if (!$isReturnedForCorrection && !in_array($activityRequest->status, [
             ActivityRequest::STATUS_APPROVED,
             ActivityRequest::STATUS_IN_PROGRESS,
             ActivityRequest::STATUS_AWAITING_REPORT,
@@ -51,27 +56,54 @@ class ActivityReportController extends Controller
             abort(403, 'Final report cannot be submitted at this stage.');
         }
 
-        if ($activityRequest->report) {
+        if ($existingReport && !$isReturnedForCorrection) {
             return redirect()->route('activity-requests.index')
                 ->with('error', 'A final report has already been submitted.');
         }
 
         $validated = $request->validate([
             'narrative_report' => 'required|file|mimes:pdf|max:20480',
+            'description' => 'nullable|string|max:1000',
+            'signed_by_secretary' => 'required|accepted',
+            'signed_by_governor' => 'required|accepted',
+            'signed_by_advisor' => 'required|accepted',
+            'signed_by_dean_president' => 'required|accepted',
             'photos' => 'nullable|array|max:10',
             'photos.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         $path = $request->file('narrative_report')->store('uploads/narratives', 'public');
 
-        $report = ActivityReport::create([
-            'activity_request_id' => $activityRequest->id,
-            'narrative_report'    => $path,
-            'submitted_at'        => now(),
-        ]);
+        if ($existingReport && $isReturnedForCorrection) {
+            $existingReport->update([
+                'narrative_report' => $path,
+                'submitted_at' => now(),
+                'description' => $validated['description'] ?? null,
+                'signed_by_secretary' => $validated['signed_by_secretary'],
+                'signed_by_governor' => $validated['signed_by_governor'],
+                'signed_by_advisor' => $validated['signed_by_advisor'],
+                'signed_by_dean_president' => $validated['signed_by_dean_president'],
+                'status' => 'pending',
+                'feedback' => null,
+                'reviewed_at' => null,
+                'reviewed_by' => null,
+            ]);
+            $report = $existingReport;
+        } else {
+            $report = ActivityReport::create([
+                'activity_request_id' => $activityRequest->id,
+                'narrative_report'    => $path,
+                'submitted_at'        => now(),
+                'description'         => $validated['description'] ?? null,
+                'signed_by_secretary' => $validated['signed_by_secretary'],
+                'signed_by_governor' => $validated['signed_by_governor'],
+                'signed_by_advisor' => $validated['signed_by_advisor'],
+                'signed_by_dean_president' => $validated['signed_by_dean_president'],
+            ]);
+        }
 
         if ($request->hasFile('photos')) {
-            $sortOrder = 0;
+            $sortOrder = ($report->photos()->max('sort_order') ?? -1) + 1;
             foreach ($request->file('photos') as $photoFile) {
                 $photoPath = $photoFile->store('uploads/activity-photos', 'public');
                 $report->photos()->create([
@@ -94,5 +126,49 @@ class ActivityReportController extends Controller
 
         return redirect()->route('activity-requests.index')
             ->with('success', 'Final report submitted. Awaiting admin monitoring review.');
+    }
+
+    public function approve(ActivityReport $report)
+    {
+        $report->update([
+            'status' => 'approved',
+            'reviewed_at' => now(),
+            'reviewed_by' => auth()->id(),
+            'feedback' => null,
+        ]);
+
+        return back()->with('success', 'Narrative report approved.');
+    }
+
+    public function reject(Request $request, ActivityReport $report)
+    {
+        $validated = $request->validate([
+            'feedback' => 'required|string|max:500',
+        ]);
+
+        $report->update([
+            'status' => 'rejected',
+            'feedback' => $validated['feedback'],
+            'reviewed_at' => now(),
+            'reviewed_by' => auth()->id(),
+        ]);
+
+        return back()->with('success', 'Narrative report rejected.');
+    }
+
+    public function returnForCorrection(Request $request, ActivityReport $report)
+    {
+        $validated = $request->validate([
+            'feedback' => 'required|string|max:500',
+        ]);
+
+        $report->update([
+            'status' => 'needs_revision',
+            'feedback' => $validated['feedback'],
+            'reviewed_at' => now(),
+            'reviewed_by' => auth()->id(),
+        ]);
+
+        return back()->with('success', 'Narrative report returned for correction.');
     }
 }
