@@ -62,6 +62,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/organization/officers/{user}/restore', [\App\Http\Controllers\OfficerController::class, 'restore'])->name('organization.officers.restore');
     Route::get('/organization/officers/history', [\App\Http\Controllers\OfficerController::class, 'userHistory'])->name('organization.officers.history');
 
+    Route::get('/organization/members', [\App\Http\Controllers\OrganizationMemberController::class, 'index'])->name('organization.members.index');
+    Route::post('/organization/members', [\App\Http\Controllers\OrganizationMemberController::class, 'store'])->name('organization.members.store');
+    Route::patch('/organization/members/{member}', [\App\Http\Controllers\OrganizationMemberController::class, 'update'])->name('organization.members.update');
+    Route::delete('/organization/members/{member}', [\App\Http\Controllers\OrganizationMemberController::class, 'destroy'])->name('organization.members.destroy');
+
     // Legacy routes redirect
     Route::get('/submit-activity', fn () => redirect()->route('activity-requests.create'))->name('user.submit');
     Route::get('/my-activities', fn () => redirect()->route('activity-requests.index'))->name('user.activities');
@@ -108,6 +113,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'destroy'])->name('users.destroy');
 
         Route::get('/officers', [\App\Http\Controllers\OfficerController::class, 'index'])->name('officers.index');
+        Route::get('/officers/replacement/create', [\App\Http\Controllers\OfficerController::class, 'create'])->name('officers.replacement.create');
+        Route::get('/officers/{officer}/replacement/create', [\App\Http\Controllers\OfficerController::class, 'create'])->name('officers.replacement.create.with-officer');
+        Route::post('/officers/replacement', [\App\Http\Controllers\OfficerController::class, 'storeReplacement'])->name('officers.replacement.store');
+        Route::get('/officers/replacement/success', [\App\Http\Controllers\OfficerController::class, 'replacementSuccess'])->name('officers.replacement.success');
         Route::post('/officers/{user}/archive', [\App\Http\Controllers\OfficerController::class, 'archive'])->name('officers.archive');
         Route::post('/officers/{user}/restore', [\App\Http\Controllers\OfficerController::class, 'restore'])->name('officers.restore');
         Route::get('/officers/history', [\App\Http\Controllers\OfficerController::class, 'history'])->name('officers.history');

@@ -103,6 +103,13 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('admin.officers.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('admin.officers.*') ? '#e89600' : 'transparent' }};">
+                         Officer Directory
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('admin.summary-report') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#e89600' : 'transparent' }};">

@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class OfficerController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::query()->active()->with('organization');
+        $query = User::query()
+            ->active()
+            ->where('position', 'Secretary')
+            ->with('organization');
 
         if (! Auth::user()?->isAdmin()) {
             $query->where('organization_id', Auth::id() ? (Auth::user()->organization_id ?? 0) : 0);
@@ -29,16 +35,105 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $activeOfficers = $query->orderBy('org_name')->orderBy('position')->get();
+        $activeSecretaryUsers = $query->orderBy('organization_id')->orderByDesc('updated_at')->get();
+
+        $activeOfficers = $activeSecretaryUsers->groupBy('organization_id')->map(function ($group) {
+            return $group->sortByDesc('updated_at')->first();
+        })->values();
+
         $organizations = User::query()->select('organization_id', 'org_name')->whereNotNull('organization_id')->distinct()->orderBy('org_name')->get();
 
         return view('admin.officers.index', [
             'officers' => $activeOfficers,
+            'history' => collect(),
+            'members' => collect(),
             'organizations' => $organizations,
             'selectedOrganization' => $request->organization_id,
             'selectedTerm' => $request->term,
             'selectedSchoolYear' => $request->school_year,
+            'tab' => 'current',
+            'isAdminView' => true,
+            'filterRoute' => route('admin.officers.index'),
         ]);
+    }
+
+    public function create(Request $request, ?User $officer = null): View
+    {
+        if (! Auth::user()?->isAdmin()) {
+            abort(403);
+        }
+
+        $organizations = Organization::query()
+            ->select('id', 'name', 'type', 'college')
+            ->orderBy('name')
+            ->get();
+
+        $prefill = [
+            'name' => '',
+            'email' => '',
+            'position' => $officer?->position ?? $request->input('position', ''),
+            'term' => $officer?->term ?? $request->input('term', ''),
+            'school_year' => $officer?->school_year ?? $request->input('school_year', ''),
+            'organization_id' => $officer?->organization_id ?? $request->input('organization_id', ''),
+            'org_name' => $officer?->org_name ?? $request->input('org_name', ''),
+            'org_type' => $officer?->org_type ?? $request->input('org_type', ''),
+            'college' => $officer?->college ?? $request->input('college', ''),
+        ];
+
+        return view('admin.officers.replacement-create', [
+            'officer' => $officer,
+            'organizations' => $organizations,
+            'prefill' => $prefill,
+        ]);
+    }
+
+    public function storeReplacement(Request $request)
+    {
+        if (! Auth::user()?->isAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'position' => ['required', 'string', 'max:255'],
+            'term' => ['nullable', 'string', 'max:50'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'organization_id' => ['required', 'exists:organizations,id'],
+            'org_name' => ['nullable', 'string', 'max:255'],
+            'org_type' => ['nullable', 'string', 'max:100'],
+            'college' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $temporaryPassword = Str::random(10);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($temporaryPassword),
+            'role' => 'user',
+            'position' => $validated['position'],
+            'term' => $validated['term'] ?? null,
+            'school_year' => $validated['school_year'] ?? null,
+            'organization_id' => $validated['organization_id'],
+            'org_name' => $validated['org_name'] ?? null,
+            'org_type' => $validated['org_type'] ?? null,
+            'college' => $validated['college'] ?? null,
+            'officer_status' => 'active',
+        ]);
+
+        return redirect()->route('admin.officers.replacement.success')
+            ->with('replacement_name', $user->name)
+            ->with('replacement_password', $temporaryPassword);
+    }
+
+    public function replacementSuccess(): View
+    {
+        if (! Auth::user()?->isAdmin()) {
+            abort(403);
+        }
+
+        return view('admin.officers.replacement-success');
     }
 
     public function archive(Request $request, User $user)
@@ -77,6 +172,7 @@ class OfficerController extends Controller
         $query = User::query()
             ->where('organization_id', $user->organization_id)
             ->where('officer_status', 'active')
+            ->where('position', 'Secretary')
             ->with('organization');
 
         if ($request->filled('term')) {
@@ -87,14 +183,19 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $officers = $query->orderBy('org_name')->orderBy('position')->get();
+        $officers = $query->orderByDesc('updated_at')->get()->take(1);
 
         return view('admin.officers.index', [
             'officers' => $officers,
+            'history' => collect(),
+            'members' => collect(),
             'organizations' => collect(),
             'selectedOrganization' => null,
             'selectedTerm' => $request->term,
             'selectedSchoolYear' => $request->school_year,
+            'tab' => 'current',
+            'isAdminView' => false,
+            'filterRoute' => route('organization.officers.index'),
         ]);
     }
 
@@ -123,12 +224,17 @@ class OfficerController extends Controller
             return ($user->term ?? 'Unknown Term') . ' / ' . ($user->school_year ?? 'Unknown SY');
         });
 
-        return view('admin.officers.history', [
+        return view('admin.officers.index', [
+            'officers' => collect(),
             'history' => $history,
+            'members' => collect(),
             'organizations' => collect(),
             'selectedOrganization' => null,
             'selectedTerm' => $request->term,
             'selectedSchoolYear' => $request->school_year,
+            'tab' => 'previous',
+            'isAdminView' => false,
+            'filterRoute' => route('organization.officers.history'),
         ]);
     }
 
@@ -169,12 +275,17 @@ class OfficerController extends Controller
 
         $organizations = User::query()->select('organization_id', 'org_name')->whereNotNull('organization_id')->distinct()->orderBy('org_name')->get();
 
-        return view('admin.officers.history', [
+        return view('admin.officers.index', [
+            'officers' => collect(),
             'history' => $history,
+            'members' => collect(),
             'organizations' => $organizations,
             'selectedOrganization' => $request->organization_id,
             'selectedTerm' => $request->term,
             'selectedSchoolYear' => $request->school_year,
+            'tab' => 'previous',
+            'isAdminView' => true,
+            'filterRoute' => route('admin.officers.history'),
         ]);
     }
 }

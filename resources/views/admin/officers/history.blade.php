@@ -1,17 +1,23 @@
 <x-app-layout>
+    @php
+        $isAdminView = request()->routeIs('admin.*');
+        $currentRoute = $isAdminView ? 'admin.officers.index' : 'organization.officers.index';
+        $historyRoute = $isAdminView ? 'admin.officers.history' : 'organization.officers.history';
+    @endphp
+
     <div class="mb-6 flex items-center justify-between gap-3">
         <div>
             <h2 class="text-2xl font-bold text-gray-800">Officer History</h2>
             <p class="text-sm text-gray-500">Archived officers retained as historical records</p>
         </div>
-        <a href="{{ route('admin.officers.index') }}" class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">Current Officers</a>
+        <a href="{{ route($currentRoute) }}" class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">Current Officers</a>
     </div>
 
     @if(session('success'))
         <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
     @endif
 
-    <form method="GET" action="{{ route('admin.officers.history') }}" class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{{ route($historyRoute) }}" class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
             <select name="organization_id" class="rounded-lg border border-gray-200 px-3 py-2 text-sm">
                 <option value="">All Organizations</option>
@@ -26,7 +32,7 @@
             <input type="text" name="school_year" value="{{ request('school_year') }}" placeholder="School Year" class="rounded-lg border border-gray-200 px-3 py-2 text-sm">
             <div class="flex gap-2">
                 <button type="submit" class="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Filter</button>
-                <a href="{{ route('admin.officers.history') }}" class="rounded-lg bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300">Reset</a>
+                <a href="{{ route($historyRoute) }}" class="rounded-lg bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300">Reset</a>
             </div>
         </div>
     </form>
@@ -65,7 +71,7 @@
                                     <div class="text-[11px] text-gray-500">{{ $officer->archived_reason ?? 'No reason provided' }}</div>
                                 </td>
                                 <td class="p-3 text-center">
-                                    <form method="POST" action="{{ route('admin.officers.restore', $officer) }}" onsubmit="return confirm('Restore {{ $officer->name }} to active status?')">
+                                    <form method="POST" action="{{ route($isAdminView ? 'admin.officers.restore' : 'organization.officers.restore', $officer) }}" onsubmit="return confirm('Restore {{ $officer->name }} to active status?')">
                                         @csrf
                                         <button type="submit" class="rounded bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 hover:bg-green-100">Restore</button>
                                     </form>

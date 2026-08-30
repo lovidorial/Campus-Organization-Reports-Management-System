@@ -104,6 +104,13 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('admin.officers.index') }}"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                       style="background-color: {{ request()->routeIs('admin.officers.*') ? '#b45309' : 'transparent' }};">
+                         Officer Directory
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('admin.summary-report') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
                        style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#b45309' : 'transparent' }};">

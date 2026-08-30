@@ -26,9 +26,9 @@
                         <select id="type" name="type" required
                                 class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100">
                             <option value="">Select type</option>
-                            @foreach(['Student Council','Academic Org','Cultural Org','Sports Org','Religious Org','Publication','Other'] as $t)
-                            <option value="{{ $t }}" {{ old('type',$organization->type)==$t?'selected':'' }}>{{ $t }}</option>
-                            @endforeach
+                            <option value="Major Student Organization" {{ old('type', $organization->type) == 'Major Student Organization' ? 'selected' : '' }}>Major Student Organization</option>
+                            <option value="Minor Student Organization" {{ old('type', $organization->type) == 'Minor Student Organization' ? 'selected' : '' }}>Minor Student Organization</option>
+                            <option value="Specialized Student Organization" {{ old('type', $organization->type) == 'Specialized Student Organization' ? 'selected' : '' }}>Specialized Student Organization</option>
                         </select>
                         @error('type')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
