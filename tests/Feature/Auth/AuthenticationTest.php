@@ -52,6 +52,39 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_deleting_an_organization_removes_its_linked_login_accounts(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $organization = Organization::create([
+            'name' => 'CICS SC',
+            'type' => 'Minor Student Organization',
+            'college' => 'CICS',
+            'is_active' => true,
+        ]);
+        $secretary = User::factory()->create([
+            'role' => 'user',
+            'organization_id' => $organization->id,
+            'org_name' => $organization->name,
+            'org_type' => $organization->type,
+            'college' => $organization->college,
+            'email' => 'cics-secretary@example.com',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.organizations.destroy', $organization));
+
+        $this->assertDatabaseMissing('users', ['id' => $secretary->id]);
+
+        $this->post('/login', [
+            'email' => $secretary->email,
+            'password' => 'password',
+            'role' => 'student',
+        ]);
+
+        $this->assertGuest();
+    }
+
     public function test_organization_logo_is_used_as_user_avatar_when_present(): void
     {
         $organization = Organization::create([

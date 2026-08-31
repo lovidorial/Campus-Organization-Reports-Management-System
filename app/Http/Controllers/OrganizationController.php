@@ -8,6 +8,7 @@ use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Services\OrganizationClassifierService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
@@ -148,6 +149,8 @@ class OrganizationController extends Controller
             'org_name'        => $organization->name,
             'org_type'        => $organization->type,
             'college'         => $organization->college,
+            'term'            => $organization->term,
+            'school_year'     => $organization->school_year,
             'position'        => 'Secretary',
         ];
 
@@ -250,6 +253,11 @@ class OrganizationController extends Controller
 
         $organization->update($validated);
 
+        $organization->members()->update([
+            'term' => $organization->term,
+            'school_year' => $organization->school_year,
+        ]);
+
         return redirect()->route('admin.organizations.index')
             ->with('success', 'Organization updated.');
     }
@@ -285,8 +293,12 @@ class OrganizationController extends Controller
 
     public function destroy(Organization $organization)
     {
-        $organization->delete();
+        DB::transaction(function () use ($organization) {
+            $organization->members()->delete();
+            $organization->delete();
+        });
+
         return redirect()->route('admin.organizations.index')
-            ->with('success', 'Organization deleted.');
+            ->with('success', 'Organization and linked account(s) deleted.');
     }
 }

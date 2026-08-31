@@ -38,7 +38,14 @@ class OfficerController extends Controller
         $activeSecretaryUsers = $query->orderBy('organization_id')->orderByDesc('updated_at')->get();
 
         $activeOfficers = $activeSecretaryUsers->groupBy('organization_id')->map(function ($group) {
-            return $group->sortByDesc('updated_at')->first();
+            $officer = $group->sortByDesc('updated_at')->first();
+
+            if ($officer) {
+                $officer->term = $officer->term ?? $officer->organization?->term;
+                $officer->school_year = $officer->school_year ?? $officer->organization?->school_year;
+            }
+
+            return $officer;
         })->values();
 
         $organizations = User::query()->select('organization_id', 'org_name')->whereNotNull('organization_id')->distinct()->orderBy('org_name')->get();
@@ -142,10 +149,22 @@ class OfficerController extends Controller
             'archived_reason' => 'nullable|string|max:255',
         ]);
 
+        if (empty($user->term) || empty($user->school_year)) {
+            $fallbackTerm = $user->term ?? $user->organization?->term;
+            $fallbackSchoolYear = $user->school_year ?? $user->organization?->school_year;
+
+            $user->fill([
+                'term' => $fallbackTerm,
+                'school_year' => $fallbackSchoolYear,
+            ]);
+        }
+
         $user->update([
             'officer_status' => 'archived',
             'archived_at' => now(),
             'archived_reason' => $validated['archived_reason'] ?? null,
+            'term' => $user->term,
+            'school_year' => $user->school_year,
         ]);
 
         if (Auth::id() === $user->id) {
@@ -154,11 +173,26 @@ class OfficerController extends Controller
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'email' => 'This account has been archived and can no longer log in. Contact OSDW if you believe this is a mistake.',
+                'email' => 'This account\'s term has ended and can no longer log in. If you are the outgoing officer, your organization\'s new Secretary should have received new login credentials from OSDW. If you believe this was done in error, please contact OSDW at osdwcsuaparri@gmail.com or via the CSUAparri-OSDW Facebook page for assistance.',
             ]);
         }
 
-        return back()->with('success', $user->name . ' was archived successfully.');
+        $redirect = back()->with('success', $user->name . ' was archived successfully.');
+
+        if (Auth::user()?->isAdmin()) {
+            $redirect->with('replacement_url', route('admin.officers.replacement.create', [
+                'officer' => $user->id,
+                'position' => $user->position,
+                'term' => $user->term,
+                'school_year' => $user->school_year,
+                'organization_id' => $user->organization_id,
+                'org_name' => $user->org_name,
+                'org_type' => $user->org_type,
+                'college' => $user->college,
+            ]));
+        }
+
+        return $redirect;
     }
 
     public function userIndex(Request $request): View
@@ -183,7 +217,12 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $officers = $query->orderByDesc('updated_at')->get()->take(1);
+        $officers = $query->orderByDesc('updated_at')->get()->take(1)->map(function ($officer) {
+            $officer->term = $officer->term ?? $officer->organization?->term;
+            $officer->school_year = $officer->school_year ?? $officer->organization?->school_year;
+
+            return $officer;
+        });
 
         return view('admin.officers.index', [
             'officers' => $officers,
@@ -220,7 +259,12 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()->groupBy(function ($user) {
+        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()->map(function ($user) {
+            $user->term = $user->term ?? $user->organization?->term;
+            $user->school_year = $user->school_year ?? $user->organization?->school_year;
+
+            return $user;
+        })->groupBy(function ($user) {
             return ($user->term ?? 'Unknown Term') . ' / ' . ($user->school_year ?? 'Unknown SY');
         });
 
@@ -269,7 +313,12 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()->groupBy(function ($user) {
+        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()->map(function ($user) {
+            $user->term = $user->term ?? $user->organization?->term;
+            $user->school_year = $user->school_year ?? $user->organization?->school_year;
+
+            return $user;
+        })->groupBy(function ($user) {
             return ($user->term ?? 'Unknown Term') . ' / ' . ($user->school_year ?? 'Unknown SY');
         });
 

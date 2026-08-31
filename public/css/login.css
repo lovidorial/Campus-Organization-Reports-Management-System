@@ -31,7 +31,7 @@ html {
 
 body {
     min-height: 100vh;
-    font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: var(--panel-text);
     background: #f3f1ec;
     -webkit-font-smoothing: antialiased;

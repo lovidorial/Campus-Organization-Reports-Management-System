@@ -6,7 +6,7 @@
     <title>Public Activities | Orgtrack</title>
 
     {{-- Google Fonts --}}
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     {{-- Bootstrap 5 --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -41,7 +41,7 @@
 }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #f8f9fc 0%, #eff2f7 100%);
             min-height: 100vh;
             color: #1a1a2e;
@@ -60,7 +60,7 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            font-family: 'Raleway', sans-serif;
+            font-family: 'Sora', sans-serif;
             font-size: 1.3rem;
             font-weight: 800;
             color: #1a2b6d !important;
@@ -165,7 +165,7 @@
         }
 
         .page-header h1 {
-            font-family: 'Raleway', sans-serif;
+            font-family: 'Sora', sans-serif;
             font-size: clamp(2.2rem, 6vw, 3.4rem);
             font-weight: 800;
             line-height: 1.15;

@@ -34,7 +34,7 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'email' => 'This account has been archived and can no longer log in. Contact OSDW if you believe this is a mistake.',
+                'email' => 'This account\'s term has ended and can no longer log in. If you are the outgoing officer, your organization\'s new Secretary should have received new login credentials from OSDW. If you believe this was done in error, please contact OSDW at osdwcsuaparri@gmail.com or via the CSUAparri-OSDW Facebook page for assistance.',
             ]);
         }
 
@@ -57,6 +57,16 @@ class AuthenticatedSessionController extends Controller
         $isStudentOrganization = $user->role === 'user' && (
             ! empty($user->organization_id) || ! empty($user->org_name)
         );
+
+        if ($user->role === 'user' && $user->organization_id && ! $user->organization()->exists()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'This organization account has been deleted and can no longer log in.',
+            ]);
+        }
 
         if (! $isStudentOrganization) {
             Auth::guard('web')->logout();

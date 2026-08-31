@@ -11,12 +11,12 @@
 
     <!-- Sidebar -->
     <div x-data="{ notificationsOpen: false }">
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background-color: #d97706;">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background-color: #b45309;">
         <div class="p-5 border-b border-white/10">
             <h1 class="text-xl font-bold text-white">Orgtrack  </h1>
             <p class="text-xs text-white-400 mt-0.5">Activity Tracking System</p>
         </div>
-        <nav class="p-4 flex-1 overflow-y-auto">
+        <nav class="p-4 flex-1 overflow-y-auto" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
             <ul class="space-y-1">
 
                 @if(!auth()->user()->isAdmin())
@@ -24,7 +24,7 @@
                 <li>
                     <a href="{{ route('dashboard') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('dashboard') ? '#e89600' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('dashboard') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Dashboard
                     </a>
                 </li>
@@ -33,7 +33,7 @@
                             @click="open = !open"
                             :aria-expanded="open.toString()"
                             class="flex items-center justify-between gap-3 w-full px-4 py-2.5 rounded-lg transition font-bold text-white"
-                            :class="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') ? 'true' : 'false' }} ? 'bg-[#e89600]' : 'bg-transparent'">
+                            :style="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') ? 'true' : 'false' }} ? 'background-color: #e89600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);' : 'background-color: rgba(0,0,0,0.12); text-shadow: 0 1px 3px rgba(0,0,0,0.5);'">
                         <span>Documents & Activities</span>
                         <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" :class="open ? 'rotate-90' : ''">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -50,17 +50,17 @@
                          class="overflow-hidden space-y-1 mt-1 pl-4">
                         <a href="{{ route('gpoa.index') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('gpoa.*') ? '#e89600' : 'transparent' }};">
+                           style="background-color: {{ request()->routeIs('gpoa.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                             My GPOA
                         </a>
                         <a href="{{ route('activity-requests.index') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('activity-requests.*') ? '#e89600' : 'transparent' }};">
+                           style="background-color: {{ request()->routeIs('activity-requests.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                             Activity Requests
                         </a>
                         <a href="{{ route('workflow.summary-report') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'transparent' }};">
+                           style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                             Summary Report
                         </a>
                     </div>
@@ -68,14 +68,21 @@
                 <li>
                     <a href="{{ route('organization.officers.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('organization.officers.*') ? '#e89600' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('organization.officers.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Officer Archive
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('organization.members.index') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('organization.members.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                         Org Chart
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('profile.edit') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('profile.edit') ? '#e89600' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('profile.edit') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Edit Profile
                     </a>
                 </li>
@@ -85,42 +92,56 @@
                 <li class="pb-1">
                     <a href="{{ route('admin.dashboard') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.dashboard') ? '#b45309' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('admin.dashboard') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Admin Dashboard
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('admin.workflows.index') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.workflows.*') ? '#b45309' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('admin.workflows.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          GPOA Review
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('admin.activities') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.activities') ? '#b45309' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('admin.activities') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Activity Monitoring
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('admin.officers.index') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.officers.*') ? '#b45309' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('admin.officers.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Officer Directory
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('admin.officers.index', ['tab' => 'members']) }}"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                       style="background-color: {{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                         Org Chart
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('admin.summary-report') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#b45309' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Summary Report
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('admin.backups.index') }}"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                       style="background-color: {{ request()->routeIs('admin.backups.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                         Backup & Restore
                     </a>
                 </li>
                 <li class="mt-3">
                     <a href="{{ route('admin.organizations.index') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.organizations.*') ? '#b45309' : 'transparent' }};">
+                       style="background-color: {{ request()->routeIs('admin.organizations.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Organization account
                     </a>
                 </li>
@@ -130,7 +151,8 @@
                 <li class="pt-4 mt-4 border-t border-white/10">
                     <a href="{{ route('logout') }}"
                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10 w-full text-left">
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10 w-full text-left"
+                       style="background-color: rgba(0,0,0,0.12); text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Logout
                     </a>
                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>

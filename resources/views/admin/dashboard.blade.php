@@ -25,6 +25,7 @@
                     </button>
                     <div id="adminProfileMenu" class="hidden absolute right-0 mt-3 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Settings</a>
+                        <a href="{{ route('admin.backups.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Backup & Restore</a>
                         <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Logout</a>
                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>
                     </div>

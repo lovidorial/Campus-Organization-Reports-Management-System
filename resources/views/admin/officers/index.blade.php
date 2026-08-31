@@ -51,7 +51,14 @@
 
         @if(session('success'))
             <div class="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                {{ session('success') }}
+                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <span>{{ session('success') }}</span>
+                    @if(session('replacement_url'))
+                        <a href="{{ session('replacement_url') }}" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700">
+                            Onboard their replacement now?
+                        </a>
+                    @endif
+                </div>
             </div>
         @endif
 
@@ -232,7 +239,7 @@
 
                         <div class="mt-4 flex justify-center">
                             <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                {{ $officer->term ?? '—' }} · SY {{ $officer->school_year ?? '—' }}
+                                {{ $officer->term ?? $officer->organization?->term ?? '—' }} · SY {{ $officer->school_year ?? $officer->organization?->school_year ?? '—' }}
                             </span>
                         </div>
 
@@ -243,7 +250,7 @@
 
                         @if(! $isAdminView)
                             <div class="mt-6">
-                                <form method="POST" action="{{ route('organization.officers.archive', $officer) }}" onsubmit="return confirm('This will end {{ addslashes($officer->name) }}\'s term as {{ addslashes($officer->position ?? 'Officer') }} for {{ addslashes($officer->term ?? '—') }} / {{ addslashes($officer->school_year ?? '—') }} and move them to Previous Officers. They will no longer be able to log in. Continue?')">
+                                <form method="POST" action="{{ route('organization.officers.archive', $officer) }}" onsubmit="return confirm('This will end {{ addslashes($officer->name) }}\'s term as {{ addslashes($officer->position ?? 'Officer') }} for {{ addslashes($officer->term ?? $officer->organization?->term ?? '—') }} / {{ addslashes($officer->school_year ?? $officer->organization?->school_year ?? '—') }} and move them to Previous Officers. They will no longer be able to log in. Continue?')">
                                     @csrf
                                     <input type="hidden" name="archived_reason" value="Term ended">
                                     <button type="submit" class="w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">

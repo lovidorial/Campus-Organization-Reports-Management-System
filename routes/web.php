@@ -7,14 +7,19 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminGpoaController;
 use App\Http\Controllers\AdminSummaryReportController;
 use App\Http\Controllers\AdminWorkflowController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GpoaController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\PublicOrgChartController;
 use App\Http\Controllers\WorkflowDocumentController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
-    return view('welcome');
+    $organizations = \App\Models\Organization::where('is_active', true)->orderBy('name')->get();
+
+    return view('welcome', compact('organizations'));
 })->name('welcome');
 
 Route::get('/storage/{path}', function (string $path) {
@@ -26,6 +31,7 @@ Route::get('/storage/{path}', function (string $path) {
 })->where('path', '.*');
 
 Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
+Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('public.orgchart');
 
 require __DIR__ . '/auth.php';
 
@@ -138,6 +144,13 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/organization-classifications/{organizationClassification}', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'update'])->name('organization-classifications.update');
         Route::delete('/organization-classifications/{organizationClassification}', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'destroy'])->name('organization-classifications.destroy');
         Route::get('/organization-classifications/classify', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'classify'])->name('organization-classifications.classify');
+
+        Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('/backups', [BackupController::class, 'store'])->name('backups.store');
+        Route::get('/backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
+        Route::post('/backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
+        Route::put('/backups/schedule', [BackupController::class, 'updateSchedule'])->name('backups.schedule');
+        Route::delete('/backups/{filename}', [BackupController::class, 'destroy'])->name('backups.destroy');
 
         Route::post('/organizations/{organization}/deactivate', [OrganizationController::class, 'deactivate'])->name('organizations.deactivate');
         Route::post('/organizations/{organization}/reset-password', [OrganizationController::class, 'resetPassword'])->name('organizations.reset-password');

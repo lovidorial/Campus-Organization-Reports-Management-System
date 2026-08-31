@@ -44,6 +44,11 @@ class Organization extends Model
         return $this->hasMany(User::class);
     }
 
+    public function organizationMembers()
+    {
+        return $this->hasMany(OrganizationMember::class)->orderBy('display_order')->orderBy('name');
+    }
+
     public function activities()
     {
         return $this->hasManyThrough(Activity::class, User::class);
