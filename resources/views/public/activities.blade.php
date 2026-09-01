@@ -99,6 +99,101 @@
             padding: 6px 12px;
         }
 
+        /* Hamburger Menu */
+        .navbar-toggler {
+            border: none;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+            outline: none;
+        }
+
+        .navbar-toggler-icon {
+            width: 28px;
+            height: 24px;
+            position: relative;
+            transition: all 0.3s ease;
+            display: inline-block;
+            background: none;
+        }
+
+        .navbar-toggler-icon::before,
+        .navbar-toggler-icon::after {
+            content: '';
+            position: absolute;
+            background: #1a2b6d;
+            width: 28px;
+            height: 3px;
+            border-radius: 2px;
+            left: 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-toggler-icon::before {
+            top: 0;
+        }
+
+        .navbar-toggler-icon::after {
+            bottom: 0;
+        }
+
+        .navbar-toggler-icon::before {
+            top: 11px;
+            box-shadow: 0 -8px 0 #1a2b6d;
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon::before {
+            top: 11px;
+            transform: rotate(45deg);
+            box-shadow: 0 0px 0 #1a2b6d;
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon::after {
+            transform: rotate(-45deg);
+        }
+
+        /* Responsive navbar */
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                background: rgba(255, 255, 255, 0.95);
+                border-top: 1px solid #eee;
+                margin-top: 8px;
+                border-radius: 8px;
+                padding: 10px 0;
+            }
+
+            .navbar-nav {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .nav-link {
+                padding: 12px 20px !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+                color: #1a2b6d !important;
+                font-weight: 600;
+                font-size: 0.95rem;
+            }
+
+            .nav-link:hover {
+                background: #f5f5f5 !important;
+                color: #e89600 !important;
+            }
+
+            .nav-item .btn-login {
+                width: calc(100% - 40px);
+                margin: 8px 20px !important;
+                padding: 12px 24px;
+            }
+        }
+
         .btn-login {
             display: inline-flex;
             align-items: center;
