@@ -18,9 +18,7 @@ class AdminGpoaController extends Controller
     {
         $query = Gpoa::with(['user', 'activities', 'activityRequests'])
             ->withCount(['activities', 'activityRequests'])
-            ->whereHas('user', function ($userQuery) {
-                $userQuery->where('role', '!=', 'admin');
-            })
+            ->excludeAdmins()
             ->when($request->search, function ($query) use ($request) {
                 $search = trim($request->search);
 
@@ -40,18 +38,10 @@ class AdminGpoaController extends Controller
         $gpoas = $query->latest()->paginate(20)->appends($request->query());
 
         $stats = [
-            'total' => Gpoa::whereHas('user', function ($userQuery) {
-                $userQuery->where('role', '!=', 'admin');
-            })->count(),
-            'pending' => Gpoa::whereHas('user', function ($userQuery) {
-                $userQuery->where('role', '!=', 'admin');
-            })->where('status', 'pending')->count(),
-            'approved' => Gpoa::whereHas('user', function ($userQuery) {
-                $userQuery->where('role', '!=', 'admin');
-            })->whereIn('status', ['approved', 'stored'])->count(),
-            'rejected' => Gpoa::whereHas('user', function ($userQuery) {
-                $userQuery->where('role', '!=', 'admin');
-            })->where('status', 'rejected')->count(),
+            'total' => Gpoa::excludeAdmins()->count(),
+            'pending' => Gpoa::excludeAdmins()->where('status', 'pending')->count(),
+            'approved' => Gpoa::excludeAdmins()->whereIn('status', ['approved', 'stored'])->count(),
+            'rejected' => Gpoa::excludeAdmins()->where('status', 'rejected')->count(),
         ];
 
         return view('admin.gpoa.index', compact('gpoas', 'stats'));

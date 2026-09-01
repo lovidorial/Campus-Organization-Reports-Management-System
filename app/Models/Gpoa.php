@@ -42,4 +42,11 @@ class Gpoa extends Model
     {
         return in_array($this->status, ['approved', 'stored']);
     }
+
+    public function scopeExcludeAdmins($query)
+    {
+        return $query->whereHas('user', function ($userQuery) {
+            $userQuery->where('role', '!=', 'admin');
+        });
+    }
 }
