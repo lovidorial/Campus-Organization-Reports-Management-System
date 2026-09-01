@@ -344,6 +344,7 @@ body  {
     .navbar-inner { grid-template-columns: auto 1fr auto; gap: 18px; }
     .nav-links { display: none; }
     .nav-auth-link { display: none; }
+    .mobile-auth-link { display: inline-flex !important; }
     .hamburger { display: flex; }
     .site-navbar { position: relative; }
 }
