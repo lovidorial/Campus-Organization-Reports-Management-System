@@ -1,2 +1,7 @@
 [phases.setup]
-aptPkgs = ["default-mysql-client", "php-zip"]
+# Ensure MySQL client and necessary build tools are available
+aptPkgs = ["default-mysql-client", "build-essential", "libzip-dev"]
+
+[phases.build]
+# Install Composer dependencies before npm (PHP build step is automatic)
+cmds = ["composer install --no-dev", "npm ci --omit=dev"]
