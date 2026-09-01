@@ -1,2 +1,2 @@
 [phases.setup]
-aptPkgs = ["default-mysql-client"]
+aptPkgs = ["default-mysql-client", "php-zip"]
