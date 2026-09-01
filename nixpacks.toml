@@ -1,7 +1,7 @@
 [phases.setup]
-# Ensure MySQL client and necessary build tools are available
-aptPkgs = ["default-mysql-client", "build-essential", "libzip-dev"]
+# Install MySQL client and libraries needed for PHP zip extension
+aptPkgs = ["default-mysql-client", "build-essential", "libzip-dev", "zlib1g-dev"]
 
 [phases.build]
-# Install Composer dependencies before npm (PHP build step is automatic)
+# Install dependencies
 cmds = ["composer install --no-dev", "npm ci --omit=dev"]
