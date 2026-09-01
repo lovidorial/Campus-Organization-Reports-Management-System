@@ -135,8 +135,12 @@
                                 <div class="flex items-start justify-between gap-3 border-b border-dashed border-gray-200 pb-2">
                                     <div class="min-w-0">
                                         <div class="text-sm font-semibold text-gray-800">Communication</div>
-                                        <div class="mt-1 text-xs text-gray-500 truncate" title="{{ $activity->communication_letter ?? '—' }}">
-                                            {{ $activity->communication_letter ? basename($activity->communication_letter) : '—' }}
+                                        @php
+                                            $communicationFileName = $activity->communication_letter ? basename($activity->communication_letter) : null;
+                                            $communicationDisplayName = $communicationFileName ? (strlen($communicationFileName) > 28 ? substr($communicationFileName, 0, 25) . '...' : $communicationFileName) : '—';
+                                        @endphp
+                                        <div class="mt-1 text-xs text-gray-500 truncate" title="{{ $communicationFileName ?? '—' }}">
+                                            {{ $communicationDisplayName }}
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
@@ -155,10 +159,14 @@
                                     <div class="min-w-0">
                                         <div class="text-sm font-semibold text-gray-800">Activity Report</div>
                                         @if($activity->report)
+                                            @php
+                                                $reportFileName = $activity->report->description ? $activity->report->description : 'Narrative Report';
+                                                $reportDisplayName = strlen($reportFileName) > 28 ? substr($reportFileName, 0, 25) . '...' : $reportFileName;
+                                            @endphp
                                             <button type="button"
                                                     onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
                                                     class="mt-1 inline-block text-xs font-semibold text-green-700 hover:underline"
-                                                    title="{{ $activity->report->description ?: 'No report description' }}">View Report</button>
+                                                    title="{{ $reportFileName }}">{{ $reportDisplayName }}</button>
                                         @else
                                             <div class="mt-1 text-xs text-gray-500">—</div>
                                         @endif
@@ -176,29 +184,6 @@
                                         @endif
                                     </div>
                                 </div>
-
-                                @if($activity->report)
-                                    <div class="border-t border-dashed border-gray-200 pt-2">
-                                        <div class="flex flex-wrap items-center gap-1">
-                                            <form method="POST" action="{{ route('admin.reports.approve', $activity->report) }}">
-                                                @csrf
-                                                <button type="submit" class="px-2 py-1 bg-green-100 text-green-700 rounded text-[11px] font-semibold">Approve</button>
-                                            </form>
-                                            <form method="POST" action="{{ route('admin.reports.reject', $activity->report) }}" onsubmit="return promptReportRejection(this)">
-                                                @csrf
-                                                <input type="hidden" name="feedback">
-                                                <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 rounded text-[11px] font-semibold">Reject</button>
-                                            </form>
-                                            <form id="returnForCorrectionForm-{{ $activity->report->id }}" method="POST" action="{{ route('admin.reports.return-for-correction', $activity->report) }}">
-                                                @csrf
-                                                <input type="hidden" name="feedback">
-                                            </form>
-                                            <button type="button"
-                                                    onclick="returnForCorrectionPrompt({{ $activity->report->id }})"
-                                                    class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[11px] font-semibold">Return for Correction</button>
-                                        </div>
-                                    </div>
-                                @endif
                             </div>
                         </div>
                     @else
@@ -225,32 +210,29 @@
                     @endif
                 </td>
                 <td class="p-3 text-center">
-                    @if($activity->status == 'pending')
-                    <div class="flex flex-col items-center justify-center gap-1">
-                        <button type="button" onclick="openApproveModal({{ $activity->id }})"
-                                class="px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-semibold">Review</button>
-                        <div class="flex items-center justify-center gap-1 flex-wrap">
-                            <button onclick="openApproveModal({{ $activity->id }})"
-                                    class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Approve</button>
-                            <button onclick="openRejectModal({{ $activity->id }})"
-                                    class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Reject</button>
-                        </div>
+                    @php
+                        $hasPendingReport = $activity->report && $activity->report->status === 'pending';
+                        $canRecordMonitoring = $activity->status === 'report_submitted';
+                    @endphp
+
+                    <div class="flex flex-col items-center justify-center gap-2">
+                        @if($hasPendingReport)
+                            <button type="button"
+                                    data-report-id="{{ $activity->report->id }}"
+                                    data-approve-url="{{ route('admin.reports.approve', $activity->report) }}"
+                                    data-reject-url="{{ route('admin.reports.reject', $activity->report) }}"
+                                    data-return-url="{{ route('admin.reports.return-for-correction', $activity->report) }}"
+                                    onclick="openReportReviewModal(this)"
+                                    class="px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-semibold">Review Report</button>
+                        @endif
+
+                        @if($canRecordMonitoring)
+                            <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
+                                    class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Record Monitoring</button>
+                        @elseif(! $hasPendingReport)
+                            <span class="text-gray-300 text-xs">—</span>
+                        @endif
                     </div>
-                    @elseif($activity->status == 'report_submitted')
-                    <div class="flex flex-col items-center justify-center gap-1">
-                        <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
-                                class="px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-semibold">Review</button>
-                        <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
-                                class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Record Monitoring</button>
-                    </div>
-                    @elseif(in_array($activity->status, ['approved','in_progress','awaiting_report']))
-                    <div class="flex flex-col items-center justify-center gap-1">
-                        <span class="text-xs text-violet-600 font-semibold">Review</span>
-                        <span class="text-xs text-sky-600">Monitoring</span>
-                    </div>
-                    @else
-                    <span class="text-gray-300 text-xs">—</span>
-                    @endif
                 </td>
             </tr>
             @endforeach
@@ -259,6 +241,36 @@
 </div>
 
 <div class="mt-4">{{ $activities->links() }}</div>
+
+<!-- Report Review Modal -->
+<div id="reportReviewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Review Narrative Report</h3>
+            <button type="button" onclick="closeReportReviewModal()" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">&times;</button>
+        </div>
+        <p class="text-gray-600 text-sm mb-5">Choose the next action for this narrative report.</p>
+
+        <div class="space-y-3">
+            <form id="reportApproveForm" method="POST" action="">
+                @csrf
+                <button type="submit" class="w-full px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-200">Approve</button>
+            </form>
+
+            <form id="reportRejectForm" method="POST" action="" onsubmit="return promptReportRejection(this)">
+                @csrf
+                <input type="hidden" name="feedback">
+                <button type="submit" class="w-full px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200">Reject with feedback</button>
+            </form>
+
+            <form id="reportReturnForCorrectionForm" method="POST" action="" onsubmit="return promptReturnForCorrection(this)">
+                @csrf
+                <input type="hidden" name="feedback">
+                <button type="submit" class="w-full px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-semibold hover:bg-amber-200">Return for Correction</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Approve Modal -->
 <div id="approveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -336,8 +348,26 @@ function openMonitoringModal(id) {
     document.getElementById('monitoringModal').classList.remove('hidden');
 }
 function closeMonitoringModal() { document.getElementById('monitoringModal').classList.add('hidden'); }
+function openReportReviewModal(button) {
+    const modal = document.getElementById('reportReviewModal');
+    const approveForm = document.getElementById('reportApproveForm');
+    const rejectForm = document.getElementById('reportRejectForm');
+    const returnForm = document.getElementById('reportReturnForCorrectionForm');
+
+    approveForm.action = button.dataset.approveUrl;
+    rejectForm.action = button.dataset.rejectUrl;
+    returnForm.action = button.dataset.returnUrl;
+    modal.classList.remove('hidden');
+}
+function closeReportReviewModal() { document.getElementById('reportReviewModal').classList.add('hidden'); }
 function promptReportRejection(form) {
     const feedback = window.prompt('Enter feedback for rejecting this narrative report:');
+    if (!feedback || !feedback.trim()) return false;
+    form.querySelector('input[name="feedback"]').value = feedback.trim();
+    return true;
+}
+function promptReturnForCorrection(form) {
+    const feedback = window.prompt('Enter the corrections needed for this narrative report:');
     if (!feedback || !feedback.trim()) return false;
     form.querySelector('input[name="feedback"]').value = feedback.trim();
     return true;
@@ -361,7 +391,7 @@ function closePDFViewer() {
     document.getElementById('pdfFrame').src = '';
 }
 </script>
-</script>
+
 @endpush
 
 <div id="pdfViewerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">

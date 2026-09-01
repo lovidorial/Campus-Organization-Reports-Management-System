@@ -70,24 +70,18 @@
     <div class="px-6 py-4 bg-gray-50 border-b">
         <h3 class="font-bold text-gray-800">Activities</h3>
     </div>
-    <table class="w-full text-sm min-w-[1400px]">
+    <table class="w-full text-sm min-w-[900px]">
         <thead class="bg-gray-50 border-b">
             <tr>
                 <th class="text-left px-4 py-3">PROGRAM/ACTIVITIES/PROJECT</th>
                 <th class="text-left px-4 py-3">SDGs ADDRESSED</th>
-                <th class="text-left px-4 py-3">OBJECTIVES</th>
-                <th class="text-left px-4 py-3">EXPECTED OUTCOME</th>
-                <th class="text-left px-4 py-3">TARGET PARTICIPANTS</th>
                 <th class="text-left px-4 py-3">TIME FRAME</th>
-                <th class="text-left px-4 py-3">DELIVERY STRATEGY</th>
-                <th class="text-left px-4 py-3">PERSONS INVOLVED</th>
-                <th class="text-left px-4 py-3">FACILITIES/MATERIALS</th>
-                <th class="text-left px-4 py-3">BUDGET ALLOCATION</th>
+                <th class="text-left px-4 py-3">VIEW MORE</th>
             </tr>
         </thead>
         <tbody class="divide-y">
             @forelse($gpoa->activities as $activity)
-            <tr class="hover:bg-gray-50">
+            <tr class="hover:bg-gray-50" x-data="{ expanded: false }">
                 <td class="px-4 py-3 font-medium">{{ $activity->title ?? '—' }}</td>
                 <td class="px-4 py-3">
                     @if($activity->sdgs)
@@ -100,18 +94,49 @@
                         —
                     @endif
                 </td>
-                <td class="px-4 py-3 text-sm">{{ Str::limit($activity->objectives ?? '—', 50) }}</td>
-                <td class="px-4 py-3 text-sm">{{ Str::limit($activity->expected_outcome ?? '—', 50) }}</td>
-                <td class="px-4 py-3">{{ $activity->target_participants ?? '—' }}</td>
                 <td class="px-4 py-3">{{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</td>
-                <td class="px-4 py-3 text-sm">{{ Str::limit($activity->plan_key_strategy ?? '—', 50) }}</td>
-                <td class="px-4 py-3">{{ $activity->person_in_charge ?? '—' }}</td>
-                <td class="px-4 py-3 text-sm">{{ Str::limit($activity->facilities_materials ?? '—', 50) }}</td>
-                <td class="px-4 py-3">{{ $activity->estimated_budget ? '₱' . number_format($activity->estimated_budget, 2) : '—' }}</td>
+                <td class="px-4 py-3">
+                    <button type="button" @click="expanded = !expanded" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition">
+                        <span x-text="expanded ? 'Hide Details' : 'View More'"></span>
+                    </button>
+
+                    <div x-show="expanded" x-transition class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3" style="display: none;">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="rounded-lg border border-gray-200 bg-white p-3">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Objectives</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->objectives ?? '—' }}</p>
+                            </div>
+                            <div class="rounded-lg border border-gray-200 bg-white p-3">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Expected Outcome</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->expected_outcome ?? '—' }}</p>
+                            </div>
+                            <div class="rounded-lg border border-gray-200 bg-white p-3">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Target Participants</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->target_participants ?? '—' }}</p>
+                            </div>
+                            <div class="rounded-lg border border-gray-200 bg-white p-3">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Delivery Strategy</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->plan_key_strategy ?? '—' }}</p>
+                            </div>
+                            <div class="rounded-lg border border-gray-200 bg-white p-3">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Persons Involved</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->person_in_charge ?? '—' }}</p>
+                            </div>
+                            <div class="rounded-lg border border-gray-200 bg-white p-3">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Facilities / Materials</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->facilities_materials ?? '—' }}</p>
+                            </div>
+                            <div class="rounded-lg border border-gray-200 bg-white p-3 md:col-span-2">
+                                <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Budget Allocation</p>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $activity->estimated_budget ? '₱' . number_format($activity->estimated_budget, 2) : '—' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </td>
             </tr>
             @empty
             <tr>
-                <td colspan="10" class="px-4 py-6 text-center text-gray-500">No activities yet. Activities will appear here as they are approved.</td>
+                <td colspan="4" class="px-4 py-6 text-center text-gray-500">No activities yet. Activities will appear here as they are approved.</td>
             </tr>
             @endforelse
         </tbody>

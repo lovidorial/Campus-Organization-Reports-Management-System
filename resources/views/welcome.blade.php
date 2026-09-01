@@ -22,7 +22,7 @@
     {{-- ========================================================
          NAVBAR  —  header navigation layout update
     ======================================================== --}}
-    <nav class="site-navbar">
+    <nav class="site-navbar" x-data="{ mobileMenuOpen: false, orgChartMobileOpen: false }">
         <div class="navbar-inner">
             <a href="{{ url('/') }}" class="nav-brand">
                 <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo" class="nav-logo-img">
@@ -49,12 +49,68 @@
             </ul>
 
             <div class="nav-auth">
+                <button type="button"
+                        class="hamburger"
+                        aria-label="Toggle navigation"
+                        :aria-expanded="mobileMenuOpen"
+                        @click="mobileMenuOpen = !mobileMenuOpen">
+                    <span :class="{ 'is-open': mobileMenuOpen }"></span>
+                    <span :class="{ 'is-open': mobileMenuOpen }"></span>
+                    <span :class="{ 'is-open': mobileMenuOpen }"></span>
+                </button>
+
                 @guest
                     <a href="{{ route('login') }}" class="nav-auth-link">Login</a>
                 @else
                     <a href="{{ url('/dashboard') }}" class="nav-auth-link">Dashboard</a>
                 @endguest
             </div>
+        </div>
+
+        <div class="mobile-nav-panel"
+             x-show="mobileMenuOpen"
+             x-transition:enter="mobile-nav-enter"
+             x-transition:enter-start="mobile-nav-enter-start"
+             x-transition:enter-end="mobile-nav-enter-end"
+             x-transition:leave="mobile-nav-leave"
+             x-transition:leave-start="mobile-nav-leave-start"
+             x-transition:leave-end="mobile-nav-leave-end"
+             @click.outside="mobileMenuOpen = false"
+             x-cloak
+             style="display: none;">
+            <div class="mobile-nav-header">
+                <span>Menu</span>
+                <button type="button" class="mobile-nav-close" aria-label="Close menu" @click="mobileMenuOpen = false">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <ul class="mobile-nav-links">
+                <li class="mobile-nav-item"><a href="#top" class="mobile-nav-link" @click="mobileMenuOpen = false">Home</a></li>
+                <li class="mobile-nav-item"><a href="#features" class="mobile-nav-link" @click="mobileMenuOpen = false">Features</a></li>
+                <li class="mobile-nav-item"><a href="#" class="mobile-nav-link" data-bs-toggle="modal" data-bs-target="#learnMoreModal" @click="mobileMenuOpen = false">About</a></li>
+                <li class="mobile-nav-item"><a href="#how-it-works" class="mobile-nav-link" @click="mobileMenuOpen = false">How It Works</a></li>
+                <li class="mobile-nav-item mobile-nav-dropdown">
+                    <button type="button" class="mobile-nav-link mobile-dropdown-toggle" @click="orgChartMobileOpen = !orgChartMobileOpen">
+                        <span>Org Chart</span>
+                        <i class="fas fa-chevron-down" :class="{ 'rotated': orgChartMobileOpen }"></i>
+                    </button>
+                    <ul class="mobile-submenu" x-show="orgChartMobileOpen" x-transition style="display: none;">
+                        <li><a href="{{ route('public.orgchart') }}" @click="mobileMenuOpen = false">View Full Org Chart</a></li>
+                        @foreach(\App\Models\Organization::where('is_active', true)->orderBy('name')->get() as $organization)
+                            <li><a href="{{ route('public.orgchart', ['organization' => $organization->id]) }}" @click="mobileMenuOpen = false">{{ $organization->name }}</a></li>
+                        @endforeach
+                    </ul>
+                </li>
+                <li class="mobile-nav-item"><a href="{{ route('public.activities') }}" class="mobile-nav-link" @click="mobileMenuOpen = false">Browse Activities</a></li>
+                <li class="mobile-nav-item mobile-auth-item">
+                    @guest
+                        <a href="{{ route('login') }}" class="nav-auth-link mobile-auth-link" @click="mobileMenuOpen = false">Login</a>
+                    @else
+                        <a href="{{ url('/dashboard') }}" class="nav-auth-link mobile-auth-link" @click="mobileMenuOpen = false">Dashboard</a>
+                    @endguest
+                </li>
+            </ul>
         </div>
     </nav>
 
@@ -297,6 +353,7 @@
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    @vite(['resources/js/app.js'])
     <script src="{{ asset('js/auth.js') }}"></script>
 
 </body>

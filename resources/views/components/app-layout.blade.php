@@ -13,10 +13,15 @@
     <div x-data="{ notificationsOpen: false }">
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background-color: #b45309;">
         <div class="p-5 border-b border-white/10">
-            <h1 class="text-xl font-bold text-white">Orgtrack  </h1>
-            <p class="text-xs text-white-400 mt-0.5">Activity Tracking System</p>
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo" class="h-10 w-10 object-contain rounded-md">
+                <div>
+                    <h1 class="text-xl font-bold text-white">Orgtrack</h1>
+                    <p class="text-xs text-white/80 mt-0.5">Activity Tracking System</p>
+                </div>
+            </div>
         </div>
-        <nav class="p-4 flex-1 overflow-y-auto" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+        <nav class="p-4 flex-1 overflow-y-auto bg-black/10" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
             <ul class="space-y-1">
 
                 @if(!auth()->user()->isAdmin())
@@ -151,7 +156,7 @@
                 <li class="pt-4 mt-4 border-t border-white/10">
                     <a href="{{ route('logout') }}"
                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10 w-full text-left"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white/80 hover:bg-white/10 w-full text-left"
                        style="background-color: rgba(0,0,0,0.12); text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Logout
                     </a>

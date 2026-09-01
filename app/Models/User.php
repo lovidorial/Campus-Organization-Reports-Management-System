@@ -11,6 +11,10 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    // Sensitive fields such as role, organization_id, officer_status, archived_at,
+    // and archived_reason must only ever be set via explicit, authorized controller
+    // logic (for example OfficerController archive/restore/onboarding or admin-only
+    // flows). They should never be mass-assigned from general user-submitted forms.
     protected $fillable = [
         'name', 'email', 'password', 'role',
         'profile_photo_path',
