@@ -747,6 +747,16 @@
             color: #f8fdf7;
         }
 
+        .detail-badge.badge-ongoing {
+            background: #d97706;
+            color: #fff7ed;
+        }
+
+        .detail-badge.badge-upcoming {
+            background: #475569;
+            color: #f8fafc;
+        }
+
         .detail-row {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1112,11 +1122,11 @@
                                     data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
                                     data-date="{{ $activity->date->format('M d, Y') }}"
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
-                                    data-category="{{ $activity->category ?? 'N/A' }}"
-                                    data-participants="{{ $activity->participants_count ?? '0' }}"
+                                    data-category="{{ $activity->category ?? '' }}"
+                                    data-participants="{{ $activity->participants_count ?? '' }}"
                                     data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
                                     data-sy="{{ $activity->gpoa?->school_year ?? 'N/A' }}"
-                                    data-description="{{ $activity->description ?? '' }}"
+                                    data-description="{{ $activity->report?->description ?? $activity->description ?? '' }}"
                                     data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='@json($activity->report?->photos->map(fn($photo) => ['url' => Storage::disk('public')->url($photo->path), 'caption' => $photo->caption])->all())'>
                                     <i class="fas fa-eye"></i> View Highlights
@@ -1243,7 +1253,7 @@
                         </div>
                     </div>
 
-                    <div class="detail-row">
+                    <div class="detail-row" id="participantsCard">
                         <div class="detail-card">
                             <h6>Participants</h6>
                             <p id="detailParticipants"></p>
@@ -1296,31 +1306,59 @@
             const description = button.getAttribute('data-description');
 
             try {
+                const statusBadge = document.getElementById('detailStatusBadge');
+                const categoryMeta = document.getElementById('detailCategoryMeta');
+                const participantsCard = document.getElementById('participantsCard');
+                const detailParticipants = document.getElementById('detailParticipants');
+
                 document.getElementById('detailTitle').textContent = title;
                 document.getElementById('detailOrg').textContent = organization;
-                document.getElementById('detailCategoryMeta').textContent = category;
                 document.getElementById('detailDate').textContent = date;
                 document.getElementById('detailVenue').textContent = venue;
-                document.getElementById('detailParticipants').textContent = participants;
                 document.getElementById('detailTermBadge').textContent = term;
                 document.getElementById('detailSYBadge').textContent = sy;
-                document.getElementById('detailStatusBadge').textContent = button.closest('.activity-card.completed-card') ? 'Completed' : button.closest('.activity-card')?.querySelector('.status-ongoing') ? 'Ongoing' : 'Upcoming';
+
+                if (category && category.trim()) {
+                    categoryMeta.textContent = category;
+                    categoryMeta.parentElement.style.display = 'inline-flex';
+                } else {
+                    categoryMeta.textContent = '';
+                    categoryMeta.parentElement.style.display = 'none';
+                }
+
+                if (participants !== null && participants !== '' && String(participants).trim() !== '') {
+                    detailParticipants.textContent = participants;
+                    participantsCard.style.display = 'block';
+                } else {
+                    detailParticipants.textContent = '';
+                    participantsCard.style.display = 'none';
+                }
+
+                statusBadge.className = 'detail-badge';
+                if (button.closest('.activity-card.completed-card') || button.closest('.activity-card')?.querySelector('.status-completed')) {
+                    statusBadge.textContent = 'Completed';
+                    statusBadge.classList.add('badge-approved');
+                } else if (button.closest('.activity-card')?.querySelector('.status-ongoing')) {
+                    statusBadge.textContent = 'Ongoing';
+                    statusBadge.classList.add('badge-ongoing');
+                } else {
+                    statusBadge.textContent = 'Upcoming';
+                    statusBadge.classList.add('badge-upcoming');
+                }
             } catch (error) {
                 console.error('Activity details status/header rendering failed:', error);
             }
 
             try {
-                console.log('description value:', description);
                 const descriptionSection = document.getElementById('descriptionSection');
                 const detailDescription = document.getElementById('detailDescription');
                 if (!descriptionSection || !detailDescription) {
                     throw new Error('Description elements were not found.');
                 }
 
+                const normalizedDescription = description && description.trim() ? description.trim() : 'No description available.';
                 descriptionSection.style.display = 'block';
-                detailDescription.textContent = description && description.trim()
-                    ? description
-                    : 'No description available.';
+                detailDescription.textContent = normalizedDescription;
             } catch (error) {
                 console.error('Activity description rendering failed:', error);
             }
@@ -1334,7 +1372,7 @@
                 }
 
                 sdgContainer.innerHTML = '';
-                if (sdgs.length) {
+                if (Array.isArray(sdgs) && sdgs.length) {
                     sdgSection.style.display = 'block';
                     sdgs.forEach(sdg => {
                         const chip = document.createElement('span');
@@ -1359,15 +1397,20 @@
                 }
 
                 gallery.innerHTML = '';
-                gallerySection.style.display = photos.length ? 'block' : 'none';
-                photoCount.textContent = photos.length;
-                photos.forEach((photo, index) => {
-                    const image = document.createElement('img');
-                    image.src = photo.url;
-                    image.alt = photo.caption || title;
-                    image.addEventListener('click', () => openLightbox(index, photos));
-                    gallery.appendChild(image);
-                });
+                if (Array.isArray(photos) && photos.length) {
+                    gallerySection.style.display = 'block';
+                    photoCount.textContent = photos.length;
+                    photos.forEach((photo, index) => {
+                        const image = document.createElement('img');
+                        image.src = photo.url;
+                        image.alt = photo.caption || title;
+                        image.addEventListener('click', () => openLightbox(index, photos));
+                        gallery.appendChild(image);
+                    });
+                } else {
+                    gallerySection.style.display = 'none';
+                    photoCount.textContent = '0';
+                }
             } catch (error) {
                 console.error('Activity gallery rendering failed:', error);
             }

@@ -86,6 +86,25 @@ class ActivityRequestController extends Controller
         return view('users.create-request', compact('availableGpoas', 'gpoa', 'selectedGpoaId', 'activityLimits', 'categoryCounts'));
     }
 
+    public function resubmit(ActivityRequest $activityRequest)
+    {
+        if ($activityRequest->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($activityRequest->status !== ActivityRequest::STATUS_REJECTED) {
+            return back()->with('error', 'Only rejected activity requests can be resubmitted.');
+        }
+
+        $activityRequest->update([
+            'status' => ActivityRequest::STATUS_PENDING,
+            'reject_reason' => null,
+        ]);
+
+        return redirect()->route('activity-requests.index')
+            ->with('success', 'Activity request resubmitted for review.');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

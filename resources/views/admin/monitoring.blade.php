@@ -213,9 +213,25 @@
                     @php
                         $hasPendingReport = $activity->report && $activity->report->status === 'pending';
                         $canRecordMonitoring = $activity->status === 'report_submitted';
+                        $canApprove = $activity->status === 'pending';
+                        $canReject = $activity->status === 'pending';
                     @endphp
 
                     <div class="flex flex-col items-center justify-center gap-2">
+                        @if($canApprove)
+                            <button type="button" onclick="openApproveModal({{ $activity->id }})"
+                                    class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Approve</button>
+                        @endif
+
+                        @if($canReject)
+                            <button type="button" onclick="openRejectModal({{ $activity->id }})"
+                                    class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Reject</button>
+                        @endif
+
+                        @if($activity->status === 'rejected')
+                            <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Awaiting Resubmission</span>
+                        @endif
+
                         @if($hasPendingReport)
                             <button type="button"
                                     data-report-id="{{ $activity->report->id }}"
@@ -229,7 +245,7 @@
                         @if($canRecordMonitoring)
                             <button type="button" onclick="openMonitoringModal({{ $activity->id }})"
                                     class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Record Monitoring</button>
-                        @elseif(! $hasPendingReport)
+                        @elseif(! $hasPendingReport && ! $canApprove && ! $canReject && $activity->status !== 'rejected')
                             <span class="text-gray-300 text-xs">—</span>
                         @endif
                     </div>

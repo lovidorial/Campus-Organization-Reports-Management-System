@@ -97,6 +97,11 @@
                                             <div class="mt-1 text-[11px] text-slate-600" title="{{ $req->report->feedback }}">{{ Str::limit($req->report->feedback, 80) }}</div>
                                             <a href="{{ route('activity-reports.create', $req) }}" class="mt-2 inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold hover:bg-amber-200">Fix & Resubmit</a>
                                         </div>
+                                    @elseif($req->status === 'rejected')
+                                        <form method="POST" action="{{ route('activity-requests.resubmit', $req) }}">
+                                            @csrf
+                                            <button type="submit" class="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200">Resubmit</button>
+                                        </form>
                                     @elseif($req->status === 'report_submitted' && $req->report?->status === 'rejected')
                                         <span class="text-xs text-red-600" title="{{ $req->report->feedback }}">Report rejected: {{ $req->report->feedback }}</span>
                                     @elseif($req->status === 'report_submitted' && $req->report?->status === 'approved')

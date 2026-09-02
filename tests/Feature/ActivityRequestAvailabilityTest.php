@@ -79,4 +79,50 @@ class ActivityRequestAvailabilityTest extends TestCase
         $createResponse->assertOk();
         $createResponse->assertSee('Community Outreach');
     }
+
+    public function test_rejected_activity_request_can_be_resubmitted(): void
+    {
+        $user = User::factory()->create([
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+        ]);
+
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+
+        $request = ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Rejected Event',
+            'date' => '2026-09-10',
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+            'sdgs' => [4, 8],
+            'objectives' => 'Improve skills.',
+            'expected_outcome' => 'Better engagement.',
+            'plan_key_strategy' => 'Hold workshops.',
+            'target_participants' => 'Students',
+            'person_in_charge' => 'Org officer',
+            'facilities_materials' => 'Projector',
+            'estimated_budget' => 5000.00,
+            'source_of_funds' => 'Organization Funds',
+            'communication_letter' => 'uploads/comm/sample.pdf',
+            'status' => ActivityRequest::STATUS_REJECTED,
+            'reject_reason' => 'Missing details',
+        ]);
+
+        $response = $this->actingAs($user)->post(route('activity-requests.resubmit', $request));
+
+        $response->assertRedirect(route('activity-requests.index'));
+        $this->assertDatabaseHas('activity_requests', [
+            'id' => $request->id,
+            'status' => ActivityRequest::STATUS_PENDING,
+            'reject_reason' => null,
+        ]);
+    }
 }

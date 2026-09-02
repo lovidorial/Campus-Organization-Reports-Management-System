@@ -60,6 +60,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
     Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
     Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
+    Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
     Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
     Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
