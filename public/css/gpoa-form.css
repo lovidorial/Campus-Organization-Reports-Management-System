@@ -503,7 +503,16 @@
 
 @media (max-width: 768px) {
     .page-wrapper {
-        padding: 24px 16px 36px;
+        padding: 20px 14px 32px;
+    }
+
+    .gpoa-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .form-section {
+        padding: 16px;
     }
 
     .page-header {
@@ -527,6 +536,21 @@
 
     .limit-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-wrapper {
+        padding: 16px 12px 28px;
+    }
+
+    .gpoa-card {
+        padding: 14px 14px 16px;
+        border-radius: 16px;
+    }
+
+    .form-section {
+        padding: 14px;
     }
 }
 
