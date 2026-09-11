@@ -25,6 +25,9 @@ class BackupService
         $fullPath = $backupPath . DIRECTORY_SEPARATOR . $fileName;
 
         $storagePublicPath = storage_path('app/public');
+        if (! is_dir($storagePublicPath) && ! mkdir($storagePublicPath, 0777, true) && ! is_dir($storagePublicPath)) {
+            throw new \RuntimeException('Unable to create public storage directory for backup: ' . $storagePublicPath);
+        }
 
         $zip = new ZipArchive();
         $zipOpenResult = $zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
