@@ -43,6 +43,31 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_users_without_terms_acceptance_are_redirected_to_the_terms_page(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+            'terms_accepted_at' => null,
+        ]);
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertRedirect(route('terms.accept', absolute: false));
+    }
+
+    public function test_users_can_accept_terms_and_are_not_redirected_again(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+            'terms_accepted_at' => null,
+        ]);
+
+        $response = $this->actingAs($user)->post('/terms/accept');
+
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertNotNull($user->fresh()->terms_accepted_at);
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

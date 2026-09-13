@@ -134,7 +134,7 @@
                         <td class="p-3">
                             <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{{ $act->category ?? '—' }}</span>
                         </td>
-                        <td class="p-3">{{ optional($act->date)->format('M d, Y') ?? '—' }}</td>
+                        <td class="p-3">{{ $act->date ? $act->date_range_label : '—' }}</td>
                         <td class="p-3">
                             <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $act->status === 'approved' ? 'bg-emerald-100 text-emerald-700' : ($act->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') }}">{{ ucfirst($act->status ?? 'unknown') }}</span>
                         </td>

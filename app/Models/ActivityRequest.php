@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ActivityRequest extends Model
 {
     protected $fillable = [
-        'user_id', 'gpoa_id', 'gpoa_activity_id', 'title', 'date', 'venue',
+        'user_id', 'gpoa_id', 'gpoa_activity_id', 'title', 'date', 'end_date', 'venue',
         'category', 'sdgs', 'objectives', 'expected_outcome',
         'plan_key_strategy', 'target_participants', 'person_in_charge',
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
@@ -20,6 +20,7 @@ class ActivityRequest extends Model
 
     protected $casts = [
         'date' => 'date',
+        'end_date' => 'date',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
     ];
@@ -68,6 +69,28 @@ class ActivityRequest extends Model
         }
 
         return $this->gpoaActivity?->gpoa;
+    }
+
+    public function getIsMultiDayAttribute(): bool
+    {
+        return (bool) ($this->end_date && $this->end_date->ne($this->date));
+    }
+
+    public function getDateRangeLabelAttribute(): string
+    {
+        if (! $this->date) {
+            return '—';
+        }
+
+        if (! $this->is_multi_day) {
+            return $this->date->format('M d, Y');
+        }
+
+        if ($this->date->format('M') === $this->end_date->format('M')) {
+            return $this->date->format('M d') . '–' . $this->end_date->format('d, Y');
+        }
+
+        return $this->date->format('M d, Y') . ' – ' . $this->end_date->format('M d, Y');
     }
 
     public function refreshLifecycleStatus(): void

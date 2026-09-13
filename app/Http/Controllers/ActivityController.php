@@ -66,18 +66,14 @@ class ActivityController extends Controller
 
     public function edit(Activity $activity)
     {
-        if ($activity->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('view', $activity);
 
         return view('users.edit-activity', compact('activity'));
     }
 
     public function update(Request $request, Activity $activity)
     {
-        if ($activity->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $activity);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -126,7 +122,9 @@ class ActivityController extends Controller
 
     public function destroy(Activity $activity)
     {
-        if ($activity->user_id !== auth()->id() || $activity->status === 'approved') {
+        $this->authorize('delete', $activity);
+
+        if ($activity->status === 'approved') {
             abort(403);
         }
 
@@ -144,7 +142,9 @@ class ActivityController extends Controller
 
     public function deleteFile(Activity $activity, $type)
     {
-        if ($activity->user_id !== auth()->id() || $activity->status === 'approved') {
+        $this->authorize('delete', $activity);
+
+        if ($activity->status === 'approved') {
             abort(403);
         }
 

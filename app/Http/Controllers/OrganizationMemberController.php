@@ -13,11 +13,9 @@ class OrganizationMemberController extends Controller
 {
     public function index(): View
     {
-        $user = Auth::user();
+        $this->authorize('viewAny', OrganizationMember::class);
 
-        if (! $user || $user->isAdmin()) {
-            abort(403);
-        }
+        $user = Auth::user();
 
         $members = OrganizationMember::query()
             ->where('organization_id', $user->organization_id)
@@ -41,11 +39,9 @@ class OrganizationMemberController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $this->authorize('create', OrganizationMember::class);
 
-        if (! $user || $user->isAdmin()) {
-            abort(403);
-        }
+        $user = Auth::user();
 
         $blockedFields = ['email', 'password', 'role', 'username', 'student_number', 'officer_status', 'archived_at', 'archived_reason', 'organization_id'];
         foreach ($blockedFields as $field) {
@@ -82,11 +78,9 @@ class OrganizationMemberController extends Controller
 
     public function update(Request $request, OrganizationMember $member): RedirectResponse
     {
-        $user = Auth::user();
+        $this->authorize('update', $member);
 
-        if (! $user || $user->isAdmin() || $member->organization_id !== $user->organization_id) {
-            abort(403);
-        }
+        $user = Auth::user();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -116,11 +110,9 @@ class OrganizationMemberController extends Controller
 
     public function destroy(OrganizationMember $member): RedirectResponse
     {
-        $user = Auth::user();
+        $this->authorize('delete', $member);
 
-        if (! $user || $user->isAdmin() || $member->organization_id !== $user->organization_id) {
-            abort(403);
-        }
+        $user = Auth::user();
 
         if ($member->photo_path) {
             Storage::disk('public')->delete($member->photo_path);

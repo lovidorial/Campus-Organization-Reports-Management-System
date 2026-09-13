@@ -71,7 +71,7 @@
                                 <td class="px-4 py-4 font-medium text-slate-900">{{ $req->title }}</td>
                                 <td class="px-4 py-4 text-slate-700">{{ $req->category ?? '—' }}</td>
                                 <td class="px-4 py-4 text-slate-700">{{ $req->activity_level ?? '—' }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ optional($req->date)->format('M d, Y') }}</td>
+                                <td class="px-4 py-4 text-slate-700">{{ $req->date ? $req->date_range_label : '—' }}</td>
                                 <td class="px-4 py-4">
                                     @php
                                         $statusColors = [

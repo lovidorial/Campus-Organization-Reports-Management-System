@@ -27,7 +27,7 @@ Route::get('/storage/{path}', function (string $path) {
 
     abort_unless(Storage::disk('public')->exists($safePath), 404);
 
-    return Storage::disk('public')->response($safePath);
+    return response()->file(Storage::disk('public')->path($safePath));
 })->where('path', '.*');
 
 Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
@@ -37,50 +37,56 @@ require __DIR__ . '/auth.php';
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/terms', [\App\Http\Controllers\TermsController::class, 'show'])->name('terms.accept');
+    Route::post('/terms/accept', [\App\Http\Controllers\TermsController::class, 'accept'])->name('terms.accept.store');
 
-    // GPOA Management
-    Route::get('/gpoa', [GpoaController::class, 'index'])->name('gpoa.index');
-    Route::get('/gpoa/create', [GpoaController::class, 'create'])->name('gpoa.create');
-    Route::post('/gpoa/store', [GpoaController::class, 'store'])->name('gpoa.store');
-    Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
-    Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');
-    Route::put('/gpoa/{gpoa}', [GpoaController::class, 'update'])->name('gpoa.update');
+    Route::middleware(['terms.accepted'])->group(function () {
 
-    // Workflow Documents
-    Route::get('/workflow/communication-letter', [WorkflowDocumentController::class, 'communicationLetter'])->name('workflow.communication-letter');
-    Route::post('/workflow/communication-letter', [WorkflowDocumentController::class, 'storeCommunicationLetter'])->name('workflow.communication-letter.store');
-    Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
-    Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
-    Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
-    Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
-    Route::post('/notifications/read-all', [WorkflowDocumentController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Activity Requests
-    Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
-    Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
-    Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
-    Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
-    Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
-    Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
+        // GPOA Management
+        Route::get('/gpoa', [GpoaController::class, 'index'])->name('gpoa.index');
+        Route::get('/gpoa/create', [GpoaController::class, 'create'])->name('gpoa.create');
+        Route::post('/gpoa/store', [GpoaController::class, 'store'])->name('gpoa.store');
+        Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
+        Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');
+        Route::put('/gpoa/{gpoa}', [GpoaController::class, 'update'])->name('gpoa.update');
 
-    Route::get('/organization/officers', [\App\Http\Controllers\OfficerController::class, 'userIndex'])->name('organization.officers.index');
-    Route::post('/organization/officers/{user}/archive', [\App\Http\Controllers\OfficerController::class, 'archive'])->name('organization.officers.archive');
-    Route::post('/organization/officers/{user}/restore', [\App\Http\Controllers\OfficerController::class, 'restore'])->name('organization.officers.restore');
-    Route::get('/organization/officers/history', [\App\Http\Controllers\OfficerController::class, 'userHistory'])->name('organization.officers.history');
+        // Workflow Documents
+        Route::get('/workflow/communication-letter', [WorkflowDocumentController::class, 'communicationLetter'])->name('workflow.communication-letter');
+        Route::post('/workflow/communication-letter', [WorkflowDocumentController::class, 'storeCommunicationLetter'])->name('workflow.communication-letter.store');
+        Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
+        Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
+        Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
+        Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
+        Route::post('/notifications/read-all', [WorkflowDocumentController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
 
-    Route::get('/organization/members', [\App\Http\Controllers\OrganizationMemberController::class, 'index'])->name('organization.members.index');
-    Route::post('/organization/members', [\App\Http\Controllers\OrganizationMemberController::class, 'store'])->name('organization.members.store');
-    Route::patch('/organization/members/{member}', [\App\Http\Controllers\OrganizationMemberController::class, 'update'])->name('organization.members.update');
-    Route::delete('/organization/members/{member}', [\App\Http\Controllers\OrganizationMemberController::class, 'destroy'])->name('organization.members.destroy');
+        // Activity Requests
+        Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
+        Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
+        Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
+        Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
+        Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
+        Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
-    // Legacy routes redirect
-    Route::get('/submit-activity', fn () => redirect()->route('activity-requests.create'))->name('user.submit');
-    Route::get('/my-activities', fn () => redirect()->route('activity-requests.index'))->name('user.activities');
+        Route::get('/organization/officers', [\App\Http\Controllers\OfficerController::class, 'userIndex'])->name('organization.officers.index');
+        Route::post('/organization/officers/{user}/archive', [\App\Http\Controllers\OfficerController::class, 'archive'])->name('organization.officers.archive');
+        Route::post('/organization/officers/{user}/restore', [\App\Http\Controllers\OfficerController::class, 'restore'])->name('organization.officers.restore');
+        Route::get('/organization/officers/history', [\App\Http\Controllers\OfficerController::class, 'userHistory'])->name('organization.officers.history');
 
-    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+        Route::get('/organization/members', [\App\Http\Controllers\OrganizationMemberController::class, 'index'])->name('organization.members.index');
+        Route::post('/organization/members', [\App\Http\Controllers\OrganizationMemberController::class, 'store'])->name('organization.members.store');
+        Route::patch('/organization/members/{member}', [\App\Http\Controllers\OrganizationMemberController::class, 'update'])->name('organization.members.update');
+        Route::delete('/organization/members/{member}', [\App\Http\Controllers\OrganizationMemberController::class, 'destroy'])->name('organization.members.destroy');
+
+        // Legacy routes redirect
+        Route::get('/submit-activity', fn () => redirect()->route('activity-requests.create'))->name('user.submit');
+        Route::get('/my-activities', fn () => redirect()->route('activity-requests.index'))->name('user.activities');
+
+        Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
 
     Route::middleware([\App\Http\Middleware\AdminMiddlerware::class])->prefix('admin')->name('admin.')->group(function () {
 

@@ -33,6 +33,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
         'archived_at'       => 'datetime',
+        'terms_accepted_at' => 'datetime',
     ];
 
     public function getAvatarUrlAttribute(): ?string

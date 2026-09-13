@@ -15,7 +15,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasColumn('activity_requests', 'gpoa_activity_id')) {
+        if ($this->isSqlite() || ! Schema::hasColumn('activity_requests', 'gpoa_activity_id')) {
             return;
         }
 
@@ -36,6 +36,16 @@ return new class extends Migration
 
     public function down(): void
     {
+        if ($this->isSqlite()) {
+            if (Schema::hasColumn('activity_requests', 'gpoa_id')) {
+                Schema::table('activity_requests', function (Blueprint $table) {
+                    $table->dropColumn('gpoa_id');
+                });
+            }
+
+            return;
+        }
+
         // Revert gpoa_activity_id to NOT NULL and restore cascade FK
         if (Schema::hasColumn('activity_requests', 'gpoa_activity_id')) {
             $foreignKeyName = $this->getForeignKeyName('activity_requests', 'gpoa_activity_id');
@@ -68,6 +78,10 @@ return new class extends Migration
 
     private function getForeignKeyName(string $table, string $column): ?string
     {
+        if ($this->isSqlite()) {
+            return null;
+        }
+
         $dbName = DB::getDatabaseName();
         $result = DB::select(
             "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
@@ -76,5 +90,10 @@ return new class extends Migration
             [$dbName, $table, $column]
         );
         return $result[0]->CONSTRAINT_NAME ?? null;
+    }
+
+    private function isSqlite(): bool
+    {
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 };

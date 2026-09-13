@@ -80,6 +80,27 @@ class ActivityRequestAvailabilityTest extends TestCase
         $createResponse->assertSee('Community Outreach');
     }
 
+    public function test_activity_request_creation_page_shows_allowed_activities_count(): void
+    {
+        $user = User::factory()->create([
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+        ]);
+
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('activity-requests.create'));
+
+        $response->assertOk();
+        $response->assertSee('0 / 33');
+    }
+
     public function test_rejected_activity_request_can_be_resubmitted(): void
     {
         $user = User::factory()->create([

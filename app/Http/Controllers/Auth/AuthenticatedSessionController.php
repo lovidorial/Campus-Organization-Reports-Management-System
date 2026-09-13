@@ -54,10 +54,6 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended(route('admin.dashboard', absolute: false));
         }
 
-        $isStudentOrganization = $user->role === 'user' && (
-            ! empty($user->organization_id) || ! empty($user->org_name)
-        );
-
         if ($user->role === 'user' && $user->organization_id && ! $user->organization()->exists()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
@@ -68,7 +64,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        if (! $isStudentOrganization) {
+        if ($user->role !== 'user' && $user->role !== 'admin') {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

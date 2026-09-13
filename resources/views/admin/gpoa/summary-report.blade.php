@@ -59,7 +59,7 @@
                     <td class="p-3">{{ $gpoa?->term ?? '—' }} / SY {{ $gpoa?->school_year ?? '—' }}</td>
                     <td class="p-3 font-medium">{{ $req->title }}</td>
                     <td class="p-3">{{ $req->category ?? '—' }}</td>
-                    <td class="p-3">{{ optional($req->date)->format('M d, Y') ?? '—' }}</td>
+                    <td class="p-3">{{ $req->date ? $req->date_range_label : '—' }}</td>
                     <td class="p-3">{{ $req->venue ?? '—' }}</td>
                     <td class="p-3"><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold bg-green-100 text-green-700">{{ str_replace('_', ' ', ucfirst($req->status)) }}</span></td>
                     <td class="p-3 text-right">PHP {{ number_format((float) ($req->estimated_budget ?? 0), 2) }}</td>

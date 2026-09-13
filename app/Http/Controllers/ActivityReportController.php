@@ -12,9 +12,7 @@ class ActivityReportController extends Controller
 {
     public function create(ActivityRequest $activityRequest)
     {
-        if ($activityRequest->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('view', $activityRequest);
 
         $activityRequest->refreshLifecycleStatus();
         $existingReport = $activityRequest->report;
@@ -40,9 +38,7 @@ class ActivityReportController extends Controller
 
     public function store(Request $request, ActivityRequest $activityRequest)
     {
-        if ($activityRequest->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $activityRequest);
 
         $activityRequest->refreshLifecycleStatus();
         $existingReport = $activityRequest->report;

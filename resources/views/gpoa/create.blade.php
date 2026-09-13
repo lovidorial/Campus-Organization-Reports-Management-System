@@ -102,12 +102,15 @@
                         <small class="help-text">Defaults to your name and position. You can edit this field.</small>
                     </div>
 
-                    <!-- Document Attachment (Optional) -->
+                    <!-- Document Attachment -->
                     <div class="form-group">
-                        <label for="document_path">GPOA Document (PDF) - Optional</label>
-                        <input type="file" id="document_path" name="document_path" accept=".pdf" 
+                        <label for="document_path">GPOA Document (PDF) *</label>
+                        <input type="file" id="document_path" name="document_path" accept=".pdf" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <p class="help-text">Optional: upload your official GPOA document as a supplementary attachment (Max 20MB).</p>
+                        @error('document_path')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                        <p class="help-text">Upload your official GPOA document as a supplementary attachment (Max 20MB).</p>
                     </div>
 
                     <!-- Verification -->

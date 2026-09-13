@@ -64,8 +64,9 @@ class GpoaActivityController extends Controller
 
     public function edit(Activity $activity)
     {
-        // Ensure user can only edit their own rejected activities
-        if ($activity->user_id !== auth()->id() || $activity->status !== 'rejected') {
+        $this->authorize('update', $activity);
+
+        if ($activity->status !== 'rejected') {
             abort(403);
         }
 
@@ -74,8 +75,9 @@ class GpoaActivityController extends Controller
 
     public function update(Request $request, Activity $activity)
     {
-        // Ensure user can only update their own rejected activities
-        if ($activity->user_id !== auth()->id() || $activity->status !== 'rejected') {
+        $this->authorize('update', $activity);
+
+        if ($activity->status !== 'rejected') {
             abort(403);
         }
 

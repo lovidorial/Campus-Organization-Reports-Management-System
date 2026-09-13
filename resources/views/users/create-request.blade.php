@@ -303,6 +303,14 @@
                             @error('date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
+                            <label for="end_date">End Date (optional, for multi-day activities)</label>
+                            <input id="end_date" type="date" name="end_date" value="{{ old('end_date') }}">
+                            @error('end_date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 md:grid-cols-2 mt-6">
+                        <div class="form-group">
                             <label for="venue">Venue *</label>
                             <input id="venue" type="text" name="venue" value="{{ old('venue') }}" required>
                             @error('venue')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
@@ -379,7 +387,6 @@
             </form>
         </div>
     </main>
-</x-app-layout>
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -387,18 +394,20 @@ document.addEventListener('DOMContentLoaded', function(){
     const sdgSummary = document.getElementById('sdgSummary');
     const sdgValidationError = document.getElementById('sdgValidationError');
     const requestForm = document.getElementById('requestForm');
+    const dateInput = document.getElementById('date');
+    const endDateInput = document.getElementById('end_date');
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
 
     if(!sdgCheckboxContainer) return;
 
-    const allCheckboxes = sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]');
-
     /**
      * Update the summary badges area with currently selected SDGs
      */
     function updateSdgSummary() {
-        const checkedBoxes = Array.from(allCheckboxes).filter(cb => cb.checked);
+        const checkedBoxes = Array.from(
+            sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]:checked')
+        );
         sdgSummary.innerHTML = '';
 
         if (checkedBoxes.length === 0) {
@@ -424,11 +433,28 @@ document.addEventListener('DOMContentLoaded', function(){
         sdgValidationError.textContent = '';
     }
 
+    function validateEndDate() {
+        if (!dateInput || !endDateInput || !dateInput.value || !endDateInput.value) {
+            return true;
+        }
+
+        if (new Date(endDateInput.value) < new Date(dateInput.value)) {
+            endDateInput.setCustomValidity('End date cannot be earlier than the start date.');
+            endDateInput.reportValidity();
+            return false;
+        }
+
+        endDateInput.setCustomValidity('');
+        return true;
+    }
+
     /**
      * Validate SDG selection on form submit
      */
     function validateSdgSelection() {
-        const checkedBoxes = Array.from(allCheckboxes).filter(cb => cb.checked);
+        const checkedBoxes = Array.from(
+            sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]:checked')
+        );
         const count = checkedBoxes.length;
 
         if (count < MIN_SDGS || count > MAX_SDGS) {
@@ -441,26 +467,37 @@ document.addEventListener('DOMContentLoaded', function(){
         return true;
     }
 
-    // Add event listeners to all checkboxes
-    allCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+    // Listen for checkbox changes on the stable container so it still works if the
+    // checkbox nodes are replaced during Alpine.js re-renders.
+    sdgCheckboxContainer.addEventListener('change', function(e) {
+        if (e.target.matches('input[type="checkbox"]')) {
             updateSdgSummary();
             clearValidationError();
-        });
+        }
     });
 
     // Validate on form submit
     if (requestForm) {
         requestForm.addEventListener('submit', function(e) {
-            if (!validateSdgSelection()) {
+            const endDateIsValid = validateEndDate();
+
+            if (!validateSdgSelection() || !endDateIsValid) {
                 e.preventDefault();
-                sdgCheckboxContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                if (!validateSdgSelection()) {
+                    sdgCheckboxContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         });
     }
 
     // Initialize on page load - update badges to reflect any pre-checked checkboxes
     updateSdgSummary();
+
+    window.addEventListener('pageshow', function(event) {
+        updateSdgSummary();
+    });
 });
 </script>
 @endpush
+</x-app-layout>

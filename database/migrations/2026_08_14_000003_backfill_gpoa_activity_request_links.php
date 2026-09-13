@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if ($this->isSqlite()) {
+            return;
+        }
+
         if (! Schema::hasColumn('gpoa_activities', 'activity_request_id')) {
             return;
         }
@@ -23,5 +27,10 @@ return new class extends Migration
     public function down(): void
     {
         // Data backfill only; no schema changes to revert.
+    }
+
+    private function isSqlite(): bool
+    {
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 };

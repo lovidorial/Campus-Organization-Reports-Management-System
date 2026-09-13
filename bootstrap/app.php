@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // REGISTER YOUR MIDDLEWARE ALIAS HERE
         $middleware->alias([
             'approved.gpoa' => \App\Http\Middleware\EnsureApprovedGpoa::class,
+            'terms.accepted' => \App\Http\Middleware\EnsureTermsAccepted::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

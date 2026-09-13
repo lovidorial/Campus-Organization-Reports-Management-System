@@ -72,9 +72,7 @@ class WorkflowDocumentController extends Controller
 
     public function markNotificationRead(UserNotification $notification)
     {
-        if ($notification->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $notification);
 
         $notification->markAsRead();
 

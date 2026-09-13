@@ -82,15 +82,30 @@ class ActivityRequestController extends Controller
             ->toArray();
 
         $activityLimits = config('gpoa_activity_limits', []);
+        $usedCount = array_sum($categoryCounts);
+        $limitCount = array_sum($activityLimits);
+        $atCap = $usedCount >= $limitCount;
+        $activityLimitTemplate = (object) [
+            'used' => $usedCount,
+            'limit' => $limitCount,
+        ];
 
-        return view('users.create-request', compact('availableGpoas', 'gpoa', 'selectedGpoaId', 'activityLimits', 'categoryCounts'));
+        return view('users.create-request', compact(
+            'availableGpoas',
+            'gpoa',
+            'selectedGpoaId',
+            'activityLimits',
+            'categoryCounts',
+            'usedCount',
+            'limitCount',
+            'atCap',
+            'activityLimitTemplate'
+        ));
     }
 
     public function resubmit(ActivityRequest $activityRequest)
     {
-        if ($activityRequest->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $activityRequest);
 
         if ($activityRequest->status !== ActivityRequest::STATUS_REJECTED) {
             return back()->with('error', 'Only rejected activity requests can be resubmitted.');
@@ -123,6 +138,7 @@ class ActivityRequestController extends Controller
             'expected_outcome' => 'required|string',
             'plan_key_strategy' => 'required|string',
             'date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:date',
             'venue' => 'required|string|max:255',
             'target_participants' => 'required|string|max:255',
             'person_in_charge' => 'required|string|max:255',
@@ -186,6 +202,7 @@ class ActivityRequestController extends Controller
             'gpoa_activity_id' => null,
             'title' => $validated['title'],
             'date' => $validated['date'],
+            'end_date' => $validated['end_date'] ?? null,
             'venue' => $validated['venue'],
             'category' => $validated['category'],
             'sdgs' => $validated['sdgs'],

@@ -140,7 +140,7 @@ class GpoaController extends Controller
             'term'                => 'required|string|max:50',
             'school_year'         => 'required|string|max:20',
             'prepared_by'         => 'required|string|max:255',
-            'document_path'       => 'nullable|file|mimes:pdf|max:20480',
+            'document_path'       => 'required|file|mimes:pdf|max:20480',
             'verify'              => 'required|accepted',
         ]);
 
@@ -176,9 +176,7 @@ class GpoaController extends Controller
 
     public function edit(Gpoa $gpoa)
     {
-        if ($gpoa->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $gpoa);
 
         $workflow = $this->workflowService->getOrCreateForUser(auth()->user(), $gpoa->term, $gpoa->school_year);
         $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_GPOA);
@@ -195,9 +193,7 @@ class GpoaController extends Controller
 
     public function update(Request $request, Gpoa $gpoa)
     {
-        if ($gpoa->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $gpoa);
 
         $workflow = $this->workflowService->getOrCreateForUser(auth()->user(), $gpoa->term, $gpoa->school_year);
         $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_GPOA);
@@ -241,9 +237,7 @@ class GpoaController extends Controller
 
     public function show(Gpoa $gpoa)
     {
-        if ($gpoa->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
-            abort(403);
-        }
+        $this->authorize('view', $gpoa);
 
         $gpoa->load('activities');
         $gpoa->loadCount('activityRequests');
