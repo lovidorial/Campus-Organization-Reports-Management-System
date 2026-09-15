@@ -141,6 +141,21 @@ class GpoaController extends Controller
             'school_year'         => 'required|string|max:20',
             'prepared_by'         => 'required|string|max:255',
             'document_path'       => 'required|file|mimes:pdf|max:20480',
+            'planned_activities'  => 'nullable|array',
+            'planned_activities.*.title' => 'nullable|string|max:255',
+            'planned_activities.*.date' => 'nullable|date',
+            'planned_activities.*.venue' => 'nullable|string|max:255',
+            'planned_activities.*.category' => 'nullable|string|max:100',
+            'planned_activities.*.sdgs' => 'nullable',
+            'planned_activities.*.objectives' => 'nullable|string',
+            'planned_activities.*.expected_outcome' => 'nullable|string',
+            'planned_activities.*.target_participants' => 'nullable|string|max:255',
+            'planned_activities.*.person_in_charge' => 'nullable|string|max:255',
+            'planned_activities.*.facilities_materials' => 'nullable|string',
+            'planned_activities.*.estimated_budget' => 'nullable|numeric|min:0',
+            'planned_activities.*.source_of_funds' => 'nullable|string|max:100',
+            'planned_activities.*.plan_key_strategy' => 'nullable|string',
+            'planned_activities.*.preceding_activity' => 'nullable|string|max:255',
             'verify'              => 'required|accepted',
         ]);
 
@@ -167,6 +182,8 @@ class GpoaController extends Controller
             'prepared_by'   => $validated['prepared_by'],
             'status'        => 'pending',
         ]);
+
+        $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
 
         $this->workflowService->recordGpoaSubmission($workflow, $gpoa);
 
@@ -206,6 +223,21 @@ class GpoaController extends Controller
             'colleges' => 'required|string|max:100',
             'prepared_by' => 'required|string|max:255',
             'document_path' => 'nullable|file|mimes:pdf|max:20480',
+            'planned_activities'  => 'nullable|array',
+            'planned_activities.*.title' => 'nullable|string|max:255',
+            'planned_activities.*.date' => 'nullable|date',
+            'planned_activities.*.venue' => 'nullable|string|max:255',
+            'planned_activities.*.category' => 'nullable|string|max:100',
+            'planned_activities.*.sdgs' => 'nullable',
+            'planned_activities.*.objectives' => 'nullable|string',
+            'planned_activities.*.expected_outcome' => 'nullable|string',
+            'planned_activities.*.target_participants' => 'nullable|string|max:255',
+            'planned_activities.*.person_in_charge' => 'nullable|string|max:255',
+            'planned_activities.*.facilities_materials' => 'nullable|string',
+            'planned_activities.*.estimated_budget' => 'nullable|numeric|min:0',
+            'planned_activities.*.source_of_funds' => 'nullable|string|max:100',
+            'planned_activities.*.plan_key_strategy' => 'nullable|string',
+            'planned_activities.*.preceding_activity' => 'nullable|string|max:255',
             'verify' => 'required|accepted',
         ]);
 
@@ -223,6 +255,10 @@ class GpoaController extends Controller
             'status' => 'pending',
             'reject_reason' => null,
         ]);
+
+        if ($request->has('planned_activities')) {
+            $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
+        }
 
         $submission->update([
             'file_path' => $gpoa->document_path,
@@ -243,5 +279,62 @@ class GpoaController extends Controller
         $gpoa->loadCount('activityRequests');
 
         return view('gpoa.show', compact('gpoa'));
+    }
+
+    private function syncPlannedActivities(Gpoa $gpoa, array $plannedActivities): void
+    {
+        $gpoa->activities()->delete();
+
+        foreach ($plannedActivities as $activityData) {
+            $normalizedActivity = $this->normalizePlannedActivityData($activityData);
+
+            if ($this->isBlankPlannedActivity($normalizedActivity)) {
+                continue;
+            }
+
+            $gpoa->activities()->create($normalizedActivity);
+        }
+    }
+
+    private function normalizePlannedActivityData(array $activityData): array
+    {
+        $sdgs = $activityData['sdgs'] ?? [];
+
+        if (is_string($sdgs)) {
+            $sdgs = array_values(array_filter(array_map('trim', explode(',', $sdgs)), fn ($value) => $value !== ''));
+        }
+
+        $sdgs = array_values(array_unique(array_map('intval', array_filter((array) $sdgs, 'is_numeric'))));
+
+        $estimatedBudget = $activityData['estimated_budget'] ?? null;
+        $estimatedBudget = is_string($estimatedBudget) && trim($estimatedBudget) === '' ? null : $estimatedBudget;
+
+        return [
+            'title' => trim((string) ($activityData['title'] ?? '')),
+            'date' => isset($activityData['date']) && trim((string) $activityData['date']) !== '' ? $activityData['date'] : null,
+            'venue' => trim((string) ($activityData['venue'] ?? '')),
+            'category' => trim((string) ($activityData['category'] ?? '')),
+            'sdgs' => $sdgs,
+            'objectives' => trim((string) ($activityData['objectives'] ?? '')),
+            'expected_outcome' => trim((string) ($activityData['expected_outcome'] ?? '')),
+            'target_participants' => trim((string) ($activityData['target_participants'] ?? '')),
+            'person_in_charge' => trim((string) ($activityData['person_in_charge'] ?? '')),
+            'facilities_materials' => trim((string) ($activityData['facilities_materials'] ?? '')),
+            'estimated_budget' => $estimatedBudget !== null && is_numeric($estimatedBudget) ? (float) $estimatedBudget : null,
+            'source_of_funds' => trim((string) ($activityData['source_of_funds'] ?? '')),
+            'plan_key_strategy' => trim((string) ($activityData['plan_key_strategy'] ?? '')),
+            'preceding_activity' => trim((string) ($activityData['preceding_activity'] ?? '')),
+        ];
+    }
+
+    private function isBlankPlannedActivity(array $activityData): bool
+    {
+        foreach (['title', 'date', 'venue', 'category', 'objectives', 'expected_outcome', 'target_participants', 'person_in_charge', 'facilities_materials', 'estimated_budget', 'source_of_funds', 'plan_key_strategy', 'preceding_activity'] as $field) {
+            if (!empty($activityData[$field])) {
+                return false;
+            }
+        }
+
+        return empty($activityData['sdgs']);
     }
 }

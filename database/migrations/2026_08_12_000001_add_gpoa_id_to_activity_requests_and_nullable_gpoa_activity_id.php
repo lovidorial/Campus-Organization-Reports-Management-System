@@ -9,13 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasColumn('activity_requests', 'gpoa_id')) {
-            Schema::table('activity_requests', function (Blueprint $table) {
-                $table->foreignId('gpoa_id')->nullable()->after('id')->constrained('gpoas')->nullOnDelete();
-            });
+        if (Schema::hasColumn('activity_requests', 'gpoa_id')) {
+            return;
         }
 
-        if ($this->isSqlite() || ! Schema::hasColumn('activity_requests', 'gpoa_activity_id')) {
+        Schema::table('activity_requests', function (Blueprint $table) {
+            $table->foreignId('gpoa_id')->nullable()->after('id')->constrained('gpoas')->nullOnDelete();
+        });
+
+        if ($this->isSqlite()) {
+            return;
+        }
+
+        if (! Schema::hasColumn('activity_requests', 'gpoa_activity_id')) {
             return;
         }
 

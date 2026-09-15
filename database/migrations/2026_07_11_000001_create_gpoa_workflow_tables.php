@@ -39,7 +39,7 @@ return new class extends Migration
         Schema::create('activity_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('gpoa_activity_id')->constrained('gpoa_activities')->cascadeOnDelete();
+            $table->foreignId('gpoa_activity_id')->nullable()->constrained('gpoa_activities')->nullOnDelete();
             $table->string('title');
             $table->date('date');
             $table->string('venue');

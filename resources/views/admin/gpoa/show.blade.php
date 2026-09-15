@@ -95,6 +95,25 @@
                     @else
                         <div class="space-y-4">
                             @foreach($gpoa->activities as $activity)
+                                @php
+                                    $activityStatus = $activity->activity_request_id
+                                        ? ($activity->activityRequest?->status ?? 'pending')
+                                        : 'not_requested';
+
+                                    $statusConfig = [
+                                        'not_requested' => ['label' => 'Not Yet Requested', 'class' => 'bg-gray-100 text-gray-600 border-gray-200'],
+                                        'pending' => ['label' => 'Awaiting Approval', 'class' => 'bg-amber-100 text-amber-700 border-amber-200'],
+                                        'approved' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                                        'in_progress' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                                        'awaiting_report' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                                        'report_submitted' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
+                                        'closed' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
+                                        'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-700 border-red-200'],
+                                    ];
+
+                                    $statusMeta = $statusConfig[$activityStatus] ?? $statusConfig['not_requested'];
+                                @endphp
+
                                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div>
@@ -103,8 +122,8 @@
                                                 {{ $activity->date ? $activity->date->format('M d, Y') : '—' }} • {{ $activity->venue ?? '—' }}
                                             </p>
                                         </div>
-                                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                            Legacy
+                                        <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusMeta['class'] }}">
+                                            {{ $statusMeta['label'] }}
                                         </span>
                                     </div>
                                 </div>

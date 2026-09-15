@@ -73,6 +73,22 @@
                     </div>
                 </div>
 
+                @if($gpoa->activities->isNotEmpty())
+                    <div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Available Planned Activities</p>
+                        <div class="mt-3 space-y-2">
+                            @foreach($gpoa->activities as $activity)
+                                <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                                    <div class="font-semibold text-slate-900">{{ $activity->title }}</div>
+                                    <div class="mt-1 text-xs text-slate-500">
+                                        {{ $activity->date ? $activity->date->format('M d, Y') : 'No date' }} • {{ $activity->venue ?? 'Venue not set' }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <section class="form-section">
                     <div class="section-heading">
                         <div>
@@ -82,6 +98,19 @@
                     </div>
 
                     <input type="hidden" name="gpoa_id" value="{{ $gpoa->id }}">
+
+                    <div class="form-group mt-6">
+                        <label for="gpoa_activity_id">Link to a planned activity (optional)</label>
+                        <select id="gpoa_activity_id" name="gpoa_activity_id">
+                            <option value="">No planned activity selected — create a custom request</option>
+                            @foreach($gpoa->activities as $activity)
+                                <option value="{{ $activity->id }}" {{ old('gpoa_activity_id') == $activity->id ? 'selected' : '' }}>
+                                    {{ $activity->title }} — {{ $activity->date ? $activity->date->format('M d, Y') : 'No date' }} @ {{ $activity->venue ?? 'Venue not set' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('gpoa_activity_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
 
                     <div class="mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                         <p class="text-xs text-slate-500 uppercase tracking-wide">Selected GPOA</p>

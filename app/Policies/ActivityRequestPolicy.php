@@ -14,16 +14,28 @@ class ActivityRequestPolicy
 
     public function view(User $user, ActivityRequest $activityRequest): bool
     {
+        if ($user->id === $activityRequest->user_id) {
+            return true;
+        }
+
         return $this->allowsOrganizationAccess($user, $activityRequest->user?->organization_id);
     }
 
     public function update(User $user, ActivityRequest $activityRequest): bool
     {
+        if ($user->id === $activityRequest->user_id) {
+            return true;
+        }
+
         return $this->allowsOrganizationAccess($user, $activityRequest->user?->organization_id);
     }
 
     public function delete(User $user, ActivityRequest $activityRequest): bool
     {
+        if ($user->id === $activityRequest->user_id) {
+            return true;
+        }
+
         return $this->allowsOrganizationAccess($user, $activityRequest->user?->organization_id);
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
+use App\Models\GpoaActivity;
 use App\Models\OrganizationWorkflow;
 use App\Models\WorkflowSubmission;
 use App\Models\User;
@@ -32,6 +33,7 @@ class ActivityRequestController extends Controller
     public function create(Request $request)
     {
         $availableGpoas = Gpoa::where('user_id', auth()->id())
+            ->with('activities')
             ->whereIn('status', ['approved', 'stored'])
             ->whereNotIn('id', WorkflowSubmission::where('document_type', OrganizationWorkflow::DOC_GPOA)
                 ->where('is_current', true)
@@ -130,6 +132,12 @@ class ActivityRequestController extends Controller
                         ->whereIn('status', ['approved', 'stored']);
                 }),
             ],
+            'gpoa_activity_id' => [
+                'nullable',
+                Rule::exists('gpoa_activities', 'id')->where(function ($q) use ($request) {
+                    $q->where('gpoa_id', $request->input('gpoa_id'));
+                }),
+            ],
             'title' => 'required|string|max:255',
             'category' => 'required|string|max:100',
             'sdgs' => 'required|array|min:1|max:17',
@@ -199,7 +207,7 @@ class ActivityRequestController extends Controller
         $activityRequest = ActivityRequest::create([
             'user_id' => auth()->id(),
             'gpoa_id' => $gpoa->id,
-            'gpoa_activity_id' => null,
+            'gpoa_activity_id' => $validated['gpoa_activity_id'] ?? null,
             'title' => $validated['title'],
             'date' => $validated['date'],
             'end_date' => $validated['end_date'] ?? null,
@@ -219,6 +227,18 @@ class ActivityRequestController extends Controller
             'communication_letter' => $commPath,
             'status' => ActivityRequest::STATUS_PENDING,
         ]);
+
+        if ($activityRequest->gpoa_activity_id) {
+            $linkedActivity = GpoaActivity::where('id', $activityRequest->gpoa_activity_id)
+                ->where('gpoa_id', $gpoa->id)
+                ->first();
+
+            if ($linkedActivity) {
+                $linkedActivity->update([
+                    'activity_request_id' => $activityRequest->id,
+                ]);
+            }
+        }
 
         User::where('role', 'admin')->each(function (User $admin) use ($activityRequest) {
             UserNotification::create([

@@ -76,6 +76,7 @@
                 <th class="text-left px-4 py-3">PROGRAM/ACTIVITIES/PROJECT</th>
                 <th class="text-left px-4 py-3">SDGs ADDRESSED</th>
                 <th class="text-left px-4 py-3">TIME FRAME</th>
+                <th class="text-left px-4 py-3">STATUS</th>
                 <th class="text-left px-4 py-3">VIEW MORE</th>
             </tr>
         </thead>
@@ -95,6 +96,30 @@
                     @endif
                 </td>
                 <td class="px-4 py-3">{{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</td>
+                <td class="px-4 py-3">
+                    @php
+                        $activityStatus = $activity->activity_request_id
+                            ? ($activity->activityRequest?->status ?? 'pending')
+                            : 'not_requested';
+
+                        $statusConfig = [
+                            'not_requested' => ['label' => 'Not Yet Requested', 'class' => 'bg-gray-100 text-gray-600 border-gray-200'],
+                            'pending' => ['label' => 'Awaiting Approval', 'class' => 'bg-amber-100 text-amber-700 border-amber-200'],
+                            'approved' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                            'in_progress' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                            'awaiting_report' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                            'report_submitted' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
+                            'closed' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
+                            'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-700 border-red-200'],
+                        ];
+
+                        $statusMeta = $statusConfig[$activityStatus] ?? $statusConfig['not_requested'];
+                    @endphp
+
+                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusMeta['class'] }}">
+                        {{ $statusMeta['label'] }}
+                    </span>
+                </td>
                 <td class="px-4 py-3">
                     <button type="button" @click="expanded = !expanded" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition">
                         <span x-text="expanded ? 'Hide Details' : 'View More'"></span>
@@ -136,7 +161,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="4" class="px-4 py-6 text-center text-gray-500">No activities yet. Activities will appear here as they are approved.</td>
+                <td colspan="5" class="px-4 py-6 text-center text-gray-500">No activities yet. Activities will appear here as they are approved.</td>
             </tr>
             @endforelse
         </tbody>
