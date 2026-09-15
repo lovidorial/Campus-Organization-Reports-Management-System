@@ -72,8 +72,8 @@
                 </div>
             @endif
 
-            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-200 bg-slate-50 p-4">
                     <div class="flex items-center gap-3">
                         <h2 class="text-lg font-semibold text-slate-800">Legacy Planned Activities</h2>
                         <span class="inline-flex min-w-7 items-center justify-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-700">
@@ -82,55 +82,166 @@
                     </div>
                 </div>
 
-                <div class="p-5">
-                    @if($gpoa->activities->isEmpty())
-                        <div class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
-                            <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.5 7.5h7M8.5 12h7m-7 4.5h4.5M6 5.5A2.5 2.5 0 0 1 8.5 3h7A2.5 2.5 0 0 1 18 5.5v13A2.5 2.5 0 0 1 15.5 21h-7A2.5 2.5 0 0 1 6 18.5v-13Z"/>
-                                </svg>
-                            </div>
-                            <p class="text-base font-medium text-slate-700">No legacy activities recorded</p>
-                        </div>
-                    @else
-                        <div class="space-y-4">
-                            @foreach($gpoa->activities as $activity)
-                                @php
-                                    $activityStatus = $activity->activity_request_id
-                                        ? ($activity->activityRequest?->status ?? 'pending')
-                                        : 'not_requested';
+                @php
+                    $sdgLabels = [
+                        1 => 'No Poverty',
+                        2 => 'Zero Hunger',
+                        3 => 'Good Health and Well-being',
+                        4 => 'Quality Education',
+                        5 => 'Gender Equality',
+                        6 => 'Clean Water and Sanitation',
+                        7 => 'Affordable and Clean Energy',
+                        8 => 'Decent Work and Economic Growth',
+                        9 => 'Industry, Innovation and Infrastructure',
+                        10 => 'Reduced Inequality',
+                        11 => 'Sustainable Cities and Communities',
+                        12 => 'Responsible Consumption and Production',
+                        13 => 'Climate Action',
+                        14 => 'Life Below Water',
+                        15 => 'Life on Land',
+                        16 => 'Peace, Justice and Strong Institutions',
+                        17 => 'Partnerships for the Goals',
+                    ];
+                @endphp
 
-                                    $statusConfig = [
-                                        'not_requested' => ['label' => 'Not Yet Requested', 'class' => 'bg-gray-100 text-gray-600 border-gray-200'],
-                                        'pending' => ['label' => 'Awaiting Approval', 'class' => 'bg-amber-100 text-amber-700 border-amber-200'],
-                                        'approved' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
-                                        'in_progress' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
-                                        'awaiting_report' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
-                                        'report_submitted' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
-                                        'closed' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
-                                        'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-700 border-red-200'],
-                                    ];
+                <table class="w-full min-w-[1100px] text-sm">
+                    <thead class="border-b border-slate-200 bg-white">
+                        <tr>
+                            <th class="p-3 text-left font-semibold text-slate-600">Title</th>
+                            <th class="p-3 text-left font-semibold text-slate-600">Category</th>
+                            <th class="p-3 text-left font-semibold text-slate-600">Activity Level</th>
+                            <th class="p-3 text-left font-semibold text-slate-600">Date</th>
+                            <th class="p-3 text-left font-semibold text-slate-600">Budget</th>
+                            <th class="p-3 text-left font-semibold text-slate-600">Status</th>
+                            <th class="p-3 text-center font-semibold text-slate-600">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($gpoa->activities as $activity)
+                            @php
+                                $activityStatus = $activity->activity_request_id
+                                    ? ($activity->activityRequest?->status ?? 'pending')
+                                    : 'not_requested';
 
-                                    $statusMeta = $statusConfig[$activityStatus] ?? $statusConfig['not_requested'];
-                                @endphp
+                                $statusConfig = [
+                                    'not_requested' => ['label' => 'Not Yet Requested', 'class' => 'bg-gray-100 text-gray-600 border-gray-200'],
+                                    'pending' => ['label' => 'Awaiting Approval', 'class' => 'bg-amber-100 text-amber-700 border-amber-200'],
+                                    'approved' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                                    'in_progress' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                                    'awaiting_report' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
+                                    'report_submitted' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
+                                    'closed' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
+                                    'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-700 border-red-200'],
+                                ];
 
-                                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <div>
-                                            <p class="text-sm font-semibold text-slate-800">{{ $activity->title }}</p>
-                                            <p class="mt-1 text-sm text-slate-500">
-                                                {{ $activity->date ? $activity->date->format('M d, Y') : '—' }} • {{ $activity->venue ?? '—' }}
-                                            </p>
-                                        </div>
-                                        <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusMeta['class'] }}">
-                                            {{ $statusMeta['label'] }}
-                                        </span>
+                                $statusMeta = $statusConfig[$activityStatus] ?? $statusConfig['not_requested'];
+                            @endphp
+                            <tr class="border-b border-slate-200 align-top">
+                                <td class="p-3 font-medium text-slate-800">{{ $activity->title }}</td>
+                                <td class="p-3 text-slate-700">{{ $activity->category ?? '—' }}</td>
+                                <td class="p-3 text-slate-700">{{ $activity->activity_level ?? '—' }}</td>
+                                <td class="p-3 text-slate-700">{{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</td>
+                                <td class="p-3 text-slate-700">₱ {{ number_format((float) ($activity->estimated_budget ?? 0), 2) }}</td>
+                                <td class="p-3 text-slate-700">{{ $statusMeta['label'] }}</td>
+                                <td class="p-3 text-center">
+                                    <button type="button" onclick="const details = this.closest('tr').nextElementSibling; details.classList.toggle('hidden'); this.querySelector('.toggle-label').textContent = details.classList.contains('hidden') ? 'Show Details' : 'Hide Details'; this.querySelector('svg').classList.toggle('rotate-180');" class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+                                        <span class="toggle-label">Show Details</span>
+                                        <svg class="h-4 w-4 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hidden border-b border-slate-200 bg-slate-50">
+                                <td colspan="7" class="p-6">
+                                    @php
+                                        $sdgs = $activity->sdgs ?? [];
+                                        if (!is_array($sdgs)) {
+                                            $sdgs = json_decode($sdgs, true) ?? [];
+                                        }
+                                        $sdgText = collect($sdgs)
+                                            ->map(fn($id) => 'SDG ' . $id . ': ' . ($sdgLabels[$id] ?? 'Unknown'))
+                                            ->join(', ');
+                                    @endphp
+
+                                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <h4 class="mb-3 border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Classification</h4>
+                                            <dl class="divide-y divide-slate-100">
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 first:pt-0 last:pb-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">SDGs Addressed</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $sdgText ?: '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 last:pb-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Venue</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->venue ?? '—' }}</dd>
+                                                </div>
+                                            </dl>
+                                        </section>
+
+                                        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <h4 class="mb-3 border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Planning</h4>
+                                            <dl class="divide-y divide-slate-100">
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 first:pt-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Objectives</dt>
+                                                    <dd class="break-words whitespace-pre-wrap text-sm text-slate-700">{{ $activity->objectives ?? '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Expected Outcome</dt>
+                                                    <dd class="break-words whitespace-pre-wrap text-sm text-slate-700">{{ $activity->expected_outcome ?? '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2 last:pb-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Plan / Key Strategy</dt>
+                                                    <dd class="break-words whitespace-pre-wrap text-sm text-slate-700">{{ $activity->plan_key_strategy ?? '—' }}</dd>
+                                                </div>
+                                            </dl>
+                                        </section>
+
+                                        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <h4 class="mb-3 border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Logistics</h4>
+                                            <dl class="divide-y divide-slate-100">
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 first:pt-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Target Participants</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->target_participants ?? '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Persons Involved</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->person_in_charge ?? '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2 last:pb-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Preceding Activity</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->preceding_activity ?? 'None — first activity' }}</dd>
+                                                </div>
+                                            </dl>
+                                        </section>
+
+                                        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                                            <h4 class="mb-3 border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Resources</h4>
+                                            <dl class="divide-y divide-slate-100">
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 first:pt-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Facilities / Materials</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->facilities_materials ?? '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Source of Funds</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->source_of_funds ?? '—' }}</dd>
+                                                </div>
+                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2 last:pb-0">
+                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Remarks</dt>
+                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->remarks ?? '—' }}</dd>
+                                                </div>
+                                            </dl>
+                                        </section>
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-sm text-slate-500">No legacy activities recorded</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
