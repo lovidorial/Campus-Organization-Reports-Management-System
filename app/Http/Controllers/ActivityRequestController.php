@@ -64,13 +64,14 @@ class ActivityRequestController extends Controller
                     : 'No approved GPOAs available for activity requests.');
         }
 
-            $gpoaWithOutstandingActivity = $availableGpoas->first(function (Gpoa $gpoa) {
-                return $this->hasOutstandingActivityReport($gpoa->id);
-            });
-
-            if ($gpoaWithOutstandingActivity) {
+            if ($this->hasPendingActivityRequest()) {
                 return redirect()->route('activity-requests.index')
-                    ->with('error', 'Please submit the narrative report for your approved activity before requesting another activity.');
+                    ->with('error', "You can't request another activity right now. Please wait for the OSDW admin to review your request.");
+            }
+
+            if ($this->hasOutstandingActivityReport()) {
+                return redirect()->route('activity-requests.index')
+                    ->with('error', "You can't request another activity right now. Please submit the narrative report for your previous approved activity first.");
             }
 
         $selectedGpoaId = $request->query('gpoa') ?: $availableGpoas->first()->id;
@@ -164,9 +165,15 @@ class ActivityRequestController extends Controller
             return back()->withErrors(['gpoa_id' => "This GPOA's cycle is already completed since its Summary Report was approved. Please submit a new GPOA before requesting new activities."])->withInput();
         }
 
-            if ($this->hasOutstandingActivityReport($gpoa->id)) {
+            if ($this->hasPendingActivityRequest()) {
                 return back()
-                    ->withErrors(['gpoa_id' => 'Please submit the narrative report for your approved activity before requesting another activity.'])
+                    ->withErrors(['gpoa_id' => "You can't request another activity right now. Please wait for the OSDW admin to review your request."])
+                    ->withInput();
+            }
+
+            if ($this->hasOutstandingActivityReport()) {
+                return back()
+                    ->withErrors(['gpoa_id' => "You can't request another activity right now. Please submit the narrative report for your previous approved activity first."])
                     ->withInput();
             }
 
@@ -267,10 +274,16 @@ class ActivityRequestController extends Controller
             ->exists();
     }
 
-    private function hasOutstandingActivityReport(int $gpoaId): bool
+    private function hasPendingActivityRequest(): bool
     {
         return ActivityRequest::where('user_id', auth()->id())
-            ->where('gpoa_id', $gpoaId)
+            ->where('status', ActivityRequest::STATUS_PENDING)
+            ->exists();
+    }
+
+    private function hasOutstandingActivityReport(): bool
+    {
+        return ActivityRequest::where('user_id', auth()->id())
             ->whereIn('status', [
                 ActivityRequest::STATUS_APPROVED,
                 ActivityRequest::STATUS_IN_PROGRESS,
