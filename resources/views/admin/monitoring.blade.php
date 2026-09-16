@@ -64,29 +64,126 @@
 </div>
 @endif
 
+<div
+    x-data="{
+        statusInterval: null,
+        statusColors: {
+            pending: 'bg-yellow-100 text-yellow-700',
+            approved: 'bg-blue-100 text-blue-700',
+            in_progress: 'bg-sky-100 text-sky-700',
+            awaiting_report: 'bg-orange-100 text-orange-700',
+            report_submitted: 'bg-purple-100 text-purple-700',
+            closed: 'bg-green-100 text-green-700',
+            rejected: 'bg-red-100 text-red-700',
+        },
+        formatStatus(status) {
+            return status.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+        },
+        renderActions(request, cell) {
+            const activityId = cell.dataset.activityId;
+            const reportId = cell.dataset.reportId;
+            const reportApproveUrl = cell.dataset.reportApproveUrl;
+            const reportRejectUrl = cell.dataset.reportRejectUrl;
+            const reportReturnUrl = cell.dataset.reportReturnUrl;
+            let html = '';
+
+            if (request.status === 'pending') {
+                html += `<button type='button' onclick='openApproveModal(${activityId})' class='px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold'>Approve</button>`;
+                html += `<button type='button' onclick='openRejectModal(${activityId})' class='px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold'>Reject</button>`;
+            }
+
+            if (request.status === 'rejected') {
+                html += '<span class=\'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold\'>Awaiting Resubmission</span>';
+            }
+
+            if (request.report_status === 'pending' && reportId) {
+                html += `<button type='button'
+                    data-report-id='${reportId}'
+                    data-approve-url='${reportApproveUrl}'
+                    data-reject-url='${reportRejectUrl}'
+                    data-return-url='${reportReturnUrl}'
+                    onclick='openReportReviewModal(this)'
+                    class='px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-semibold'>Review Report</button>`;
+            }
+
+            if (request.status === 'report_submitted') {
+                html += `<button type='button' onclick='openMonitoringModal(${activityId})' class='px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold'>Record Monitoring</button>`;
+            } else if (!request.report_status && request.status !== 'pending' && request.status !== 'rejected') {
+                html += '<span class=\'text-gray-300 text-xs\'>—</span>';
+            }
+
+            return html || '<span class=\'text-gray-300 text-xs\'>—</span>';
+        },
+        refreshStatuses() {
+            fetch('{{ route('admin.activities.statuses', request()->query()) }}', {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    data.requests.forEach(request => {
+                        const row = this.$root.querySelector(`[data-request-id='${request.id}']`);
+                        if (!row) {
+                            return;
+                        }
+
+                        const badge = row.querySelector('[data-status-badge]');
+                        const statusCell = row.querySelector('[data-status-cell]');
+                        const actions = row.querySelector('[data-actions-cell]');
+                        const compliance = statusCell.querySelector('[data-compliance-status]');
+
+                        badge.textContent = this.formatStatus(request.status);
+                        badge.className = `px-2 py-1 rounded-full text-xs font-bold ${this.statusColors[request.status] || 'bg-gray-100 text-gray-700'}`;
+                        compliance.textContent = request.monitoring_compliance_status
+                            ? this.formatStatus(request.monitoring_compliance_status)
+                            : '';
+                        compliance.classList.toggle('hidden', !request.monitoring_compliance_status);
+                        actions.querySelector('[data-dynamic-actions]').innerHTML = this.renderActions(request, actions);
+                    });
+                })
+                .catch(() => {});
+        },
+        init() {
+            if (this.$el._statusInterval) {
+                clearInterval(this.$el._statusInterval);
+            }
+
+            this.refreshStatuses();
+            this.statusInterval = setInterval(() => this.refreshStatuses(), 15000);
+            this.$el._statusInterval = this.statusInterval;
+        },
+        destroy() {
+            if (this.statusInterval) {
+                clearInterval(this.statusInterval);
+            }
+
+            this.$el._statusInterval = null;
+        }
+    }"
+>
+<!-- Existing rows only are updated; adding or removing rows needs a separate diffing approach. -->
 <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
     <table class="w-full text-sm min-w-[1000px]">
         <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="p-3 text-left text-gray-500">Activity</th>
-                <th class="p-3 text-left text-gray-500">Organization</th>
-                <th class="p-3 text-left text-gray-500">Source</th>
-                <th class="p-3 text-left text-gray-500">GPOA</th>
-                <th class="p-3 text-left text-gray-500">Category</th>
-                <th class="p-3 text-left text-gray-500">Date</th>
-                <th class="p-3 text-left text-gray-500">Venue</th>
-                <th class="p-3 text-left text-gray-500">Files</th>
-                <th class="p-3 text-left text-gray-500">Status</th>
-                <th class="p-3 text-center text-gray-500">Actions</th>
+                <th class="p-2 text-left text-gray-500">Activity</th>
+                <th class="p-2 text-left text-gray-500">Organization</th>
+                <th class="p-2 text-left text-gray-500">Source</th>
+                <th class="p-2 text-left text-gray-500">GPOA</th>
+                <th class="p-2 text-left text-gray-500">Category</th>
+                <th class="p-2 text-left text-gray-500">Date</th>
+                <th class="p-2 text-left text-gray-500">Venue</th>
+                <th class="p-2 text-left text-gray-500">Files</th>
+                <th class="p-2 text-left text-gray-500">Status &amp; Actions</th>
             </tr>
         </thead>
         <tbody>
             @foreach($activities as $activity)
-            <tr class="border-b last:border-0 hover:bg-gray-50">
-                <td class="p-3 font-medium max-w-[140px] truncate" title="{{ $activity->title }}">{{ $activity->title }}</td>
-                <td class="p-3">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
-                <td class="p-3"><span class="text-xs text-slate-600 font-semibold">Activity Request</span></td>
-                <td class="p-3">
+            <tr class="border-b last:border-0 hover:bg-gray-50" data-request-id="{{ $activity->id }}">
+                <td class="p-2 font-medium max-w-[140px] truncate" title="{{ $activity->title }}">{{ $activity->title }}</td>
+                <td class="p-2">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
+                <td class="p-2"><span class="text-xs text-slate-600 font-semibold">Activity Request</span></td>
+                <td class="p-2">
                     @if($activity->gpoa)
                     <span class="text-xs font-semibold">{{ $activity->gpoa->term }} / SY {{ $activity->gpoa->school_year }}</span>
                     @if($activity->gpoa->college)
@@ -96,14 +193,14 @@
                     <span class="text-gray-400">—</span>
                     @endif
                 </td>
-                <td class="p-3">
+                <td class="p-2">
                     @if($activity->category)
                     <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $activity->category }}</span>
                     @else — @endif
                 </td>
-                <td class="p-3">{{ $activity->date->format('M d, Y') }}</td>
-                <td class="p-3">{{ $activity->venue }}</td>
-                <td class="p-3">
+                <td class="p-2">{{ $activity->date->format('M d, Y') }}</td>
+                <td class="p-2">{{ $activity->venue }}</td>
+                <td class="p-2" x-data="{ filesOpen: false }">
                     @php
                         $existingFiles = 0;
                         if ($activity->communication_letter) { $existingFiles++; }
@@ -125,11 +222,27 @@
                     @endphp
 
                     @if($existingFiles > 0)
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-2">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Documents</span>
-                                <span class="text-[11px] font-semibold text-blue-700">{{ $existingFiles }} File{{ $existingFiles > 1 ? 's' : '' }}</span>
-                            </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700">
+                                {{ $existingFiles }} File{{ $existingFiles > 1 ? 's' : '' }}
+                            </span>
+                            <button
+                                type="button"
+                                @click="filesOpen = !filesOpen"
+                                :aria-expanded="filesOpen.toString()"
+                                class="text-xs font-semibold text-sky-700 hover:underline"
+                            >
+                                <span x-text="filesOpen ? 'Hide Details' : 'Details'"></span>
+                            </button>
+                        </div>
+
+                        <div
+                            x-show="filesOpen"
+                            x-transition
+                            x-cloak
+                            class="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2"
+                        >
+                            <div class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Documents</div>
 
                             <div class="space-y-2">
                                 <div class="flex items-start justify-between gap-3 border-b border-dashed border-gray-200 pb-2">
@@ -187,10 +300,19 @@
                             </div>
                         </div>
                     @else
-                        <div class="flex h-full min-h-[64px] items-center justify-center text-gray-400">—</div>
+                        <span class="text-gray-400">—</span>
                     @endif
                 </td>
-                <td class="p-3">
+                <td
+                    class="p-2"
+                    data-status-cell
+                    data-actions-cell
+                    data-activity-id="{{ $activity->id }}"
+                    data-report-id="{{ $activity->report?->id }}"
+                    data-report-approve-url="{{ $activity->report ? route('admin.reports.approve', $activity->report) : '' }}"
+                    data-report-reject-url="{{ $activity->report ? route('admin.reports.reject', $activity->report) : '' }}"
+                    data-report-return-url="{{ $activity->report ? route('admin.reports.return-for-correction', $activity->report) : '' }}"
+                >
                     @php
                         $statusColors = [
                             'pending' => 'bg-yellow-100 text-yellow-700',
@@ -202,14 +324,11 @@
                             'rejected' => 'bg-red-100 text-red-700',
                         ];
                     @endphp
-                    <span class="px-2 py-1 rounded-full text-xs font-bold {{ $statusColors[$activity->status] ?? '' }}">
+                    <span data-status-badge class="inline-flex px-2 py-1 rounded-full text-xs font-bold {{ $statusColors[$activity->status] ?? 'bg-gray-100 text-gray-700' }}">
                         {{ str_replace('_', ' ', ucfirst($activity->status)) }}
                     </span>
-                    @if($activity->monitoringResult)
-                    <p class="text-xs text-gray-500 mt-1">{{ ucfirst(str_replace('_',' ',$activity->monitoringResult->compliance_status)) }}</p>
-                    @endif
-                </td>
-                <td class="p-3 text-center">
+                    <p data-compliance-status class="mt-1 text-xs text-gray-500 {{ $activity->monitoringResult ? '' : 'hidden' }}">{{ $activity->monitoringResult ? ucfirst(str_replace('_',' ',$activity->monitoringResult->compliance_status)) : '' }}</p>
+                    <div data-dynamic-actions class="mt-2 flex flex-wrap items-center gap-1.5">
                     @php
                         $hasPendingReport = $activity->report && $activity->report->status === 'pending';
                         $canRecordMonitoring = $activity->status === 'report_submitted';
@@ -217,7 +336,6 @@
                         $canReject = $activity->status === 'pending';
                     @endphp
 
-                    <div class="flex flex-col items-center justify-center gap-2">
                         @if($canApprove)
                             <button type="button" onclick="openApproveModal({{ $activity->id }})"
                                     class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Approve</button>
@@ -257,6 +375,7 @@
 </div>
 
 <div class="mt-4">{{ $activities->links() }}</div>
+</div>
 
 <!-- Report Review Modal -->
 <div id="reportReviewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">

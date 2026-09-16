@@ -226,6 +226,53 @@ class AdminController extends Controller
         return view('admin.monitoring', compact('activities', 'stats', 'organizations', 'categories'));
     }
 
+    public function activityStatuses(Request $request)
+    {
+        $query = ActivityRequest::with(['report', 'monitoringResult']);
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('venue', 'like', "%{$term}%")
+                    ->orWhere('title', 'like', "%{$term}%");
+
+                try {
+                    $date = Carbon::parse($term)->toDateString();
+                    $q->orWhereDate('date', $date);
+                } catch (\Exception $e) {
+                }
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('organization')) {
+            $query->where('user_id', $request->organization);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $activities = $query->latest()->paginate(10);
+
+        foreach ($activities as $activity) {
+            $activity->refreshLifecycleStatus();
+        }
+
+        return response()->json([
+            'requests' => $activities->getCollection()->map(fn ($activity) => [
+                'id' => $activity->id,
+                'status' => $activity->status,
+                'report_status' => $activity->report?->status,
+                'report_id' => $activity->report?->id,
+                'monitoring_compliance_status' => $activity->monitoringResult?->compliance_status,
+            ])->values(),
+        ]);
+    }
+
     public function approve($id)
     {
         $activity = ActivityRequest::findOrFail($id);

@@ -11,9 +11,6 @@
     {{-- Bootstrap 5 --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    {{-- Font Awesome 6 --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
     <style>
         * {
             margin: 0;
@@ -221,10 +218,10 @@
         /* Page Header */
         .page-header {
             position: relative;
-            min-height: 450px;
+            min-height: 260px;
             overflow: hidden;
-            padding: 120px 48px;
-            margin-bottom: 40px;
+            padding: 56px 32px;
+            margin-bottom: 24px;
             text-align: center;
             color: white;
             background-image: url('{{ asset('images/hero-bg.jpg') }}');
@@ -261,7 +258,7 @@
 
         .page-header h1 {
             font-family: 'Sora', sans-serif;
-            font-size: clamp(2.2rem, 6vw, 3.4rem);
+            font-size: clamp(1.8rem, 4vw, 2.4rem);
             font-weight: 800;
             line-height: 1.15;
             margin-bottom: 24px;
@@ -281,9 +278,9 @@
         /* Filter and Search */
         .filter-section {
             background: white;
-            padding: 24px;
+            padding: 18px;
             border-radius: 12px;
-            margin-bottom: 32px;
+            margin-bottom: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
@@ -473,13 +470,13 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
-            margin: 16px 0 32px;
+            margin: 12px 0 20px;
         }
 
         .stat-card {
             background: white;
             border-radius: 14px;
-            padding: 22px 24px;
+            padding: 16px 18px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -496,7 +493,7 @@
         }
 
         .stat-value {
-            font-size: 1.9rem;
+            font-size: 1.5rem;
             font-weight: 800;
             color: #1a1a2e;
             line-height: 1;
@@ -506,14 +503,14 @@
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
         }
 
         .tab-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 999px;
             border: 2px solid #e5e7eb;
             background: white;
@@ -569,6 +566,18 @@
             display: block;
             border-top-left-radius: 12px;
             border-top-right-radius: 12px;
+        }
+
+        .carousel-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.9s ease-in-out;
+        }
+
+        .carousel-slide.active {
+            opacity: 1;
+            position: relative;
         }
 
         .photo-count {
@@ -839,6 +848,23 @@
             overflow: hidden;
         }
 
+        .btn-close-full {
+            display: block;
+            width: 100%;
+            border: 0;
+            border-radius: 0 0 24px 24px;
+            background: #1a2b6d;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 14px 16px;
+        }
+
+        .btn-close-full:hover,
+        .btn-close-full:focus {
+            background: #142157;
+            color: #ffffff;
+        }
+
         .btn-close-white {
             filter: invert(1) brightness(1.2);
         }
@@ -1017,7 +1043,7 @@
                     </select>
                 </div>
                 <button type="submit" class="btn-filter">
-                    <i class="fas fa-filter"></i> Filter
+                    Filter
                 </button>
             </form>
         </div>
@@ -1095,10 +1121,12 @@
                         <div class="activity-card completed-card">
                             @if($activity->report && $activity->report->photos->count())
                                 <div class="activity-image-wrap">
-                                     <img src="{{ Storage::disk('public')->url($activity->report->photos->first()->path) }}"
-                                         alt="{{ $activity->title }}"
-                                         class="activity-cover"
-                                         onerror="this.closest('.activity-image-wrap').style.display='none'">
+                                    @foreach($activity->report->photos as $photo)
+                                        <img src="{{ Storage::disk('public')->url($photo->path) }}"
+                                            alt="{{ $activity->title }}"
+                                            class="activity-cover carousel-slide {{ $loop->first ? 'active' : '' }}"
+                                            onerror="this.closest('.activity-image-wrap').style.display='none'">
+                                    @endforeach
                                     @if($activity->report->photos->count() > 1)
                                         <span class="photo-count">+{{ $activity->report->photos->count() - 1 }}</span>
                                     @endif
@@ -1109,10 +1137,10 @@
                                     <h3 class="activity-title">{{ $activity->title }}</h3>
                                     <p class="activity-org">{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}</p>
                                 </div>
-                                <span class="activity-status status-completed"><i class="fas fa-check"></i> Completed</span>
+                                <span class="activity-status status-completed">Completed</span>
                                 <div class="activity-meta">
-                                    <div class="meta-item"><i class="fas fa-calendar"></i><span>{{ $activity->date->format('M d, Y') }}</span></div>
-                                    <div class="meta-item"><i class="fas fa-map-marker-alt"></i><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->date->format('M d, Y') }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
                                 </div>
                                 <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
                             </div>
@@ -1129,7 +1157,7 @@
                                     data-description="{{ $activity->report?->description ?? $activity->description ?? '' }}"
                                     data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='@json($activity->report?->photos->map(fn($photo) => ['url' => Storage::disk('public')->url($photo->path), 'caption' => $photo->caption])->all())'>
-                                    <i class="fas fa-eye"></i> View Highlights
+                                    View Highlights
                                 </button>
                             </div>
                         </div>
@@ -1150,10 +1178,10 @@
                                 <p class="activity-org">{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}</p>
                             </div>
                             <div class="activity-body">
-                                <span class="activity-status status-ongoing"><i class="fas fa-hourglass-half"></i> Ongoing</span>
+                                <span class="activity-status status-ongoing">Ongoing</span>
                                 <div class="activity-meta">
-                                    <div class="meta-item"><i class="fas fa-calendar"></i><span>{{ $activity->date->format('M d, Y') }}</span></div>
-                                    <div class="meta-item"><i class="fas fa-map-marker-alt"></i><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->date->format('M d, Y') }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
                                 </div>
                                 <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
                             </div>
@@ -1170,7 +1198,7 @@
                                     data-description="{{ $activity->description ?? '' }}"
                                     data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='[]'>
-                                    <i class="fas fa-eye"></i> View Details
+                                    View Details
                                 </button>
                             </div>
                         </div>
@@ -1191,10 +1219,10 @@
                                 <p class="activity-org">{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}</p>
                             </div>
                             <div class="activity-body">
-                                <span class="activity-status status-upcoming"><i class="fas fa-calendar-alt"></i> Upcoming</span>
+                                <span class="activity-status status-upcoming">Upcoming</span>
                                 <div class="activity-meta">
-                                    <div class="meta-item"><i class="fas fa-calendar"></i><span>{{ $activity->date->format('M d, Y') }}</span></div>
-                                    <div class="meta-item"><i class="fas fa-map-marker-alt"></i><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->date->format('M d, Y') }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
                                 </div>
                                 <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
                             </div>
@@ -1211,7 +1239,7 @@
                                     data-description="{{ $activity->description ?? '' }}"
                                     data-sdgs='@json($activity->sdgs ?? [])'
                                     data-photos='[]'>
-                                    <i class="fas fa-eye"></i> View Details
+                                    View Details
                                 </button>
                             </div>
                         </div>
@@ -1271,12 +1299,12 @@
                     </div>
 
                     <div id="gallerySection" style="display: none;">
-                        <h6 class="gallery-label"><i class="fas fa-camera"></i> <span id="detailPhotoCount"></span> Photos</h6>
+                        <h6 class="gallery-label"><span id="detailPhotoCount"></span> Photos</h6>
                         <div id="detailGallery" class="gallery-grid"></div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer border-0 p-0">
+                    <button type="button" class="btn-close-full" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -1293,6 +1321,21 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const sdgLabels = @json($sdgLabels);
+
+        document.querySelectorAll('.activity-image-wrap').forEach(wrap => {
+            const slides = wrap.querySelectorAll('.carousel-slide');
+
+            if (slides.length < 2) {
+                return;
+            }
+
+            let currentSlide = 0;
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add('active');
+            }, 3500);
+        });
 
         function showActivityDetails(button) {
             const title = button.getAttribute('data-title');
@@ -1466,11 +1509,11 @@
     <div id="lightbox" class="lightbox" onclick="closeLightbox()">
         <div class="lightbox-close" onclick="event.stopPropagation(); closeLightbox()">&times;</div>
         <button type="button" class="lightbox-nav lightbox-prev" aria-label="Previous photo" onclick="event.stopPropagation(); showPhoto(-1)">
-            <i class="fas fa-chevron-left"></i>
+            ‹
         </button>
         <img id="lightboxImage" src="" alt="Activity Photo" onclick="event.stopPropagation()">
         <button type="button" class="lightbox-nav lightbox-next" aria-label="Next photo" onclick="event.stopPropagation(); showPhoto(1)">
-            <i class="fas fa-chevron-right"></i>
+            ›
         </button>
     </div>
 </body>

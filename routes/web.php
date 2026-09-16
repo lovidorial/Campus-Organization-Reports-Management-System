@@ -58,11 +58,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
         Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
         Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
+        Route::get('/notifications/unread-count', [WorkflowDocumentController::class, 'unreadNotificationCount'])->name('notifications.unread-count');
         Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [WorkflowDocumentController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
 
         // Activity Requests
         Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
+        Route::get('/activity-requests/statuses', [ActivityRequestController::class, 'statuses'])->name('activity-requests.statuses');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
         Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
@@ -92,6 +94,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/activities', [AdminController::class, 'monitor'])->name('activities');
+        Route::get('/activities/statuses', [AdminController::class, 'activityStatuses'])->name('activities.statuses');
         Route::post('/reports/{report}/approve', [ActivityReportController::class, 'approve'])->name('reports.approve');
         Route::post('/reports/{report}/reject', [ActivityReportController::class, 'reject'])->name('reports.reject');
         Route::post('/reports/{report}/return-for-correction', [ActivityReportController::class, 'returnForCorrection'])->name('reports.return-for-correction');

@@ -34,6 +34,110 @@
         <a href="{{ route('activity-requests.create') }}" class="inline-flex px-4 py-2 bg-sky-600 text-white rounded-lg text-sm">Request your first activity</a>
     </div>
 @else
+    <div
+        x-data="{
+            statusInterval: null,
+            statusColors: {
+                pending: 'bg-yellow-100 text-yellow-700',
+                approved: 'bg-blue-100 text-blue-700',
+                in_progress: 'bg-sky-100 text-sky-700',
+                awaiting_report: 'bg-orange-100 text-orange-700',
+                report_submitted: 'bg-purple-100 text-purple-700',
+                closed: 'bg-green-100 text-green-700',
+                rejected: 'bg-red-100 text-red-700',
+            },
+            formatStatus(status) {
+                return status.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+            },
+            escapeHtml(value) {
+                const element = document.createElement('div');
+                element.textContent = value || '';
+                return element.innerHTML;
+            },
+            renderActions(request, cell) {
+                const reportUrl = cell.dataset.reportUrl;
+                const resubmitUrl = cell.dataset.resubmitUrl;
+                const feedback = this.escapeHtml(request.report_feedback);
+
+                if (['approved', 'in_progress', 'awaiting_report'].includes(request.status) && !request.report_status) {
+                    return `<a href='${reportUrl}' class='px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold hover:bg-green-200'>Submit Report</a>`;
+                }
+
+                if (request.report_status === 'needs_revision') {
+                    return `<div class='text-left'>
+                        <span class='text-xs text-amber-600 font-semibold'>Needs revision</span>
+                        <div class='mt-1 text-[11px] text-slate-600'>${feedback}</div>
+                        <a href='${reportUrl}' class='mt-2 inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold hover:bg-amber-200'>Fix & Resubmit</a>
+                    </div>`;
+                }
+
+                if (request.status === 'rejected') {
+                    return `<form method='POST' action='${resubmitUrl}'>
+                        <input type='hidden' name='_token' value='{{ csrf_token() }}'>
+                        <button type='submit' class='px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200'>Resubmit</button>
+                    </form>`;
+                }
+
+                if (request.status === 'report_submitted' && request.report_status === 'rejected') {
+                    return `<span class='text-xs text-red-600'>Report rejected: ${feedback}</span>`;
+                }
+
+                if (request.status === 'report_submitted' && request.report_status === 'approved') {
+                    return '<span class=\'text-xs text-green-600\'>Report approved</span>';
+                }
+
+                if (request.status === 'report_submitted') {
+                    return '<span class=\'text-xs text-slate-500\'>Awaiting report review</span>';
+                }
+
+                if (request.monitoring_compliance_status) {
+                    return `<span class='text-xs text-green-600'>${this.escapeHtml(this.formatStatus(request.monitoring_compliance_status))}</span>`;
+                }
+
+                return '<span class=\'text-xs text-slate-400\'>—</span>';
+            },
+            refreshStatuses() {
+                fetch('{{ route('activity-requests.statuses') }}', {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        data.requests.forEach(request => {
+                            const row = this.$root.querySelector(`[data-request-id='${request.id}']`);
+                            if (!row) {
+                                return;
+                            }
+
+                            const badge = row.querySelector('[data-status-badge]');
+                            const actions = row.querySelector('[data-actions-cell]');
+
+                            badge.textContent = this.formatStatus(request.status);
+                            badge.className = `inline-flex rounded-full px-2 py-1 text-xs font-semibold ${this.statusColors[request.status] || 'bg-gray-100 text-gray-700'}`;
+                            actions.innerHTML = this.renderActions(request, actions);
+                        });
+                    })
+                    .catch(() => {});
+            },
+            init() {
+                if (this.$el._statusInterval) {
+                    clearInterval(this.$el._statusInterval);
+                }
+
+                this.refreshStatuses();
+                this.statusInterval = setInterval(() => this.refreshStatuses(), 15000);
+                this.$el._statusInterval = this.statusInterval;
+            },
+            destroy() {
+                if (this.statusInterval) {
+                    clearInterval(this.statusInterval);
+                }
+
+                this.$el._statusInterval = null;
+            }
+        }"
+    >
+    <!-- Existing rows only are updated; adding or removing rows needs a separate diffing approach. -->
     @foreach($grouped as $index => $group)
         @php
             $gpoa = optional($group->first()->gpoa ?? $group->first()->gpoaActivity?->gpoa);
@@ -67,12 +171,12 @@
                     </thead>
                     <tbody class="divide-y bg-white">
                         @foreach($group as $req)
-                            <tr class="hover:bg-slate-50">
+                            <tr class="hover:bg-slate-50" data-request-id="{{ $req->id }}">
                                 <td class="px-4 py-4 font-medium text-slate-900">{{ $req->title }}</td>
                                 <td class="px-4 py-4 text-slate-700">{{ $req->category ?? '—' }}</td>
                                 <td class="px-4 py-4 text-slate-700">{{ $req->activity_level ?? '—' }}</td>
                                 <td class="px-4 py-4 text-slate-700">{{ $req->date ? $req->date_range_label : '—' }}</td>
-                                <td class="px-4 py-4">
+                                <td class="px-4 py-4" data-status-cell>
                                     @php
                                         $statusColors = [
                                             'pending' => 'bg-yellow-100 text-yellow-700',
@@ -84,11 +188,16 @@
                                             'rejected' => 'bg-red-100 text-red-700',
                                         ];
                                     @endphp
-                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $statusColors[$req->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                    <span data-status-badge class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $statusColors[$req->status] ?? 'bg-gray-100 text-gray-700' }}">
                                         {{ str_replace('_', ' ', ucfirst($req->status)) }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 text-center">
+                                <td
+                                    class="px-4 py-4 text-center"
+                                    data-actions-cell
+                                    data-report-url="{{ route('activity-reports.create', $req) }}"
+                                    data-resubmit-url="{{ route('activity-requests.resubmit', $req) }}"
+                                >
                                     @if(in_array($req->status, ['approved','in_progress','awaiting_report']) && !$req->report)
                                         <a href="{{ route('activity-reports.create', $req) }}" class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold hover:bg-green-200">Submit Report</a>
                                     @elseif($req->report?->status === 'needs_revision')
@@ -123,5 +232,6 @@
     </div>
 @endforeach
 
+    </div>
 @endif
 </x-app-layout>

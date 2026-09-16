@@ -30,6 +30,28 @@ class ActivityRequestController extends Controller
         return view('users.activity-requests', compact('grouped'));
     }
 
+    public function statuses()
+    {
+        $requests = ActivityRequest::where('user_id', auth()->id())
+            ->with(['report', 'monitoringResult'])
+            ->latest()
+            ->get();
+
+        foreach ($requests as $request) {
+            $request->refreshLifecycleStatus();
+        }
+
+        return response()->json([
+            'requests' => $requests->map(fn ($request) => [
+                'id' => $request->id,
+                'status' => $request->status,
+                'report_status' => $request->report?->status,
+                'report_feedback' => $request->report?->feedback,
+                'monitoring_compliance_status' => $request->monitoringResult?->compliance_status,
+            ])->values(),
+        ]);
+    }
+
     public function create(Request $request)
     {
         $availableGpoas = Gpoa::where('user_id', auth()->id())

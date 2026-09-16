@@ -70,6 +70,13 @@ class WorkflowDocumentController extends Controller
         return view('workflow.notifications', compact('notifications'));
     }
 
+    public function unreadNotificationCount()
+    {
+        return response()->json([
+            'count' => auth()->user()->unreadNotificationsCount(),
+        ]);
+    }
+
     public function markNotificationRead(UserNotification $notification)
     {
         $this->authorize('update', $notification);

@@ -10,7 +10,48 @@
 <div class="flex min-h-screen">
 
     <!-- Sidebar -->
-    <div x-data="{ notificationsOpen: false }">
+    <div
+        x-data="{
+            notificationsOpen: false,
+            unreadCount: @js(auth()->user()->unreadNotificationsCount()),
+            unreadCountInterval: null,
+            fetchUnreadCount() {
+                fetch('{{ route('notifications.unread-count') }}', {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Unable to fetch unread notification count.');
+                        }
+
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.unreadCount = Number(data.count) || 0;
+                    })
+                    .catch(() => {});
+            },
+            init() {
+                if (this.$el._unreadCountInterval) {
+                    clearInterval(this.$el._unreadCountInterval);
+                }
+
+                this.fetchUnreadCount();
+                this.unreadCountInterval = setInterval(() => this.fetchUnreadCount(), 15000);
+                this.$el._unreadCountInterval = this.unreadCountInterval;
+            },
+            destroy() {
+                if (this.unreadCountInterval) {
+                    clearInterval(this.unreadCountInterval);
+                }
+
+                this.$el._unreadCountInterval = null;
+            }
+        }"
+    >
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background-color: #b45309;">
         <div class="p-5 border-b border-white/10">
             <div class="flex items-center gap-3">
@@ -182,13 +223,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
                 @if(!auth()->user()->isAdmin())
-                <button type="button" @click="notificationsOpen = true" class="relative ml-2 text-white focus:outline-none" aria-label="Open notifications">
+                <button type="button" @click="notificationsOpen = true; fetchUnreadCount()" class="relative ml-2 text-white focus:outline-none" aria-label="Open notifications">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                     </svg>
-                    @if(auth()->user()->unreadNotificationsCount() > 0)
-                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ auth()->user()->unreadNotificationsCount() }}</span>
-                    @endif
+                    <span x-show="unreadCount > 0" x-text="unreadCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span>
                 </button>
                 @endif
             </div>
