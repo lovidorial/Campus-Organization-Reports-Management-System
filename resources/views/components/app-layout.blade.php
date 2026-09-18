@@ -14,7 +14,7 @@
         x-data="{
             notificationsOpen: false,
             unreadCount: @js(auth()->user()->unreadNotificationsCount()),
-            unreadCountInterval: null,
+                                                 Activity Overview Report
             fetchUnreadCount() {
                 fetch('{{ route('notifications.unread-count') }}', {
                     credentials: 'same-origin',
@@ -174,7 +174,7 @@
                     <a href="{{ route('admin.summary-report') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
                        style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Summary Report
+                                                 Activity Overview Report
                     </a>
                 </li>
                 <li>

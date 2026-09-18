@@ -121,7 +121,7 @@
                     <a href="{{ route('admin.summary-report') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#e89600' : 'transparent' }};">
-                         Summary Report
+                                                 Activity Overview Report
                     </a>
                 </li>
                 <li class="mt-3">

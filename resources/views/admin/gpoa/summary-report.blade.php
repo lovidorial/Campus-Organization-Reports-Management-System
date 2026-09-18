@@ -10,13 +10,22 @@
 </div>
 
 <form method="GET" action="{{ route('admin.summary-report') }}" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
         <div>
             <label for="term" class="block text-xs font-semibold text-gray-600 mb-1">Term</label>
             <select id="term" name="term" class="w-full border rounded px-3 py-2 text-sm">
                 <option value="">All Terms</option>
                 <option value="1st Term" {{ ($filters['term'] ?? '') === '1st Term' ? 'selected' : '' }}>1st Sem</option>
                 <option value="2nd Term" {{ ($filters['term'] ?? '') === '2nd Term' ? 'selected' : '' }}>2nd Sem</option>
+            </select>
+        </div>
+        <div>
+            <label for="organization" class="block text-xs font-semibold text-gray-600 mb-1">Organization</label>
+            <select id="organization" name="organization" class="w-full border rounded px-3 py-2 text-sm">
+                <option value="">All Organizations</option>
+                @foreach($organizations as $organization)
+                    <option value="{{ $organization }}" {{ ($filters['organization'] ?? '') === $organization ? 'selected' : '' }}>{{ $organization }}</option>
+                @endforeach
             </select>
         </div>
         <div>

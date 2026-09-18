@@ -12,6 +12,10 @@ class EnsureTermsAccepted
     {
         $user = $request->user();
 
+        if ($user?->isAdmin()) {
+            return $next($request);
+        }
+
         if ($user?->terms_accepted_at === null) {
             return redirect()
                 ->route('terms.accept')

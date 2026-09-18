@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -12,12 +13,20 @@ class AdminSummaryReportController extends Controller
     {
         $filters = $this->filters($request);
         $activityRequests = $this->activityRequests($filters)->get();
+        $organizations = User::query()
+            ->where('role', '!=', 'admin')
+            ->whereNotNull('org_name')
+            ->where('org_name', '!=', '')
+            ->distinct()
+            ->orderBy('org_name')
+            ->pluck('org_name');
 
         return view('admin.gpoa.summary-report', [
             'activityRequests' => $activityRequests,
             'totalRequestCount' => $this->activityRequests($filters, false)->count(),
             'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
             'filters' => $filters,
+            'organizations' => $organizations,
         ]);
     }
 
@@ -30,6 +39,7 @@ class AdminSummaryReportController extends Controller
             'activityRequests' => $activityRequests,
             'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
             'term' => $filters['term'],
+            'organization' => $filters['organization'],
             'dateFrom' => $filters['date_from'],
             'dateTo' => $filters['date_to'],
         ])->download('summary-report.pdf');
@@ -39,6 +49,7 @@ class AdminSummaryReportController extends Controller
     {
         return [
             'term' => $request->input('term'),
+            'organization' => $request->input('organization'),
             'date_from' => $request->input('date_from'),
             'date_to' => $request->input('date_to'),
         ];
@@ -52,6 +63,9 @@ class AdminSummaryReportController extends Controller
             ]))
             ->when($filters['term'], function ($query, $term) {
                 $query->whereHas('gpoaActivity.gpoa', fn ($gpoaQuery) => $gpoaQuery->where('term', $term));
+            })
+            ->when($filters['organization'], function ($query, $organization) {
+                $query->whereHas('user', fn ($userQuery) => $userQuery->where('org_name', $organization));
             })
             ->when($filters['date_from'], fn ($query, $date) => $query->whereDate('date', '>=', $date))
             ->when($filters['date_to'], fn ($query, $date) => $query->whereDate('date', '<=', $date))

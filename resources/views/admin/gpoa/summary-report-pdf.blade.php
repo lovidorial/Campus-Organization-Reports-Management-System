@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Summary Report</title>
+    <title>Activity Overview Report</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; }
         h1 { margin: 0 0 4px; font-size: 18px; }
@@ -14,9 +14,9 @@
     </style>
 </head>
 <body>
-    <h1>Campus Organization Activity Summary Report</h1>
+    <h1>Campus Organization Activity Overview Report</h1>
     <div class="meta">
-        Term: {{ $term ?: 'All Terms' }} | Date range: {{ $dateFrom ?: 'Any' }} to {{ $dateTo ?: 'Any' }}<br>
+        Term: {{ $term ?: 'All Terms' }} | Organization: {{ $organization ?: 'All Organizations' }} | Date range: {{ $dateFrom ?: 'Any' }} to {{ $dateTo ?: 'Any' }}<br>
         Generated: {{ now()->format('M d, Y h:i A') }}
     </div>
     <table>
