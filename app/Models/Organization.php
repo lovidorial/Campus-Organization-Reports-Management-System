@@ -13,7 +13,7 @@ class Organization extends Model
     protected $fillable = [
         'name', 'type', 'college', 'sc_president',
         'term', 'school_year', 'description', 'is_active',
-        'logo_path',
+        'logo_path', 'theme_color',
     ];
 
     protected $appends = ['logo_url'];

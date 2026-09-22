@@ -105,28 +105,6 @@
                     </div>
                 </div>
 
-                @php
-                    $sdgLabels = [
-                        1 => 'No Poverty',
-                        2 => 'Zero Hunger',
-                        3 => 'Good Health and Well-being',
-                        4 => 'Quality Education',
-                        5 => 'Gender Equality',
-                        6 => 'Clean Water and Sanitation',
-                        7 => 'Affordable and Clean Energy',
-                        8 => 'Decent Work and Economic Growth',
-                        9 => 'Industry, Innovation and Infrastructure',
-                        10 => 'Reduced Inequality',
-                        11 => 'Sustainable Cities and Communities',
-                        12 => 'Responsible Consumption and Production',
-                        13 => 'Climate Action',
-                        14 => 'Life Below Water',
-                        15 => 'Life on Land',
-                        16 => 'Peace, Justice and Strong Institutions',
-                        17 => 'Partnerships for the Goals',
-                    ];
-                @endphp
-
                 <table class="w-full min-w-[1100px] text-sm">
                     <thead class="border-b border-slate-200 bg-white">
                         <tr>
@@ -183,8 +161,8 @@
                                             $sdgs = json_decode($sdgs, true) ?? [];
                                         }
                                         $sdgText = collect($sdgs)
-                                            ->map(fn($id) => 'SDG ' . $id . ': ' . ($sdgLabels[$id] ?? 'Unknown'))
-                                            ->join(', ');
+                                            ->map(fn($id) => '<span class="inline-block rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">' . e($id) . '</span>')
+                                            ->join(' ');
                                     @endphp
 
                                     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -193,7 +171,7 @@
                                             <dl class="divide-y divide-slate-100">
                                                 <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 first:pt-0 last:pb-0">
                                                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">SDGs Addressed</dt>
-                                                    <dd class="break-words text-sm text-slate-700">{{ $sdgText ?: '—' }}</dd>
+                                                    <dd class="break-words text-sm text-slate-700">{!! $sdgText ?: '—' !!}</dd>
                                                 </div>
                                                 <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 py-2 last:pb-0">
                                                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Venue</dt>

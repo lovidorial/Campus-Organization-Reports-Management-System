@@ -9,6 +9,7 @@ use App\Models\OrganizationWorkflow;
 use App\Models\WorkflowSubmission;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Services\GpoaMatchValidator;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -193,6 +194,8 @@ class ActivityRequestController extends Controller
             'plan_key_strategy' => 'required|string',
             'date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:date',
+            'start_time' => 'nullable|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
             'venue' => 'required|string|max:255',
             'target_participants' => 'required|string|max:255',
             'person_in_charge' => 'required|string|max:255',
@@ -205,6 +208,18 @@ class ActivityRequestController extends Controller
         ]);
 
         $gpoa = Gpoa::findOrFail($validated['gpoa_id']);
+
+        $linkedActivity = GpoaActivity::where('id', $validated['gpoa_activity_id'])
+            ->where('gpoa_id', $gpoa->id)
+            ->first();
+
+        if (!$linkedActivity) {
+            return back()->withErrors(['gpoa_activity_id' => 'The selected planned GPOA activity could not be found.'])->withInput();
+        }
+
+        if ($message = GpoaMatchValidator::validate($linkedActivity, $validated)) {
+            return back()->withErrors(['title' => $message])->withInput();
+        }
 
         if ($this->gpoaWorkflowCompleted($gpoa->id)) {
             return back()->withErrors(['gpoa_id' => "This GPOA's cycle is already completed since its Summary Report was approved. Please submit a new GPOA before requesting new activities."])->withInput();
@@ -245,10 +260,30 @@ class ActivityRequestController extends Controller
             return back()->withErrors(['title' => 'An activity request with the same title, date, and venue already exists for this GPOA.'])->withInput();
         }
 
-        $conflict = ActivityRequest::where('date', $validated['date'])
-            ->where('venue', $validated['venue'])
+        $newStartDate = $validated['date'];
+        $newEndDate = $validated['end_date'] ?? $validated['date'];
+        $approvedAtVenue = ActivityRequest::where('venue', $validated['venue'])
             ->where('status', ActivityRequest::STATUS_APPROVED)
-            ->exists();
+            ->get();
+
+        $conflict = $approvedAtVenue->contains(function (ActivityRequest $existing) use ($newStartDate, $newEndDate, $validated) {
+            $existingStartDate = $existing->date->toDateString();
+            $existingEndDate = ($existing->end_date ?? $existing->date)->toDateString();
+
+            if ($existingStartDate > $newEndDate || $existingEndDate < $newStartDate) {
+                return false;
+            }
+
+            $bothHaveTimes = $existing->start_time && $existing->end_time
+                && !empty($validated['start_time']) && !empty($validated['end_time']);
+
+            if (!$bothHaveTimes) {
+                return true;
+            }
+
+            return $existing->start_time < $validated['end_time']
+                && $existing->end_time > $validated['start_time'];
+        });
 
         if ($conflict) {
             return back()->withErrors(['venue' => 'An approved activity is already scheduled at this venue on this date.'])->withInput();
@@ -263,6 +298,8 @@ class ActivityRequestController extends Controller
             'title' => $validated['title'],
             'date' => $validated['date'],
             'end_date' => $validated['end_date'] ?? null,
+            'start_time' => $validated['start_time'] ?? null,
+            'end_time' => $validated['end_time'] ?? null,
             'venue' => $validated['venue'],
             'category' => $validated['category'],
             'sdgs' => $validated['sdgs'],
@@ -281,15 +318,18 @@ class ActivityRequestController extends Controller
         ]);
 
         if ($activityRequest->gpoa_activity_id) {
-            $linkedActivity = GpoaActivity::where('id', $activityRequest->gpoa_activity_id)
-                ->where('gpoa_id', $gpoa->id)
-                ->first();
-
-            if ($linkedActivity) {
-                $linkedActivity->update([
-                    'activity_request_id' => $activityRequest->id,
-                ]);
-            }
+            $linkedActivity->update([
+                'activity_request_id' => $activityRequest->id,
+                'objectives' => $validated['objectives'],
+                'expected_outcome' => $validated['expected_outcome'],
+                'plan_key_strategy' => $validated['plan_key_strategy'],
+                'target_participants' => $validated['target_participants'],
+                'person_in_charge' => $validated['person_in_charge'],
+                'facilities_materials' => $validated['facilities_materials'],
+                'estimated_budget' => $validated['estimated_budget'],
+                'source_of_funds' => $validated['source_of_funds'],
+                'preceding_activity' => $validated['preceding_activity'] ?? null,
+            ]);
         }
 
         User::where('role', 'admin')->each(function (User $admin) use ($activityRequest) {

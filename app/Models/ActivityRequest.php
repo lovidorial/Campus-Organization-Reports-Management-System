@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ActivityRequest extends Model
 {
     protected $fillable = [
-        'user_id', 'gpoa_id', 'gpoa_activity_id', 'title', 'date', 'end_date', 'venue',
+        'user_id', 'gpoa_id', 'gpoa_activity_id', 'title', 'date', 'end_date', 'start_time', 'end_time', 'venue',
         'category', 'sdgs', 'objectives', 'expected_outcome',
         'plan_key_strategy', 'target_participants', 'person_in_charge',
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',

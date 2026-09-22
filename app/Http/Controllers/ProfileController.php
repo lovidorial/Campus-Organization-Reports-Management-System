@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Services\ImageThemeColorService;
 
 class ProfileController extends Controller
 {
@@ -24,7 +25,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, ImageThemeColorService $themeColorService): RedirectResponse
     {
         $data = $request->validated();
 
@@ -43,6 +44,7 @@ class ProfileController extends Controller
             }
 
             $data['profile_photo_path'] = $path;
+            $data['theme_color'] = $themeColorService->fromUploadedFile($request->file('photo'));
         }
 
         $request->user()->fill($data);

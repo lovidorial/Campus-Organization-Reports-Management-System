@@ -8,6 +8,22 @@
     $currentStatus = $workflow->currentStatusLabel();
     $statusColor = $workflow->currentStatusColor();
     $action = $workflow->currentActionInfo();
+    $themeColor = $user->organization?->theme_color ?? $user->theme_color;
+    if ($themeColor && preg_match('/^#[0-9a-f]{6}$/i', $themeColor)) {
+        $themeColor = ltrim($themeColor, '#');
+        $themeRed = hexdec(substr($themeColor, 0, 2));
+        $themeGreen = hexdec(substr($themeColor, 2, 2));
+        $themeBlue = hexdec(substr($themeColor, 4, 2));
+        $themeStart = sprintf('#%02x%02x%02x',
+            min(255, (int) round($themeRed + (255 - $themeRed) * 0.15)),
+            min(255, (int) round($themeGreen + (255 - $themeGreen) * 0.15)),
+            min(255, (int) round($themeBlue + (255 - $themeBlue) * 0.15))
+        );
+        $themeEnd = '#' . $themeColor;
+    } else {
+        $themeStart = '#f5a623';
+        $themeEnd = '#e89600';
+    }
 
     $statusDotColors = [
         'green' => 'bg-green-500',
@@ -78,7 +94,7 @@
 
 {{-- Welcome Header --}}
 <div class="rounded-2xl p-4 md:p-5 mb-4 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
-     style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
+    style="background: linear-gradient(135deg, {{ $themeStart }} 0%, {{ $themeEnd }} 100%);">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div class="flex items-start sm:items-center gap-3">
             @php

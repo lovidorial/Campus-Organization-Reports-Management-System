@@ -10,7 +10,7 @@
 </div>
 
 <form method="GET" action="{{ route('admin.summary-report') }}" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6">
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
         <div>
             <label for="term" class="block text-xs font-semibold text-gray-600 mb-1">Term</label>
             <select id="term" name="term" class="w-full border rounded px-3 py-2 text-sm">
@@ -29,6 +29,15 @@
             </select>
         </div>
         <div>
+            <label for="category" class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+            <select id="category" name="category" class="w-full border rounded px-3 py-2 text-sm">
+                <option value="">All Categories</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category }}" {{ ($filters['category'] ?? '') === $category ? 'selected' : '' }}>{{ $category }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
             <label for="date_from" class="block text-xs font-semibold text-gray-600 mb-1">Date from</label>
             <input id="date_from" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="w-full border rounded px-3 py-2 text-sm">
         </div>
@@ -42,6 +51,35 @@
 
 <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
     Showing {{ $activityRequests->count() }} approved or completed activities.
+</div>
+
+<div class="mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
+    <div class="px-4 py-3 border-b bg-gray-50">
+        <h3 class="font-semibold text-gray-800">Category Summary</h3>
+        <p class="text-xs text-gray-500">Activities, participants, and estimated budgets in the filtered report.</p>
+    </div>
+    <table class="w-full text-sm min-w-[640px]">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="p-3 text-left">Category</th>
+                <th class="p-3 text-right">Activity Count</th>
+                <th class="p-3 text-right">Total Participants</th>
+                <th class="p-3 text-right">Total Estimated Budget</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($categorySummary as $summary)
+                <tr class="border-b">
+                    <td class="p-3">{{ $summary['category'] }}</td>
+                    <td class="p-3 text-right">{{ $summary['activity_count'] }}</td>
+                    <td class="p-3 text-right">{{ number_format($summary['participants']) }}</td>
+                    <td class="p-3 text-right">PHP {{ number_format($summary['budget'], 2) }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="4" class="p-5 text-center text-slate-500">No category data for the selected filters.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">

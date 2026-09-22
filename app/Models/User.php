@@ -18,6 +18,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'role',
         'profile_photo_path',
+        'theme_color',
         'term', 'school_year', 'sc_president',
         'position', 'org_name', 'org_type', 'college',
         'username', 'student_number',

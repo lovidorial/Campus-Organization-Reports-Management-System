@@ -7,6 +7,7 @@ use App\Models\Activity;
 use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Services\OrganizationClassifierService;
+use App\Services\ImageThemeColorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -78,7 +79,7 @@ class OrganizationController extends Controller
         return view('admin.organizations.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ImageThemeColorService $themeColorService)
     {
         // Build validation rules dynamically to avoid querying non-existing DB columns (e.g. username)
         $rules = [
@@ -136,6 +137,7 @@ class OrganizationController extends Controller
             }
 
             $organizationData['logo_path'] = $path;
+            $organizationData['theme_color'] = $themeColorService->fromUploadedFile($request->file('logo'));
         }
 
         $organization = Organization::create($organizationData);
@@ -219,7 +221,7 @@ class OrganizationController extends Controller
         return view('admin.organizations.edit', compact('organization', 'allUsers'));
     }
 
-    public function update(Request $request, Organization $organization)
+    public function update(Request $request, Organization $organization, ImageThemeColorService $themeColorService)
     {
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
@@ -247,6 +249,7 @@ class OrganizationController extends Controller
             }
 
             $validated['logo_path'] = $path;
+            $validated['theme_color'] = $themeColorService->fromUploadedFile($request->file('logo'));
         }
 
         $validated = $this->applyAutoClassification($validated, app(OrganizationClassifierService::class));

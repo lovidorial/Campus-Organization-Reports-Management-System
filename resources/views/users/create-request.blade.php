@@ -334,6 +334,16 @@
                             <input id="end_date" type="date" name="end_date" value="{{ old('end_date') }}">
                             @error('end_date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
+                        <div class="form-group">
+                            <label for="start_time">Start Time (optional)</label>
+                            <input id="start_time" type="time" name="start_time" value="{{ old('start_time') }}">
+                            @error('start_time')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">End Time (optional)</label>
+                            <input id="end_time" type="time" name="end_time" value="{{ old('end_time') }}">
+                            @error('end_time')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
@@ -379,7 +389,8 @@
                                 <option value="Student Council Funds" {{ old('source_of_funds') == 'Student Council Funds' ? 'selected' : '' }}>Student Council Funds</option>
                                 <option value="School-Generated Funds / MOOE" {{ old('source_of_funds') == 'School-Generated Funds / MOOE' ? 'selected' : '' }}>School-Generated Funds / MOOE</option>
                                 <option value="Sponsorship / Donations" {{ old('source_of_funds') == 'Sponsorship / Donations' ? 'selected' : '' }}>Sponsorship / Donations</option>
-                                <option value="Others" {{ old('source_of_funds') == 'Others' ? 'selected' : '' }}>Others</option>
+                                <option value="Others" {{ old('source_of_funds') == 'UniFast' ? 'selected' : '' }}>UniFast</option>
+                                 <option value="Others" {{ old('source_of_funds') == 'Cash on Hand' ? 'selected' : '' }}>Cash on Hand</option>
                             </select>
                             @error('source_of_funds')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
