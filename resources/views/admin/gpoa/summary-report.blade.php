@@ -5,7 +5,7 @@
             <h2 class="text-2xl font-bold text-gray-800">Summary Report</h2>
             <p class="text-sm text-gray-500">Approved and completed activity requests</p>
         </div>
-        <a href="{{ route('admin.summary-report.download', request()->query()) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">Generate Report</a>
+        <a id="generateSummaryReport" href="{{ route('admin.summary-report.download', array_merge(request()->query(), ['include_category_summary' => 1])) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">Generate Report</a>
     </div>
 </div>
 
@@ -53,7 +53,12 @@
     Showing {{ $activityRequests->count() }} approved or completed activities.
 </div>
 
-<div class="mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
+<div class="mb-3 flex items-center gap-2">
+    <input id="includeCategorySummary" type="checkbox" checked class="rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+    <label for="includeCategorySummary" class="text-sm font-semibold text-gray-700">Show Category Summary</label>
+</div>
+
+<div id="categorySummaryBlock" class="mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
     <div class="px-4 py-3 border-b bg-gray-50">
         <h3 class="font-semibold text-gray-800">Category Summary</h3>
         <p class="text-xs text-gray-500">Activities, participants, and estimated budgets in the filtered report.</p>
@@ -149,6 +154,20 @@ function closeSummaryReport() {
     document.getElementById('summaryReportModal').classList.add('hidden');
     document.getElementById('summaryReportFrame').src = '';
 }
+
+const categorySummaryToggle = document.getElementById('includeCategorySummary');
+const categorySummaryBlock = document.getElementById('categorySummaryBlock');
+const generateSummaryReport = document.getElementById('generateSummaryReport');
+
+function updateSummaryReportLink() {
+    const url = new URL(generateSummaryReport.href);
+    url.searchParams.set('include_category_summary', categorySummaryToggle.checked ? '1' : '0');
+    generateSummaryReport.href = url.toString();
+    categorySummaryBlock.classList.toggle('hidden', !categorySummaryToggle.checked);
+}
+
+categorySummaryToggle.addEventListener('change', updateSummaryReportLink);
+updateSummaryReportLink();
 </script>
 @endpush
 

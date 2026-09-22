@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SummaryReportExport;
 use App\Models\ActivityRequest;
 use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdminSummaryReportController extends Controller
 {
@@ -46,16 +47,14 @@ class AdminSummaryReportController extends Controller
         $filters = $this->filters($request);
         $activityRequests = $this->activityRequests($filters)->get();
 
-        return Pdf::loadView('admin.gpoa.summary-report-pdf', [
-            'activityRequests' => $activityRequests,
-            'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
-            'categorySummary' => $this->categorySummary($activityRequests),
-            'term' => $filters['term'],
-            'organization' => $filters['organization'],
-            'category' => $filters['category'],
-            'dateFrom' => $filters['date_from'],
-            'dateTo' => $filters['date_to'],
-        ])->download('summary-report.pdf');
+        return Excel::download(
+            new SummaryReportExport(
+                $activityRequests,
+                $this->categorySummary($activityRequests),
+                $request->boolean('include_category_summary', true),
+            ),
+            'summary-report.xlsx'
+        );
     }
 
     private function filters(Request $request): array
