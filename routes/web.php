@@ -10,6 +10,7 @@ use App\Http\Controllers\AdminWorkflowController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GpoaController;
+use App\Http\Controllers\GpoaModificationRequestController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicOrgChartController;
 use App\Http\Controllers\WorkflowDocumentController;
@@ -51,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
         Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');
         Route::put('/gpoa/{gpoa}', [GpoaController::class, 'update'])->name('gpoa.update');
+        Route::post('/gpoa/{gpoa}/modification-requests', [GpoaModificationRequestController::class, 'store'])->name('gpoa.modification-requests.store');
 
         // Workflow Documents
         Route::get('/workflow/communication-letter', [WorkflowDocumentController::class, 'communicationLetter'])->name('workflow.communication-letter');
@@ -64,6 +66,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Activity Requests
         Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
+        Route::get('/activity-monitor', [ActivityRequestController::class, 'monitor'])->name('activity-monitor.index');
         Route::get('/activity-requests/statuses', [ActivityRequestController::class, 'statuses'])->name('activity-requests.statuses');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
@@ -111,6 +114,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/gpoa/{gpoa}', [AdminGpoaController::class, 'show'])->name('gpoa.show');
         Route::post('/gpoa/{gpoa}/approve', [AdminGpoaController::class, 'approve'])->name('gpoa.approve');
         Route::post('/gpoa/{gpoa}/reject', [AdminGpoaController::class, 'reject'])->name('gpoa.reject');
+        Route::post('/gpoa-modification-requests/{modificationRequest}/approve', [GpoaModificationRequestController::class, 'approve'])->name('gpoa-modification-requests.approve');
+        Route::post('/gpoa-modification-requests/{modificationRequest}/reject', [GpoaModificationRequestController::class, 'reject'])->name('gpoa-modification-requests.reject');
         Route::get('/gpoa/{gpoa}/document', [AdminController::class, 'viewGpoaDocument'])->name('gpoa.document');
 
         Route::get('/workflows', [AdminWorkflowController::class, 'index'])->name('workflows.index');

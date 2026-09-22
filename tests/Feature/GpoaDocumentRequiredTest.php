@@ -13,7 +13,7 @@ class GpoaDocumentRequiredTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_gpoa_store_requires_document_upload_on_initial_submission(): void
+    public function test_gpoa_store_accepts_submission_without_document_upload(): void
     {
         $user = User::factory()->create([
             'role' => 'user',
@@ -24,10 +24,54 @@ class GpoaDocumentRequiredTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
+            'planned_activities' => [[
+                'title' => 'Student Leadership Summit',
+                'date' => '2026-10-01',
+                'venue' => 'Main Hall',
+                'category' => 'Symposium',
+                'sdgs' => [4],
+            ]],
             'verify' => '1',
         ]);
 
-        $response->assertSessionHasErrors('document_path');
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertDatabaseHas('gpoas', [
+            'user_id' => $user->id,
+            'document_path' => null,
+        ]);
+    }
+
+    public function test_gpoa_store_rejects_an_incomplete_planned_activity_row(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+        ]);
+
+        $response = $this->actingAs($user)->post(route('gpoa.store'), [
+            'colleges' => 'CICS',
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'prepared_by' => 'Jane Doe',
+            'planned_activities' => [
+                [
+                    'title' => 'Student Leadership Summit',
+                    'date' => '2026-10-01',
+                    'venue' => 'Main Hall',
+                    'category' => 'Symposium',
+                    'sdgs' => [4],
+                ],
+                [
+                    'sdgs' => [3],
+                ],
+            ],
+            'verify' => '1',
+        ]);
+
+        $response->assertSessionHasErrors('planned_activities.1');
+        $this->assertStringContainsString(
+            'Activity 2 is incomplete',
+            $response->getSession()->get('errors')->get('planned_activities.1')[0]
+        );
         $this->assertDatabaseCount('gpoas', 0);
     }
 
@@ -82,6 +126,13 @@ class GpoaDocumentRequiredTest extends TestCase
         $response = $this->actingAs($user)->put(route('gpoa.update', $gpoa), [
             'colleges' => 'CICS',
             'prepared_by' => 'Jane Doe',
+            'planned_activities' => [[
+                'title' => 'Student Leadership Summit',
+                'date' => '2026-10-01',
+                'venue' => 'Main Hall',
+                'category' => 'Symposium',
+                'sdgs' => [4],
+            ]],
             'verify' => '1',
         ]);
 

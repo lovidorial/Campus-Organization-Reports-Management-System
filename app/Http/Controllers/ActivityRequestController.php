@@ -30,6 +30,29 @@ class ActivityRequestController extends Controller
         return view('users.activity-requests', compact('grouped'));
     }
 
+    public function monitor()
+    {
+        $gpoas = Gpoa::approved()
+            ->where('user_id', auth()->id())
+            ->with(['activities.activityRequests' => fn ($query) => $query->latest()])
+            ->latest()
+            ->get();
+
+        $activities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->map(function ($activity) use ($gpoa) {
+            $request = $activity->activityRequests->first();
+            $activity->monitor_status = match ($request?->status) {
+                null => 'not yet requested',
+                'pending' => 'pending',
+                'closed', 'report_submitted' => 'done',
+                default => 'approved',
+            };
+            $activity->monitor_gpoa = $gpoa;
+            return $activity;
+        }));
+
+        return view('users.activity-monitor', compact('activities'));
+    }
+
     public function statuses()
     {
         $requests = ActivityRequest::where('user_id', auth()->id())
@@ -156,14 +179,14 @@ class ActivityRequestController extends Controller
                 }),
             ],
             'gpoa_activity_id' => [
-                'nullable',
+                'required',
                 Rule::exists('gpoa_activities', 'id')->where(function ($q) use ($request) {
                     $q->where('gpoa_id', $request->input('gpoa_id'));
                 }),
             ],
             'title' => 'required|string|max:255',
             'category' => 'required|string|max:100',
-            'sdgs' => 'required|array|min:1|max:17',
+            'sdgs' => 'required|array|min:1|max:8',
             'sdgs.*' => 'integer|between:1,17',
             'objectives' => 'required|string',
             'expected_outcome' => 'required|string',

@@ -38,6 +38,16 @@ class Gpoa extends Model
         return $this->hasMany(ActivityRequest::class);
     }
 
+    public function modificationRequests(): HasMany
+    {
+        return $this->hasMany(GpoaModificationRequest::class);
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->whereIn('status', ['approved', 'stored']);
+    }
+
     public function isApproved(): bool
     {
         return in_array($this->status, ['approved', 'stored']);

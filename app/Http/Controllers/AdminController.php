@@ -302,7 +302,9 @@ class AdminController extends Controller
                 return; // No parent GPOA, just update the activity status
             }
 
-            $this->linkGpoaActivity($activity);
+            if ($activity->gpoa_activity_id) {
+                $this->linkGpoaActivity($activity);
+            }
         });
 
         return back()->with('success', 'Activity request approved. Organization may now conduct the activity.');
@@ -336,8 +338,7 @@ class AdminController extends Controller
         ]);
 
         if (! $activity->gpoa_activity_id) {
-            $this->linkGpoaActivity($activity);
-            $activity->refresh();
+            return back()->with('error', 'Monitoring requires an activity request linked to an approved planned GPOA activity.');
         }
 
         MonitoringResult::updateOrCreate(

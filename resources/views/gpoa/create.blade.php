@@ -23,7 +23,7 @@
                 </div>
             @endif
 
-            <script type="application/json" id="planned-activities-seed">[]</script>
+            <script type="application/json" id="planned-activities-seed">@json(old('planned_activities', []))</script>
 
             <form action="{{ route('gpoa.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm">
                 @csrf
@@ -106,8 +106,8 @@
 
                     <!-- Document Attachment -->
                     <div class="form-group">
-                        <label for="document_path">GPOA Document (PDF) *</label>
-                        <input type="file" id="document_path" name="document_path" accept=".pdf" required
+                        <label for="document_path">GPOA Document (PDF, optional)</label>
+                        <input type="file" id="document_path" name="document_path" accept=".pdf"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @error('document_path')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -116,13 +116,13 @@
                     </div>
 
                     <div class="form-group mt-6">
-                        <label>Planned Activities Preview</label>
+                        <label>Planned Activities</label>
                         <div id="planned-activities-preview" x-data="plannedActivities()">
                             <template x-if="activities.length === 0">
-                                <p class="help-text">Select a PDF file to preview best-effort candidate activities. You can review, edit, add, or remove rows before submitting.</p>
+                                    <p class="help-text">Enter the official planned activity index for this GPOA directly in the form.</p>
                             </template>
 
-                            <template x-for="(activity, index) in activities" :key="index">
+                            <template x-for="(activity, index) in activities" :key="activity._key">
                                 <div class="mt-4 rounded-xl border border-gray-300 bg-gray-50 p-4">
                                     <div class="mb-3 flex items-center justify-between">
                                         <strong class="text-sm text-gray-700">Activity <span x-text="index + 1"></span></strong>
@@ -142,56 +142,23 @@
                                             <label>Venue</label>
                                             <input type="text" :name="'planned_activities[' + index + '][venue]'" x-model="activity.venue" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                         </div>
-                                        <div class="form-group">
-                                            <label>Category</label>
-                                            <input type="text" :name="'planned_activities[' + index + '][category]'" x-model="activity.category" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>SDGs</label>
-                                            <input type="text" :name="'planned_activities[' + index + '][sdgs]'" x-model="activity.sdgs" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
-                                        <div class="form-group md:col-span-2">
-                                            <label>Objectives</label>
-                                            <textarea :name="'planned_activities[' + index + '][objectives]'" x-model="activity.objectives" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-                                        </div>
-                                        <div class="form-group md:col-span-2">
-                                            <label>Expected Outcome</label>
-                                            <textarea :name="'planned_activities[' + index + '][expected_outcome]'" x-model="activity.expected_outcome" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Target Participants</label>
-                                            <input type="text" :name="'planned_activities[' + index + '][target_participants]'" x-model="activity.target_participants" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Person in Charge</label>
-                                            <input type="text" :name="'planned_activities[' + index + '][person_in_charge]'" x-model="activity.person_in_charge" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
-                                        <div class="form-group md:col-span-2">
-                                            <label>Facilities / Materials</label>
-                                            <textarea :name="'planned_activities[' + index + '][facilities_materials]'" x-model="activity.facilities_materials" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Estimated Budget</label>
-                                            <input type="number" step="0.01" :name="'planned_activities[' + index + '][estimated_budget]'" x-model="activity.estimated_budget" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Source of Funds</label>
-                                            <input type="text" :name="'planned_activities[' + index + '][source_of_funds]'" x-model="activity.source_of_funds" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
-                                        <div class="form-group md:col-span-2">
-                                            <label>Plan / Key Strategy</label>
-                                            <textarea :name="'planned_activities[' + index + '][plan_key_strategy]'" x-model="activity.plan_key_strategy" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
-                                        </div>
-                                        <div class="form-group md:col-span-2">
-                                            <label>Preceding Activity</label>
-                                            <input type="text" :name="'planned_activities[' + index + '][preceding_activity]'" x-model="activity.preceding_activity" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        </div>
+                                            <div class="form-group">
+                                                <label>Category</label>
+                                                <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                    <option value="">Select category</option>
+                                                    @include('partials.category-options')
+                                                </select>
+                                            </div>
+                                            <div class="form-group md:col-span-2">
+                                                @include('partials.sdg-checkboxes', ['gpoa' => true])
+                                            </div>
                                     </div>
                                 </div>
                             </template>
 
                             <div class="mt-4 flex justify-end">
-                                <button type="button" @click="addActivity()" class="btn-secondary">Add row</button>
+                                <button type="button" @click="addActivity()" x-show="activities.length < maxActivities" class="btn-secondary">Add row</button>
+                                <span x-show="activities.length >= maxActivities" class="help-text">Maximum of 34 planned activities reached.</span>
                             </div>
                         </div>
                     </div>
@@ -213,30 +180,30 @@
 
     <script>
         window.plannedActivities = () => ({
+            maxActivities: {{ config('gpoa.max_planned_activities') }},
             activities: (() => {
                 try {
                     const seed = document.getElementById('planned-activities-seed');
-                    return seed ? JSON.parse(seed.textContent || '[]') : [];
+                    const activities = seed ? JSON.parse(seed.textContent || '[]') : [];
+                    return activities.map((activity, index) => ({
+                        ...activity,
+                        sdgs: Array.isArray(activity.sdgs) ? activity.sdgs : [],
+                        _key: activity._key || `activity-${index}-${Date.now()}`,
+                    }));
                 } catch (error) {
                     return [];
                 }
             })(),
             addActivity() {
+                if (this.activities.length >= this.maxActivities) return;
+
                 this.activities.push({
+                    _key: `new-${Date.now()}-${Math.random()}`,
                     title: '',
                     date: '',
                     venue: '',
                     category: '',
-                    sdgs: '',
-                    objectives: '',
-                    expected_outcome: '',
-                    target_participants: '',
-                    person_in_charge: '',
-                    facilities_materials: '',
-                    estimated_budget: '',
-                    source_of_funds: '',
-                    plan_key_strategy: '',
-                    preceding_activity: '',
+                    sdgs: [],
                 });
             },
             removeActivity(index) {

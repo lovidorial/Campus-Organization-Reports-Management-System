@@ -32,6 +32,31 @@
 <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
     <strong>Rejection reason:</strong> {{ $gpoa->reject_reason }}
 </div>
+@if($gpoa->isApproved())
+<div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+    <h3 class="font-bold text-gray-800">Request a GPOA Activity Modification</h3>
+    <p class="text-sm text-gray-500 mt-1">Approved planned activities are locked. Explain any requested add, edit, or removal for admin review.</p>
+    <form method="POST" action="{{ route('gpoa.modification-requests.store', $gpoa) }}" class="mt-4 grid gap-4 md:grid-cols-2">
+        @csrf
+        <select name="type" required class="rounded-lg border-gray-300">
+            <option value="add">Add planned activity</option>
+            <option value="edit">Edit planned activity</option>
+            <option value="remove">Remove planned activity</option>
+        </select>
+        <select name="gpoa_activity_id" class="rounded-lg border-gray-300">
+            <option value="">Select existing activity when editing/removing</option>
+            @foreach($gpoa->activities as $activity)
+                <option value="{{ $activity->id }}">{{ $activity->title }}</option>
+            @endforeach
+        </select>
+        <input name="payload[title]" placeholder="New or replacement title" class="rounded-lg border-gray-300">
+        <input name="payload[date]" type="date" class="rounded-lg border-gray-300">
+        <input name="payload[venue]" placeholder="New or replacement venue" class="rounded-lg border-gray-300">
+        <textarea name="remarks" required maxlength="2000" placeholder="Explain the reason for this request" class="rounded-lg border-gray-300 md:col-span-2"></textarea>
+        <button type="submit" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white md:col-span-2">Submit Modification Request</button>
+    </form>
+</div>
+@endif
 @endif
 
 <!-- GPOA Header Information Table -->

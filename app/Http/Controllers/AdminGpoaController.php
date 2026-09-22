@@ -49,7 +49,7 @@ class AdminGpoaController extends Controller
 
     public function show(Gpoa $gpoa)
     {
-        $gpoa->load(['user', 'activities', 'approver']);
+        $gpoa->load(['user', 'activities', 'approver', 'modificationRequests.requester', 'modificationRequests.activity']);
         $gpoa->loadCount('activityRequests');
 
         $workflow = OrganizationWorkflow::where('user_id', $gpoa->user_id)

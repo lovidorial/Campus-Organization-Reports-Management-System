@@ -104,6 +104,10 @@
                            style="background-color: {{ request()->routeIs('activity-requests.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                             Activity Requests
                         </a>
+                        <a href="{{ route('activity-monitor.index') }}"
+                           style="background-color: {{ request()->routeIs('activity-monitor.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                            Activity Monitor
+                        </a>
                         <a href="{{ route('workflow.summary-report') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
                            style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">

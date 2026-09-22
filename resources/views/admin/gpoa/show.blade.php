@@ -57,6 +57,29 @@
                 </div>
             @endif
 
+            @if($gpoa->modificationRequests->isNotEmpty())
+                <section class="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
+                    <h3 class="font-bold text-slate-900">Activity Modification Requests</h3>
+                    <div class="mt-3 space-y-3">
+                        @foreach($gpoa->modificationRequests as $modificationRequest)
+                            <div class="rounded-lg border border-amber-200 bg-white p-4">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <span class="font-semibold text-slate-800">{{ ucfirst($modificationRequest->type) }}{{ $modificationRequest->activity ? ': ' . $modificationRequest->activity->title : '' }}</span>
+                                    <span class="text-xs font-semibold uppercase text-slate-500">{{ $modificationRequest->status }}</span>
+                                </div>
+                                <p class="mt-2 text-sm text-slate-600">{{ $modificationRequest->remarks }}</p>
+                                @if($modificationRequest->status === 'pending')
+                                    <div class="mt-3 flex gap-2">
+                                        <form method="POST" action="{{ route('admin.gpoa-modification-requests.approve', $modificationRequest) }}">@csrf<button class="rounded bg-emerald-600 px-3 py-2 text-xs font-semibold text-white">Approve</button></form>
+                                        <form method="POST" action="{{ route('admin.gpoa-modification-requests.reject', $modificationRequest) }}">@csrf<button class="rounded bg-rose-600 px-3 py-2 text-xs font-semibold text-white">Reject</button></form>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             @if($gpoa->approved_at)
                 <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     Approved by {{ $gpoa->approver->name ?? 'Admin' }} on {{ $gpoa->approved_at->format('M d, Y g:i A') }}

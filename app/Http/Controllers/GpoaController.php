@@ -7,6 +7,7 @@ use App\Models\OrganizationWorkflow;
 use App\Services\OrganizationWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class GpoaController extends Controller
 {
@@ -135,28 +136,23 @@ class GpoaController extends Controller
 
     public function store(Request $request)
     {
+        $this->validatePlannedActivityEntries($request);
+
         $validated = $request->validate([
             'colleges'            => 'required|string|max:100',
             'term'                => 'required|string|max:50',
             'school_year'         => 'required|string|max:20',
             'prepared_by'         => 'required|string|max:255',
-            'document_path'       => 'required|file|mimes:pdf|max:20480',
-            'planned_activities'  => 'nullable|array',
-            'planned_activities.*.title' => 'nullable|string|max:255',
-            'planned_activities.*.date' => 'nullable|date',
-            'planned_activities.*.venue' => 'nullable|string|max:255',
-            'planned_activities.*.category' => 'nullable|string|max:100',
-            'planned_activities.*.sdgs' => 'nullable',
-            'planned_activities.*.objectives' => 'nullable|string',
-            'planned_activities.*.expected_outcome' => 'nullable|string',
-            'planned_activities.*.target_participants' => 'nullable|string|max:255',
-            'planned_activities.*.person_in_charge' => 'nullable|string|max:255',
-            'planned_activities.*.facilities_materials' => 'nullable|string',
-            'planned_activities.*.estimated_budget' => 'nullable|numeric|min:0',
-            'planned_activities.*.source_of_funds' => 'nullable|string|max:100',
-            'planned_activities.*.plan_key_strategy' => 'nullable|string',
-            'planned_activities.*.preceding_activity' => 'nullable|string|max:255',
+            'document_path'       => 'nullable|file|mimes:pdf|max:20480',
+            'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
+            'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
+            'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
+            'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
+            'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
+            'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
             'verify'              => 'required|accepted',
+        ], [
+            'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
         $workflow = $this->workflowService->getOrCreateForUser(
@@ -219,26 +215,21 @@ class GpoaController extends Controller
             return back()->with('error', 'GPOA can only be edited while pending OSDW review.');
         }
 
+        $this->validatePlannedActivityEntries($request);
+
         $validated = $request->validate([
             'colleges' => 'required|string|max:100',
             'prepared_by' => 'required|string|max:255',
             'document_path' => 'nullable|file|mimes:pdf|max:20480',
-            'planned_activities'  => 'nullable|array',
-            'planned_activities.*.title' => 'nullable|string|max:255',
-            'planned_activities.*.date' => 'nullable|date',
-            'planned_activities.*.venue' => 'nullable|string|max:255',
-            'planned_activities.*.category' => 'nullable|string|max:100',
-            'planned_activities.*.sdgs' => 'nullable',
-            'planned_activities.*.objectives' => 'nullable|string',
-            'planned_activities.*.expected_outcome' => 'nullable|string',
-            'planned_activities.*.target_participants' => 'nullable|string|max:255',
-            'planned_activities.*.person_in_charge' => 'nullable|string|max:255',
-            'planned_activities.*.facilities_materials' => 'nullable|string',
-            'planned_activities.*.estimated_budget' => 'nullable|numeric|min:0',
-            'planned_activities.*.source_of_funds' => 'nullable|string|max:100',
-            'planned_activities.*.plan_key_strategy' => 'nullable|string',
-            'planned_activities.*.preceding_activity' => 'nullable|string|max:255',
+            'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
+            'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
+            'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
+            'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
+            'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
+            'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
             'verify' => 'required|accepted',
+        ], [
+            'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
         if ($request->hasFile('document_path')) {
@@ -256,9 +247,7 @@ class GpoaController extends Controller
             'reject_reason' => null,
         ]);
 
-        if ($request->has('planned_activities')) {
-            $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
-        }
+        $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
 
         $submission->update([
             'file_path' => $gpoa->document_path,
@@ -306,35 +295,60 @@ class GpoaController extends Controller
 
         $sdgs = array_values(array_unique(array_map('intval', array_filter((array) $sdgs, 'is_numeric'))));
 
-        $estimatedBudget = $activityData['estimated_budget'] ?? null;
-        $estimatedBudget = is_string($estimatedBudget) && trim($estimatedBudget) === '' ? null : $estimatedBudget;
-
         return [
             'title' => trim((string) ($activityData['title'] ?? '')),
             'date' => isset($activityData['date']) && trim((string) $activityData['date']) !== '' ? $activityData['date'] : null,
             'venue' => trim((string) ($activityData['venue'] ?? '')),
             'category' => trim((string) ($activityData['category'] ?? '')),
             'sdgs' => $sdgs,
-            'objectives' => trim((string) ($activityData['objectives'] ?? '')),
-            'expected_outcome' => trim((string) ($activityData['expected_outcome'] ?? '')),
-            'target_participants' => trim((string) ($activityData['target_participants'] ?? '')),
-            'person_in_charge' => trim((string) ($activityData['person_in_charge'] ?? '')),
-            'facilities_materials' => trim((string) ($activityData['facilities_materials'] ?? '')),
-            'estimated_budget' => $estimatedBudget !== null && is_numeric($estimatedBudget) ? (float) $estimatedBudget : null,
-            'source_of_funds' => trim((string) ($activityData['source_of_funds'] ?? '')),
-            'plan_key_strategy' => trim((string) ($activityData['plan_key_strategy'] ?? '')),
-            'preceding_activity' => trim((string) ($activityData['preceding_activity'] ?? '')),
         ];
     }
 
     private function isBlankPlannedActivity(array $activityData): bool
     {
-        foreach (['title', 'date', 'venue', 'category', 'objectives', 'expected_outcome', 'target_participants', 'person_in_charge', 'facilities_materials', 'estimated_budget', 'source_of_funds', 'plan_key_strategy', 'preceding_activity'] as $field) {
-            if (!empty($activityData[$field])) {
-                return false;
-            }
-        }
+        return empty($activityData['title'])
+            && empty($activityData['date'])
+            && empty($activityData['venue'])
+            && empty($activityData['category'])
+            && empty($activityData['sdgs']);
+    }
 
-        return empty($activityData['sdgs']);
+    private function validatePlannedActivityEntries(Request $request): void
+    {
+        $validator = Validator::make($request->all(), [
+            'planned_activities' => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
+            'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
+            'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
+            'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
+            'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
+            'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
+        ], [
+            'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
+        ]);
+
+        $validator->after(function ($validator) use ($request) {
+            foreach ((array) $request->input('planned_activities', []) as $index => $activity) {
+                $hasAnyValue = collect(['title', 'date', 'venue', 'category'])
+                    ->contains(fn ($field) => trim((string) ($activity[$field] ?? '')) !== '')
+                    || !empty($activity['sdgs'] ?? []);
+
+                if (!$hasAnyValue) {
+                    continue;
+                }
+
+                $isComplete = collect(['title', 'date', 'venue', 'category'])
+                    ->every(fn ($field) => trim((string) ($activity[$field] ?? '')) !== '')
+                    && !empty($activity['sdgs'] ?? []);
+
+                if (!$isComplete) {
+                    $validator->errors()->add(
+                        "planned_activities.{$index}",
+                        'Activity ' . ($index + 1) . ' is incomplete - title, date, venue, category, and at least one SDG are all required.'
+                    );
+                }
+            }
+        });
+
+        $validator->validate();
     }
 }

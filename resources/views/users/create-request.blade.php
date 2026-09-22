@@ -100,9 +100,9 @@
                     <input type="hidden" name="gpoa_id" value="{{ $gpoa->id }}">
 
                     <div class="form-group mt-6">
-                        <label for="gpoa_activity_id">Link to a planned activity (optional)</label>
+                        <label for="gpoa_activity_id">Planned activity *</label>
                         <select id="gpoa_activity_id" name="gpoa_activity_id">
-                            <option value="">No planned activity selected — create a custom request</option>
+                            <option value="">Select a planned activity</option>
                             @foreach($gpoa->activities as $activity)
                                 <option value="{{ $activity->id }}" {{ old('gpoa_activity_id') == $activity->id ? 'selected' : '' }}>
                                     {{ $activity->title }} — {{ $activity->date ? $activity->date->format('M d, Y') : 'No date' }} @ {{ $activity->venue ?? 'Venue not set' }}
@@ -139,18 +139,15 @@
                             <label for="category">Category *</label>
                             <select id="category" name="category" required>
                                 <option value="">Select category</option>
-                                <option value="Symposium" {{ old('category') == 'Symposium' ? 'selected' : '' }}>Symposium</option>
-                                <option value="Convocation" {{ old('category') == 'Convocation' ? 'selected' : '' }}>Convocation</option>
-                                <option value="Religious Activity" {{ old('category') == 'Religious Activity' ? 'selected' : '' }}>Religious Activity</option>
-                                <option value="Socio-Cultural and Sports" {{ old('category') == 'Socio-Cultural and Sports' ? 'selected' : '' }}>Socio-Cultural and Sports</option>
-                                <option value="Makakalikasan (Clean and Green)" {{ old('category') == 'Makakalikasan (Clean and Green)' ? 'selected' : '' }}>Makakalikasan (Clean and Green)</option>
-                                <option value="Extension Services Conducted" {{ old('category') == 'Extension Services Conducted' ? 'selected' : '' }}>Extension Services Conducted</option>
+                                @include('partials.category-options')
                             </select>
                             @error('category')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-1 mt-6">
+                        @include('partials.sdg-checkboxes', ['gpoa' => false])
+                        @if(false)
                         <div class="form-group">
                             <div class="sdg-label-row">
                                 <label for="sdgCheckboxes">SDGs *</label>
@@ -305,6 +302,7 @@
 
                             @error('sdgs')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
+                        @endif
                     </div>
 
                         <div class="form-group mt-6">
@@ -419,6 +417,8 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+    const plannedActivities = @json($gpoa->activities->keyBy('id'));
+    const plannedActivitySelect = document.getElementById('gpoa_activity_id');
     const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
     const sdgSummary = document.getElementById('sdgSummary');
     const sdgValidationError = document.getElementById('sdgValidationError');
@@ -428,7 +428,28 @@ document.addEventListener('DOMContentLoaded', function(){
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
 
+    function prefillFromPlannedActivity() {
+        const activity = plannedActivities[plannedActivitySelect?.value];
+        if (!activity) return;
+
+        ['title', 'category', 'objectives', 'expected_outcome', 'plan_key_strategy', 'date',
+            'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
+            'estimated_budget', 'source_of_funds', 'preceding_activity'].forEach(field => {
+            const input = document.getElementById(field);
+            if (input && activity[field] !== null && activity[field] !== undefined) {
+                input.value = activity[field];
+            }
+        });
+
+        sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = (activity.sdgs || []).map(String).includes(checkbox.value);
+        });
+        updateSdgSummary();
+    }
+
     if(!sdgCheckboxContainer) return;
+
+    plannedActivitySelect?.addEventListener('change', prefillFromPlannedActivity);
 
     /**
      * Update the summary badges area with currently selected SDGs
