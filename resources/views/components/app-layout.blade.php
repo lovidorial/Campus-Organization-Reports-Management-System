@@ -14,7 +14,6 @@
         x-data="{
             notificationsOpen: false,
             unreadCount: @js(auth()->user()->unreadNotificationsCount()),
-                                                 Activity Overview Report
             fetchUnreadCount() {
                 fetch('{{ route('notifications.unread-count') }}', {
                     credentials: 'same-origin',
