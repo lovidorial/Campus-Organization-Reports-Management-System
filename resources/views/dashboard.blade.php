@@ -8,6 +8,22 @@
     $currentStatus = $workflow->currentStatusLabel();
     $statusColor = $workflow->currentStatusColor();
     $action = $workflow->currentActionInfo();
+    $themeColor = $user->organization?->theme_color ?? $user->theme_color;
+    if ($themeColor && preg_match('/^#[0-9a-f]{6}$/i', $themeColor)) {
+        $themeColor = ltrim($themeColor, '#');
+        $themeRed = hexdec(substr($themeColor, 0, 2));
+        $themeGreen = hexdec(substr($themeColor, 2, 2));
+        $themeBlue = hexdec(substr($themeColor, 4, 2));
+        $themeStart = sprintf('#%02x%02x%02x',
+            min(255, (int) round($themeRed + (255 - $themeRed) * 0.15)),
+            min(255, (int) round($themeGreen + (255 - $themeGreen) * 0.15)),
+            min(255, (int) round($themeBlue + (255 - $themeBlue) * 0.15))
+        );
+        $themeEnd = '#' . $themeColor;
+    } else {
+        $themeStart = '#f5a623';
+        $themeEnd = '#e89600';
+    }
 
     $statusDotColors = [
         'green' => 'bg-green-500',
@@ -18,8 +34,8 @@
     ];
 
     $gpoaSub = $workflow->currentSubmission('gpoa');
-    $commSub = $workflow->currentSubmission('communication_letter');
     $summarySub = $workflow->currentSubmission('summary_report');
+    $activityRequestCount = $stats['total'] ?? 0;
 
     $documents = [
         [
@@ -38,16 +54,17 @@
         ],
         [
             'step' => 2,
-            'title' => 'Communication Letter',
-            'subtitle' => 'Official correspondence document',
-            'submission' => $commSub,
+            'title' => 'Activity Requests',
+            'subtitle' => 'Individual activity plans with communication letters',
+            'submission' => null,
+            'activity_count' => $activityRequestCount,
             'locked' => !$workflow->isGpoaApproved() || $workflow->is_locked,
             'lock_reason' => 'Awaiting GPOA approval',
-            'can_submit' => $workflow->canSubmitCommunicationLetter(),
-            'submit_url' => route('workflow.communication-letter'),
-            'submit_label' => $commSub?->status === 'rejected' ? 'Resubmit Letter' : 'Upload Letter',
+            'can_submit' => $workflow->isGpoaApproved() && !$workflow->is_locked,
+            'submit_url' => route('activity-requests.create'),
+            'submit_label' => 'Submit Activity Request',
             'edit_url' => null,
-            'view_url' => $commSub ? route('workflow.communication-letter') : null,
+            'view_url' => route('activity-requests.index'),
             'awaiting' => !$workflow->isGpoaApproved() ? 'Awaiting GPOA approval' : null,
         ],
         [
@@ -56,13 +73,14 @@
             'subtitle' => 'End-of-term activity summary',
             'submission' => $summarySub,
             'locked' => !$workflow->canSubmitSummaryReport() && !($summarySub) || ($workflow->is_locked && !$workflow->is_completed),
-            'lock_reason' => 'Awaiting Communication Letter approval',
+            'lock_reason' => 'All activity requests must have reports submitted',
             'can_submit' => $workflow->canSubmitSummaryReport(),
             'submit_url' => route('workflow.summary-report'),
             'submit_label' => $summarySub?->status === 'rejected' ? 'Resubmit Report' : 'Submit Report',
             'edit_url' => null,
             'view_url' => $summarySub ? route('workflow.summary-report') : null,
-            'awaiting' => !($commSub?->status === 'approved') ? 'Awaiting Communication Letter approval' : null,
+            'awaiting' => !$workflow->canSubmitSummaryReport() ? 'Awaiting all activity reports' : null,
+            'activity_count' => null,
         ],
     ];
 
@@ -75,103 +93,109 @@
 @endphp
 
 {{-- Welcome Header --}}
-<div class="rounded-2xl p-5 md:p-6 mb-5 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
-     style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div class="flex items-start sm:items-center gap-4">
-            @if($user->profile_photo_path)
-                <img src="{{ asset('storage/'.$user->profile_photo_path) }}"
-                     alt="{{ $user->name }}"
-                     class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
+<div class="rounded-2xl p-4 md:p-5 mb-4 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
+    style="background: linear-gradient(135deg, {{ $themeStart }} 0%, {{ $themeEnd }} 100%);">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex items-start sm:items-center gap-3">
+            @php
+                $avatarPath = $user->organization?->logo_path
+                    ? 'storage/' . $user->organization->logo_path
+                    : ($user->profile_photo_path ? 'storage/' . $user->profile_photo_path : null);
+            @endphp
+
+            @if($avatarPath)
+                <img src="{{ asset($avatarPath) }}"
+                     alt="{{ $user->organization?->name ?? $user->name }}"
+                     class="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
             @else
                 <div class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl bg-white/95 flex items-center justify-center text-2xl font-bold shadow-md shrink-0" style="color: #e89600;">
-                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                    {{ strtoupper(substr($user->organization?->name ?? $user->name, 0, 1)) }}
                 </div>
             @endif
             <div>
-                <p class="text-white/80 text-sm font-medium">Welcome,</p>
-                <h1 class="text-xl md:text-2xl font-bold tracking-tight">{{ $user->name }}</h1>
+                <p class="text-white/80 text-xs font-medium">Welcome,</p>
+                <h1 class="text-lg md:text-xl font-bold tracking-tight">{{ $user->name }}</h1>
                 @if($user->position)
-                <p class="text-white/75 text-sm mt-0.5">{{ $user->position }}</p>
+                <p class="text-white/75 text-xs mt-0.5">{{ $user->position }}</p>
                 @endif
             </div>
         </div>
 
         @if($unreadCount > 0)
-        <a href="{{ route('notifications.index') }}"
-           class="inline-flex items-center gap-2 self-start lg:self-center bg-white/15 hover:bg-white/25 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border border-white/20">
+        <button type="button" @click="notificationsOpen = true"
+              class="inline-flex items-center gap-2 self-start lg:self-center bg-white/15 hover:bg-white/25 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border border-white/20">
             <span class="relative flex h-2.5 w-2.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
             </span>
             {{ $unreadCount }} new notification{{ $unreadCount > 1 ? 's' : '' }}
-        </a>
+        </button>
         @endif
     </div>
 
-    <div class="mt-5 pt-5 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="mt-4 pt-4 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Organization</p>
-            <p class="font-semibold text-base">{{ $orgName }}</p>
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Organization</p>
+            <p class="font-semibold text-sm">{{ $orgName }}</p>
         </div>
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Current Semester</p>
-            <p class="font-semibold text-base">{{ $semester }}</p>
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Current Semester</p>
+            <p class="font-semibold text-sm">{{ $semester }}</p>
         </div>
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Academic Year</p>
-            <p class="font-semibold text-base">{{ $academicYear }}</p>
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Academic Year</p>
+            <p class="font-semibold text-sm">{{ $academicYear }}</p>
         </div>
         <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Current Status</p>
-            <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/20">
+            <p class="text-white/70 text-[10px] font-semibold uppercase tracking-wider mb-1">Current Status</p>
+            <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-xl border border-white/20">
                 <span class="w-2.5 h-2.5 rounded-full {{ $statusDotColors[$statusColor] ?? 'bg-gray-400' }} shrink-0"></span>
-                <span class="font-semibold text-sm">{{ $currentStatus }}</span>
+                <span class="font-semibold text-xs">{{ $currentStatus }}</span>
             </div>
         </div>
     </div>
 </div>
 
 {{-- Current Action Card --}}
-<div class="rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md {{ $actionCardStyles[$action['type']] ?? $actionCardStyles['waiting'] }}">
-    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+<div class="rounded-2xl border border-gray-100 shadow-sm p-3 md:p-4 mb-5 transition-all duration-300 hover:shadow-md {{ $actionCardStyles[$action['type']] ?? $actionCardStyles['waiting'] }}">
+    <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
         <div class="flex-1">
-            <div class="flex items-center gap-2 mb-2">
+            <div class="flex items-center gap-2 mb-1">
                 @if($action['type'] === 'action_required')
-                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-amber-100 text-amber-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span class="flex items-center justify-center w-6 h-6 rounded-lg bg-amber-100 text-amber-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </span>
                 @elseif($action['type'] === 'completed')
-                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-green-100 text-green-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="flex items-center justify-center w-6 h-6 rounded-lg bg-green-100 text-green-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </span>
                 @else
-                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-green-100 text-green-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span class="flex items-center justify-center w-6 h-6 rounded-lg bg-green-100 text-green-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 </span>
                 @endif
-                <h2 class="text-lg font-bold text-gray-900">{{ $action['title'] }}</h2>
+                <h2 class="text-base font-bold text-gray-900">{{ $action['title'] }}</h2>
             </div>
-            <p class="text-gray-800 font-medium leading-relaxed">{{ $action['message'] }}</p>
+            <p class="text-sm text-gray-800 font-medium leading-snug">{{ $action['message'] }}</p>
             @if($action['submessage'])
-            <p class="text-sm mt-2 leading-relaxed {{ str_contains($action['message'], 'rejected') ? 'bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-700' : 'text-gray-600' }}">
+            <p class="text-xs mt-1 leading-snug {{ str_contains($action['message'], 'rejected') ? 'bg-red-50 border border-red-100 rounded-lg px-2 py-1 text-red-700' : 'text-gray-600' }}">
                 {{ $action['submessage'] }}
             </p>
             @endif
 
-            <div class="flex flex-wrap gap-4 mt-4">
+            <div class="flex flex-wrap gap-3 mt-2">
                 @if($action['estimated_review'])
-                <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span class="text-gray-500">Estimated Review Time:</span>
+                <div class="flex items-center gap-1 text-xs">
+                    <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-gray-500">Estimated:</span>
                     <span class="font-semibold text-gray-800">{{ $action['estimated_review'] }}</span>
                 </div>
                 @endif
                 @if($action['deadline'])
-                <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <div class="flex items-center gap-1 text-xs">
+                    <svg class="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span class="text-gray-500">Deadline:</span>
-                    <span class="font-semibold text-amber-700">{{ $action['deadline']->format('F j, Y') }}</span>
+                    <span class="font-semibold text-amber-700">{{ $action['deadline']->format('M d, Y') }}</span>
                 </div>
                 @endif
             </div>
@@ -179,9 +203,9 @@
 
         @if($action['action_url'] && $action['action_label'])
         <a href="{{ $action['action_url'] }}"
-           class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shrink-0"
+           class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shrink-0"
            style="background: linear-gradient(135deg, #f5a623, #e89600);">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             {{ $action['action_label'] }}
         </a>
         @endif
@@ -275,6 +299,12 @@
                     <p class="text-xs text-green-700 leading-relaxed">{{ $sub->approval_remarks }}</p>
                 </div>
                 @endif
+                @elseif($doc['step'] === 2 && ($doc['activity_count'] ?? 0) > 0)
+                <div>
+                    <span class="inline-flex text-xs px-2.5 py-1 rounded-full border font-semibold bg-green-50 text-green-700 border-green-200">
+                        {{ $doc['activity_count'] }} Submitted
+                    </span>
+                </div>
                 @else
                 <div>
                     <span class="inline-flex text-xs px-2.5 py-1 rounded-full border font-semibold bg-gray-50 text-gray-500 border-gray-200">Not Submitted</span>
@@ -308,31 +338,6 @@
         @endforeach
     </div>
 </div>
-
-{{-- Notifications --}}
-@if($notifications->count())
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md">
-    <div class="flex justify-between items-center mb-4">
-        <div>
-            <h3 class="font-bold text-gray-900">Recent Notifications</h3>
-            <p class="text-xs text-gray-500 mt-0.5">Updates from OSDW on your submissions</p>
-        </div>
-        <a href="{{ route('notifications.index') }}" class="text-sm font-semibold hover:underline transition-colors" style="color:#e89600;">View all →</a>
-    </div>
-    <div class="space-y-2">
-        @foreach($notifications as $notification)
-        <div class="flex items-start gap-3 p-3.5 rounded-xl transition-colors duration-200 {{ $notification->read_at ? 'bg-gray-50 hover:bg-gray-100' : 'bg-orange-50/50 border border-orange-100 hover:bg-orange-50' }}">
-            <div class="w-2 h-2 rounded-full mt-2 shrink-0 {{ $notification->read_at ? 'bg-gray-300' : 'bg-orange-500' }}"></div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800">{{ $notification->title }}</p>
-                <p class="text-xs text-gray-600 mt-0.5">{{ $notification->message }}</p>
-                <p class="text-[10px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
-            </div>
-        </div>
-        @endforeach
-    </div>
-</div>
-@endif
 
 {{-- Submission History --}}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md">
