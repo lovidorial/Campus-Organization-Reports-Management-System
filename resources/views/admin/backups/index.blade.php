@@ -73,6 +73,16 @@
         </div>
     </div>
 
+    <section class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" aria-labelledby="restore-guide-heading">
+        <h2 id="restore-guide-heading" class="font-semibold">Restore procedure</h2>
+        <ol class="mt-2 list-decimal space-y-1 pl-5">
+            <li>Download the archive and keep a separate copy before replacing the current data.</li>
+            <li>Select Restore beside the chosen archive, type <strong>RESTORE</strong>, then confirm. This replaces the database and uploaded public files.</li>
+            <li>After restoration, verify the organizations, latest submissions, and uploaded documents before reopening access.</li>
+        </ol>
+        <p class="mt-2 text-xs text-amber-900">Restore requires a ZIP containing <code>database.sql</code> and may take several minutes. Do not interrupt the operation.</p>
+    </section>
+
     <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-xl font-semibold text-gray-900">Available Backups</h2>
@@ -99,10 +109,10 @@
                                 <td class="px-6 py-4 text-sm text-gray-600">{{ number_format($backup['size'] / 1024, 2) }} KB</td>
                                 <td class="px-6 py-4 text-right text-sm font-medium space-x-3">
                                     <a href="{{ route('admin.backups.download', ['filename' => $backup['name']]) }}" class="text-amber-700 hover:text-amber-900">Download</a>
-                                    <form action="{{ route('admin.backups.restore') }}" method="POST" class="inline">
+                                    <form action="{{ route('admin.backups.restore') }}" method="POST" class="inline-flex items-center gap-1">
                                         @csrf
                                         <input type="hidden" name="backup_filename" value="{{ $backup['name'] }}">
-                                        <input type="text" name="confirmation" value="" placeholder="Type RESTORE" class="hidden" aria-label="Restore confirmation">
+                                        <input type="text" name="confirmation" value="" placeholder="Type RESTORE" required autocomplete="off" class="w-28 rounded border border-gray-300 px-2 py-1 text-xs" aria-label="Type RESTORE to confirm">
                                         <button type="submit" class="text-sky-700 hover:text-sky-900" onclick="return confirm('Restore this backup? This will overwrite the current database and uploaded files.')">Restore</button>
                                     </form>
                                     <form action="{{ route('admin.backups.destroy', ['filename' => $backup['name']]) }}" method="POST" class="inline">

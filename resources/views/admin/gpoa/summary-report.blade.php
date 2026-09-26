@@ -5,7 +5,10 @@
             <h2 class="text-2xl font-bold text-gray-800">Summary Report</h2>
             <p class="text-sm text-gray-500">Approved and completed activity requests</p>
         </div>
-        <a id="generateSummaryReport" href="{{ route('admin.summary-report.download', array_merge(request()->query(), ['include_category_summary' => 1])) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">Generate Report</a>
+        <div class="flex gap-2">
+            <a id="generateExcelReport" href="{{ route('admin.summary-report.download', array_merge(request()->query(), ['include_category_summary' => 1])) }}" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-800">Export Excel</a>
+            <a id="generatePdfReport" href="{{ route('admin.summary-report.pdf', array_merge(request()->query(), ['include_category_summary' => 1])) }}" class="px-4 py-2 bg-red-700 text-white rounded-lg text-sm font-semibold hover:bg-red-800">Export PDF</a>
+        </div>
     </div>
 </div>
 
@@ -50,18 +53,47 @@
 </form>
 
 <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-    Showing {{ $activityRequests->count() }} approved or completed activities.
+    Showing {{ $activityRequests->count() }} approved or completed activity details from {{ $totalRequestCount }} filtered requests. Aggregate tables include all request statuses.
 </div>
 
 <div class="mb-3 flex items-center gap-2">
-    <input id="includeCategorySummary" type="checkbox" checked class="rounded border-gray-300 text-sky-600 focus:ring-sky-500">
-    <label for="includeCategorySummary" class="text-sm font-semibold text-gray-700">Show Category Summary</label>
+    <input id="includeSummaryTables" type="checkbox" checked class="rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+    <label for="includeSummaryTables" class="text-sm font-semibold text-gray-700">Include aggregate tables in exports</label>
 </div>
 
-<div id="categorySummaryBlock" class="mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
+<div class="report-summary-block mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
+    <div class="px-4 py-3 border-b bg-gray-50">
+        <h3 class="font-semibold text-gray-800">Organization Summary</h3>
+        <p class="text-xs text-gray-500">Request counts, participants, and estimated budgets by organization.</p>
+    </div>
+    <table class="w-full text-sm min-w-[640px]">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="p-3 text-left">Organization</th>
+                <th class="p-3 text-right">Activity Count</th>
+                <th class="p-3 text-right">Total Participants</th>
+                <th class="p-3 text-right">Total Estimated Budget</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($organizationSummary as $summary)
+                <tr class="border-b">
+                    <td class="p-3">{{ $summary['organization'] }}</td>
+                    <td class="p-3 text-right">{{ $summary['activity_count'] }}</td>
+                    <td class="p-3 text-right">{{ number_format($summary['participants']) }}</td>
+                    <td class="p-3 text-right">PHP {{ number_format($summary['budget'], 2) }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="4" class="p-5 text-center text-slate-500">No organization data for the selected filters.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+
+<div class="report-summary-block mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
     <div class="px-4 py-3 border-b bg-gray-50">
         <h3 class="font-semibold text-gray-800">Category Summary</h3>
-        <p class="text-xs text-gray-500">Activities, participants, and estimated budgets in the filtered report.</p>
+        <p class="text-xs text-gray-500">Request counts, participants, and estimated budgets by category.</p>
     </div>
     <table class="w-full text-sm min-w-[640px]">
         <thead class="bg-gray-50 border-b">
@@ -82,6 +114,35 @@
                 </tr>
             @empty
                 <tr><td colspan="4" class="p-5 text-center text-slate-500">No category data for the selected filters.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+
+<div class="report-summary-block mb-6 bg-white rounded-xl shadow-sm border overflow-x-auto">
+    <div class="px-4 py-3 border-b bg-gray-50">
+        <h3 class="font-semibold text-gray-800">Status Summary</h3>
+        <p class="text-xs text-gray-500">Request counts, participants, and estimated budgets by current status.</p>
+    </div>
+    <table class="w-full text-sm min-w-[640px]">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="p-3 text-left">Status</th>
+                <th class="p-3 text-right">Activity Count</th>
+                <th class="p-3 text-right">Total Participants</th>
+                <th class="p-3 text-right">Total Estimated Budget</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($statusSummary as $summary)
+                <tr class="border-b">
+                    <td class="p-3">{{ $summary['status'] }}</td>
+                    <td class="p-3 text-right">{{ $summary['activity_count'] }}</td>
+                    <td class="p-3 text-right">{{ number_format($summary['participants']) }}</td>
+                    <td class="p-3 text-right">PHP {{ number_format($summary['budget'], 2) }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="4" class="p-5 text-center text-slate-500">No status data for the selected filters.</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -155,18 +216,24 @@ function closeSummaryReport() {
     document.getElementById('summaryReportFrame').src = '';
 }
 
-const categorySummaryToggle = document.getElementById('includeCategorySummary');
-const categorySummaryBlock = document.getElementById('categorySummaryBlock');
-const generateSummaryReport = document.getElementById('generateSummaryReport');
+const summaryTablesToggle = document.getElementById('includeSummaryTables');
+const summaryBlocks = document.querySelectorAll('.report-summary-block');
+const exportLinks = [
+    document.getElementById('generateExcelReport'),
+    document.getElementById('generatePdfReport'),
+];
 
 function updateSummaryReportLink() {
-    const url = new URL(generateSummaryReport.href);
-    url.searchParams.set('include_category_summary', categorySummaryToggle.checked ? '1' : '0');
-    generateSummaryReport.href = url.toString();
-    categorySummaryBlock.classList.toggle('hidden', !categorySummaryToggle.checked);
+    const includeSummaries = summaryTablesToggle.checked;
+    exportLinks.forEach((link) => {
+        const url = new URL(link.href);
+        url.searchParams.set('include_category_summary', includeSummaries ? '1' : '0');
+        link.href = url.toString();
+    });
+    summaryBlocks.forEach((block) => block.classList.toggle('hidden', !includeSummaries));
 }
 
-categorySummaryToggle.addEventListener('change', updateSummaryReportLink);
+summaryTablesToggle.addEventListener('change', updateSummaryReportLink);
 updateSummaryReportLink();
 </script>
 @endpush

@@ -90,6 +90,7 @@ class OrganizationController extends Controller
             'term'                    => 'nullable|string|max:50',
             'school_year'             => 'nullable|string|max:20',
             'description'             => 'nullable|string',
+            'storage_limit_mb'        => 'sometimes|integer|min:1|max:102400',
             'logo'                    => 'nullable|image|max:2048',
             'is_active'               => 'boolean',
             'secretary_name'          => 'required|string|max:255',
@@ -121,6 +122,7 @@ class OrganizationController extends Controller
             'school_year'  => $validated['school_year'],
             'description'  => $validated['description'],
             'is_active'    => $request->boolean('is_active', true),
+            'storage_limit_mb' => $validated['storage_limit_mb'] ?? 500,
         ];
 
         if ($request->hasFile('logo')) {
@@ -231,6 +233,7 @@ class OrganizationController extends Controller
             'term'        => 'nullable|string|max:50',
             'school_year' => 'nullable|string|max:20',
             'description' => 'nullable|string',
+            'storage_limit_mb' => 'sometimes|integer|min:1|max:102400',
             'logo'        => 'nullable|image|max:2048',
             'is_active'   => 'boolean',
         ]);

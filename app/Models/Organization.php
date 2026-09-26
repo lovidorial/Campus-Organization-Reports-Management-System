@@ -12,11 +12,15 @@ class Organization extends Model
 
     protected $fillable = [
         'name', 'type', 'college', 'sc_president',
-        'term', 'school_year', 'description', 'is_active',
+        'term', 'school_year', 'description', 'is_active', 'storage_limit_mb',
         'logo_path', 'theme_color',
     ];
 
     protected $appends = ['logo_url'];
+
+    protected $casts = [
+        'storage_limit_mb' => 'integer',
+    ];
 
     public function getLogoUrlAttribute(): ?string
     {

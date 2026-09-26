@@ -49,6 +49,12 @@
                         @error('logo')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
+                        <label for="storage_limit_mb" class="block text-sm font-semibold text-slate-700 mb-2">Storage limit (MB)</label>
+                        <input id="storage_limit_mb" type="number" name="storage_limit_mb" min="1" max="102400" required value="{{ old('storage_limit_mb', $organization->storage_limit_mb ?? 500) }}"
+                               class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100" />
+                        @error('storage_limit_mb')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
                         <label for="sc_president" class="block text-sm font-semibold text-slate-700 mb-2">Secretary / SC Head</label>
                         <input id="sc_president" name="sc_president" value="{{ old('sc_president', $organization->sc_president) }}"
                                class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100" />

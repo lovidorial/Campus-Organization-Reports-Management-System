@@ -40,26 +40,26 @@
 </div>
 
 @if(isset($stats))
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white p-5 border border-gray-100 shadow-sm">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
         <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Total</p>
-        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['total'] }}</p>
+        <p class="text-2xl font-normal text-[#334155] leading-tight">{{ $stats['total'] }}</p>
         <p class="text-[11px] text-[#64748b] mt-0.5">All activities</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm">
-        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Pending</p>
-        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['pending'] }}</p>
-        <p class="text-[11px] text-[#64748b] mt-0.5">Awaiting review</p>
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-orange-600 font-bold uppercase tracking-wide">Pending</p>
+        <p class="text-2xl font-normal text-orange-600 leading-tight">{{ $stats['pending'] }}</p>
+        <p class="text-[11px] text-orange-700 mt-0.5">Awaiting review</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm">
-        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Active/Closed</p>
-        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['approved'] }}</p>
-        <p class="text-[11px] text-[#64748b] mt-0.5">Completed activities</p>
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-green-700 font-bold uppercase tracking-wide">Active/Closed</p>
+        <p class="text-2xl font-normal text-green-700 leading-tight">{{ $stats['approved'] }}</p>
+        <p class="text-[11px] text-green-700 mt-0.5">Completed activities</p>
     </div>
-    <div class="bg-white p-5 border border-gray-100 shadow-sm">
-        <p class="text-[13px] text-[#94a3b8] font-bold uppercase tracking-wide">Rejected</p>
-        <p class="text-[26px] font-normal text-[#334155] leading-tight">{{ $stats['rejected'] }}</p>
-        <p class="text-[11px] text-[#64748b] mt-0.5">Declined activities</p>
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[13px] text-red-700 font-bold uppercase tracking-wide">Rejected</p>
+        <p class="text-2xl font-normal text-red-700 leading-tight">{{ $stats['rejected'] }}</p>
+        <p class="text-[11px] text-red-700 mt-0.5">Declined activities</p>
     </div>
 </div>
 @endif
@@ -68,11 +68,11 @@
     x-data="{
         statusInterval: null,
         statusColors: {
-            pending: 'bg-yellow-100 text-yellow-700',
-            approved: 'bg-blue-100 text-blue-700',
-            in_progress: 'bg-sky-100 text-sky-700',
+            pending: 'bg-amber-100 text-amber-700',
+            approved: 'bg-green-100 text-green-700',
+            in_progress: 'bg-blue-100 text-blue-700',
             awaiting_report: 'bg-orange-100 text-orange-700',
-            report_submitted: 'bg-purple-100 text-purple-700',
+            report_submitted: 'bg-indigo-100 text-indigo-700',
             closed: 'bg-green-100 text-green-700',
             rejected: 'bg-red-100 text-red-700',
         },
@@ -163,27 +163,27 @@
 >
 <!-- Existing rows only are updated; adding or removing rows needs a separate diffing approach. -->
 <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
-    <table class="w-full text-sm min-w-[1000px]">
+    <table class="w-full table-fixed text-sm min-w-[1000px]">
         <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="p-2 text-left text-gray-500">Activity</th>
-                <th class="p-2 text-left text-gray-500">Organization</th>
-                <th class="p-2 text-left text-gray-500">Source</th>
-                <th class="p-2 text-left text-gray-500">GPOA</th>
-                <th class="p-2 text-left text-gray-500">Category</th>
-                <th class="p-2 text-left text-gray-500">Date</th>
-                <th class="p-2 text-left text-gray-500">Venue</th>
-                <th class="p-2 text-left text-gray-500">Files</th>
-                <th class="p-2 text-left text-gray-500">Status &amp; Actions</th>
+                <th class="w-32 px-2 py-1.5 text-left text-gray-500">Activity</th>
+                <th class="w-24 px-2 py-1.5 text-left text-gray-500">Organization</th>
+                <th class="w-20 px-2 py-1.5 text-left text-gray-500">Source</th>
+                <th class="w-28 px-2 py-1.5 text-left text-gray-500">GPOA</th>
+                <th class="w-24 px-2 py-1.5 text-left text-gray-500">Category</th>
+                <th class="w-24 px-2 py-1.5 text-left text-gray-500">Date</th>
+                <th class="w-24 px-2 py-1.5 text-left text-gray-500">Venue</th>
+                <th class="w-56 px-2 py-1.5 text-left text-gray-500">Files</th>
+                <th class="w-40 px-2 py-1.5 text-left text-gray-500">Status &amp; Actions</th>
             </tr>
         </thead>
-        <tbody>
-            @foreach($activities as $activity)
+        @foreach($activities as $activity)
+        <tbody x-data="{ filesOpen: false }">
             <tr class="border-b last:border-0 hover:bg-gray-50" data-request-id="{{ $activity->id }}">
-                <td class="p-2 font-medium max-w-[140px] truncate" title="{{ $activity->title }}">{{ $activity->title }}</td>
-                <td class="p-2">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
-                <td class="p-2"><span class="text-xs text-slate-600 font-semibold">Activity Request</span></td>
-                <td class="p-2">
+                <td class="w-32 px-2 py-1.5 text-sm font-medium truncate" title="{{ $activity->title }}">{{ $activity->title }}</td>
+                <td class="w-24 px-2 py-1.5 text-xs truncate">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
+                <td class="w-20 px-2 py-1.5 text-xs"><span class="text-xs text-slate-600 font-semibold">Activity Request</span></td>
+                <td class="w-28 px-2 py-1.5 text-xs">
                     @if($activity->gpoa)
                     <span class="text-xs font-semibold">{{ $activity->gpoa->term }} / SY {{ $activity->gpoa->school_year }}</span>
                     @if($activity->gpoa->college)
@@ -193,17 +193,18 @@
                     <span class="text-gray-400">—</span>
                     @endif
                 </td>
-                <td class="p-2">
+                <td class="w-24 px-2 py-1.5">
                     @if($activity->category)
                     <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $activity->category }}</span>
                     @else — @endif
                 </td>
-                <td class="p-2">{{ $activity->date->format('M d, Y') }}</td>
-                <td class="p-2">{{ $activity->venue }}</td>
-                <td class="p-2" x-data="{ filesOpen: false }">
+                <td class="w-24 px-2 py-1.5 text-xs whitespace-nowrap">{{ $activity->date->format('M d, Y') }}</td>
+                <td class="w-24 px-2 py-1.5 text-xs truncate" title="{{ $activity->venue }}">{{ $activity->venue }}</td>
+                <td class="w-56 px-2 py-1.5 align-top">
                     @php
                         $existingFiles = 0;
                         if ($activity->communication_letter) { $existingFiles++; }
+                        if ($activity->reservation_slip) { $existingFiles++; }
                         if ($activity->report) { $existingFiles++; }
 
                         $reportBadgeClasses = [
@@ -236,75 +237,12 @@
                             </button>
                         </div>
 
-                        <div
-                            x-show="filesOpen"
-                            x-transition
-                            x-cloak
-                            class="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2"
-                        >
-                            <div class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Documents</div>
-
-                            <div class="space-y-2">
-                                <div class="flex items-start justify-between gap-3 border-b border-dashed border-gray-200 pb-2">
-                                    <div class="min-w-0">
-                                        <div class="text-sm font-semibold text-gray-800">Communication</div>
-                                        @php
-                                            $communicationFileName = $activity->communication_letter ? basename($activity->communication_letter) : null;
-                                            $communicationDisplayName = $communicationFileName ? (strlen($communicationFileName) > 28 ? substr($communicationFileName, 0, 25) . '...' : $communicationFileName) : '—';
-                                        @endphp
-                                        <div class="mt-1 text-xs text-gray-500 truncate" title="{{ $communicationFileName ?? '—' }}">
-                                            {{ $communicationDisplayName }}
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2 shrink-0">
-                                        @if($activity->communication_letter)
-                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Submitted</span>
-                                            <button type="button"
-                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'communication']) }}', 'Communication Letter')"
-                                                    class="text-xs font-semibold text-blue-700 hover:underline">View</button>
-                                        @else
-                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">Not Submitted</span>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="min-w-0">
-                                        <div class="text-sm font-semibold text-gray-800">Activity Report</div>
-                                        @if($activity->report)
-                                            @php
-                                                $reportFileName = $activity->report->description ? $activity->report->description : 'Narrative Report';
-                                                $reportDisplayName = strlen($reportFileName) > 28 ? substr($reportFileName, 0, 25) . '...' : $reportFileName;
-                                            @endphp
-                                            <button type="button"
-                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
-                                                    class="mt-1 inline-block text-xs font-semibold text-green-700 hover:underline"
-                                                    title="{{ $reportFileName }}">{{ $reportDisplayName }}</button>
-                                        @else
-                                            <div class="mt-1 text-xs text-gray-500">—</div>
-                                        @endif
-                                    </div>
-                                    <div class="flex items-center gap-2 shrink-0">
-                                        @if($activity->report)
-                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $reportBadgeClasses[$activity->report->status] ?? 'bg-gray-100 text-gray-600' }}">
-                                                {{ $reportBadgeText[$activity->report->status] ?? ucfirst($activity->report->status) }}
-                                            </span>
-                                            <button type="button"
-                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
-                                                    class="text-xs font-semibold text-blue-700 hover:underline">View</button>
-                                        @else
-                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">Not Submitted</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     @else
                         <span class="text-gray-400">—</span>
                     @endif
                 </td>
                 <td
-                    class="p-2"
+                    class="w-40 px-2 py-1.5 align-top"
                     data-status-cell
                     data-actions-cell
                     data-activity-id="{{ $activity->id }}"
@@ -315,11 +253,11 @@
                 >
                     @php
                         $statusColors = [
-                            'pending' => 'bg-yellow-100 text-yellow-700',
-                            'approved' => 'bg-blue-100 text-blue-700',
-                            'in_progress' => 'bg-sky-100 text-sky-700',
+                            'pending' => 'bg-amber-100 text-amber-700',
+                            'approved' => 'bg-green-100 text-green-700',
+                            'in_progress' => 'bg-blue-100 text-blue-700',
                             'awaiting_report' => 'bg-orange-100 text-orange-700',
-                            'report_submitted' => 'bg-purple-100 text-purple-700',
+                            'report_submitted' => 'bg-indigo-100 text-indigo-700',
                             'closed' => 'bg-green-100 text-green-700',
                             'rejected' => 'bg-red-100 text-red-700',
                         ];
@@ -328,7 +266,7 @@
                         {{ str_replace('_', ' ', ucfirst($activity->status)) }}
                     </span>
                     <p data-compliance-status class="mt-1 text-xs text-gray-500 {{ $activity->monitoringResult ? '' : 'hidden' }}">{{ $activity->monitoringResult ? ucfirst(str_replace('_',' ',$activity->monitoringResult->compliance_status)) : '' }}</p>
-                    <div data-dynamic-actions class="mt-2 flex flex-wrap items-center gap-1.5">
+                    <div data-dynamic-actions class="mt-2 flex flex-col items-start gap-1.5">
                     @php
                         $hasPendingReport = $activity->report && $activity->report->status === 'pending';
                         $canRecordMonitoring = $activity->status === 'report_submitted';
@@ -369,8 +307,79 @@
                     </div>
                 </td>
             </tr>
-            @endforeach
+            @if($existingFiles > 0)
+                <tr x-show="filesOpen" x-transition x-cloak class="bg-gray-50">
+                    <td colspan="9" class="px-2 py-1.5">
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                            <div class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Documents</div>
+
+                            <div class="grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div class="flex min-w-0 items-center gap-3 rounded-md border border-dashed border-gray-200 p-2">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-semibold text-gray-800">Communication</div>
+                                        @php
+                                            $communicationFileName = $activity->communication_letter ? basename($activity->communication_letter) : null;
+                                            $communicationDisplayName = $communicationFileName ? (strlen($communicationFileName) > 28 ? substr($communicationFileName, 0, 25) . '...' : $communicationFileName) : '—';
+                                        @endphp
+                                        <div class="mt-1 text-xs text-gray-500 truncate" title="{{ $communicationFileName ?? '—' }}">
+                                            {{ $communicationDisplayName }}
+                                        </div>
+                                    </div>
+                                    <div class="flex shrink-0 items-center gap-2">
+                                        @if($activity->communication_letter)
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Submitted</span>
+                                            <button type="button"
+                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'communication']) }}', 'Communication Letter')"
+                                                    class="text-xs font-semibold text-blue-700 hover:underline">View</button>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">Not Submitted</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if($activity->reservation_slip)
+                                    <div class="flex min-w-0 items-center gap-3 rounded-md border border-dashed border-gray-200 p-2">
+                                        <div class="min-w-0 flex-1 text-sm font-semibold text-gray-800">Venue Reservation Slip</div>
+                                        <a href="{{ asset('storage/'.$activity->reservation_slip) }}" target="_blank" rel="noopener" class="shrink-0 text-xs font-semibold text-sky-700 hover:underline">View</a>
+                                    </div>
+                                @endif
+
+                                <div class="flex min-w-0 items-center gap-3 rounded-md border border-dashed border-gray-200 p-2">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-semibold text-gray-800">Activity Report</div>
+                                        @if($activity->report)
+                                            @php
+                                                $reportFileName = $activity->report->description ? $activity->report->description : 'Narrative Report';
+                                                $reportDisplayName = strlen($reportFileName) > 28 ? substr($reportFileName, 0, 25) . '...' : $reportFileName;
+                                            @endphp
+                                            <button type="button"
+                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
+                                                    class="mt-1 inline-block max-w-full truncate text-xs font-semibold text-green-700 hover:underline"
+                                                    title="{{ $reportFileName }}">{{ $reportDisplayName }}</button>
+                                        @else
+                                            <div class="mt-1 text-xs text-gray-500">—</div>
+                                        @endif
+                                    </div>
+                                    <div class="flex shrink-0 items-center gap-2">
+                                        @if($activity->report)
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $reportBadgeClasses[$activity->report->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                                {{ $reportBadgeText[$activity->report->status] ?? ucfirst($activity->report->status) }}
+                                            </span>
+                                            <button type="button"
+                                                    onclick="viewPDF('{{ route('admin.file.view', [$activity->id, 'narrative']) }}', 'Narrative Report')"
+                                                    class="text-xs font-semibold text-blue-700 hover:underline">View</button>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">Not Submitted</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            @endif
         </tbody>
+        @endforeach
     </table>
 </div>
 

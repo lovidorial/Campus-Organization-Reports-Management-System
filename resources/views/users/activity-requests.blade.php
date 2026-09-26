@@ -38,11 +38,11 @@
         x-data="{
             statusInterval: null,
             statusColors: {
-                pending: 'bg-yellow-100 text-yellow-700',
-                approved: 'bg-blue-100 text-blue-700',
-                in_progress: 'bg-sky-100 text-sky-700',
+                pending: 'bg-amber-100 text-amber-700',
+                approved: 'bg-green-100 text-green-700',
+                in_progress: 'bg-blue-100 text-blue-700',
                 awaiting_report: 'bg-orange-100 text-orange-700',
-                report_submitted: 'bg-purple-100 text-purple-700',
+                report_submitted: 'bg-indigo-100 text-indigo-700',
                 closed: 'bg-green-100 text-green-700',
                 rejected: 'bg-red-100 text-red-700',
             },
@@ -96,6 +96,21 @@
 
                 return '<span class=\'text-xs text-slate-400\'>—</span>';
             },
+            renderReservationSlip(request, cell) {
+                const uploadUrl = cell.dataset.uploadUrl;
+                const link = request.reservation_slip_url
+                    ? `<a href='${this.escapeHtml(request.reservation_slip_url)}' target='_blank' rel='noopener' class='block text-xs font-semibold text-sky-700 hover:underline'>View slip</a>`
+                    : '';
+                const upload = request.can_upload_reservation_slip
+                    ? `<form method='POST' action='${uploadUrl}' enctype='multipart/form-data' class='mt-1 space-y-1'>
+                        <input type='hidden' name='_token' value='{{ csrf_token() }}'>
+                        <input type='file' name='reservation_slip' accept='.pdf,.jpg,.jpeg,.png' required class='block w-full text-[10px] text-slate-600'>
+                        <button type='submit' class='rounded bg-sky-700 px-2 py-1 text-[10px] font-semibold text-white hover:bg-sky-800'>${request.reservation_slip_url ? 'Replace slip' : 'Upload slip'}</button>
+                    </form>`
+                    : '';
+
+                return link || upload ? `${link}${upload}` : '<span class=\'text-xs text-slate-400\'>Available after approval</span>';
+            },
             refreshStatuses() {
                 fetch('{{ route('activity-requests.statuses') }}', {
                     credentials: 'same-origin',
@@ -111,10 +126,12 @@
 
                             const badge = row.querySelector('[data-status-badge]');
                             const actions = row.querySelector('[data-actions-cell]');
+                            const reservationSlip = row.querySelector('[data-reservation-slip-cell]');
 
                             badge.textContent = this.formatStatus(request.status);
                             badge.className = `inline-flex rounded-full px-2 py-1 text-xs font-semibold ${this.statusColors[request.status] || 'bg-gray-100 text-gray-700'}`;
                             actions.innerHTML = this.renderActions(request, actions);
+                            reservationSlip.innerHTML = this.renderReservationSlip(request, reservationSlip);
                         });
                     })
                     .catch(() => {});
@@ -158,32 +175,33 @@
 
             <div class="px-5 pb-5 {{ $index > 0 ? 'hidden' : '' }}">
             <div class="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50">
-                <table class="w-full text-sm min-w-[900px]">
+                <table class="w-full table-fixed text-sm min-w-[1100px]">
                     <thead class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wide">
                         <tr>
-                            <th class="px-4 py-3 text-left">Title</th>
-                            <th class="px-4 py-3 text-left">Category</th>
-                            <th class="px-4 py-3 text-left">Activity Level</th>
-                            <th class="px-4 py-3 text-left">Date</th>
-                            <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-center">Actions</th>
+                            <th class="w-[22%] px-3 py-2 text-left">Title</th>
+                            <th class="w-[14%] px-3 py-2 text-left">Category</th>
+                            <th class="w-[14%] px-3 py-2 text-left">Activity Level</th>
+                            <th class="w-[14%] px-3 py-2 text-left">Date</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Status</th>
+                            <th class="w-[16%] px-3 py-2 text-left">Reservation Slip</th>
+                            <th class="w-[8%] px-3 py-2 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y bg-white">
                         @foreach($group as $req)
                             <tr class="hover:bg-slate-50" data-request-id="{{ $req->id }}">
-                                <td class="px-4 py-4 font-medium text-slate-900">{{ $req->title }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ $req->category ?? '—' }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ $req->activity_level ?? '—' }}</td>
-                                <td class="px-4 py-4 text-slate-700">{{ $req->date ? $req->date_range_label : '—' }}</td>
-                                <td class="px-4 py-4" data-status-cell>
+                                <td class="px-3 py-2.5 font-medium text-slate-900 truncate" title="{{ $req->title }}">{{ $req->title }}</td>
+                                <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->category ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->activity_level ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-slate-700 whitespace-nowrap">{{ $req->date ? $req->date_range_label : '—' }}</td>
+                                <td class="px-3 py-2.5" data-status-cell>
                                     @php
                                         $statusColors = [
-                                            'pending' => 'bg-yellow-100 text-yellow-700',
-                                            'approved' => 'bg-blue-100 text-blue-700',
-                                            'in_progress' => 'bg-sky-100 text-sky-700',
+                                            'pending' => 'bg-amber-100 text-amber-700',
+                                            'approved' => 'bg-green-100 text-green-700',
+                                            'in_progress' => 'bg-blue-100 text-blue-700',
                                             'awaiting_report' => 'bg-orange-100 text-orange-700',
-                                            'report_submitted' => 'bg-purple-100 text-purple-700',
+                                            'report_submitted' => 'bg-indigo-100 text-indigo-700',
                                             'closed' => 'bg-green-100 text-green-700',
                                             'rejected' => 'bg-red-100 text-red-700',
                                         ];
@@ -192,8 +210,24 @@
                                         {{ str_replace('_', ' ', ucfirst($req->status)) }}
                                     </span>
                                 </td>
+                                <td class="px-3 py-2.5" data-reservation-slip-cell data-upload-url="{{ route('activity-requests.reservation-slip', $req) }}">
+                                    @if($req->reservation_slip)
+                                        <a href="{{ asset('storage/'.$req->reservation_slip) }}" target="_blank" rel="noopener" class="block text-xs font-semibold text-sky-700 hover:underline">View slip</a>
+                                    @endif
+                                    @if(auth()->user()->can('uploadReservationSlip', $req))
+                                        <form method="POST" action="{{ route('activity-requests.reservation-slip', $req) }}" enctype="multipart/form-data" class="mt-1 space-y-1">
+                                            @csrf
+                                            <input type="file" name="reservation_slip" accept=".pdf,.jpg,.jpeg,.png" required class="block w-full text-[10px] text-slate-600">
+                                            <button type="submit" class="rounded bg-sky-700 px-2 py-1 text-[10px] font-semibold text-white hover:bg-sky-800">
+                                                {{ $req->reservation_slip ? 'Replace slip' : 'Upload slip' }}
+                                            </button>
+                                        </form>
+                                    @elseif(!$req->reservation_slip)
+                                        <span class="text-xs text-slate-400">Available after approval</span>
+                                    @endif
+                                </td>
                                 <td
-                                    class="px-4 py-4 text-center"
+                                    class="px-3 py-2.5 text-center"
                                     data-actions-cell
                                     data-report-url="{{ route('activity-reports.create', $req) }}"
                                     data-resubmit-url="{{ route('activity-requests.resubmit', $req) }}"

@@ -22,7 +22,9 @@ class SummaryReportExport implements WithMultipleSheets
 {
     public function __construct(
         private readonly Collection $activityRequests,
+        private readonly Collection $organizationSummary,
         private readonly Collection $categorySummary,
+        private readonly Collection $statusSummary,
         private readonly bool $includeCategorySummary = true,
     ) {
     }
@@ -32,7 +34,9 @@ class SummaryReportExport implements WithMultipleSheets
         $sheets = [new SummaryReportDataSheet($this->activityRequests)];
 
         if ($this->includeCategorySummary) {
+            $sheets[] = new OrganizationSummarySheet($this->organizationSummary);
             $sheets[] = new CategorySummarySheet($this->categorySummary);
+            $sheets[] = new StatusSummarySheet($this->statusSummary);
         }
 
         return $sheets;
@@ -224,6 +228,92 @@ class CategorySummarySheet implements FromCollection, ShouldAutoSize, WithEvents
             AfterSheet::class => function (AfterSheet $event): void {
                 $event->sheet->getDelegate()->freezePane('A2');
             },
+        ];
+    }
+}
+
+class OrganizationSummarySheet implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
+{
+    public function __construct(private readonly Collection $organizationSummary)
+    {
+    }
+
+    public function collection(): Collection
+    {
+        return $this->organizationSummary;
+    }
+
+    public function headings(): array
+    {
+        return ['Organization', 'Activity Count', 'Total Participants', 'Total Estimated Budget'];
+    }
+
+    public function map($summary): array
+    {
+        return [
+            $summary['organization'],
+            $summary['activity_count'],
+            $summary['participants'],
+            (float) $summary['budget'],
+        ];
+    }
+
+    public function title(): string
+    {
+        return 'Organization Summary';
+    }
+
+    public function styles(Worksheet $sheet): array
+    {
+        $lastRow = max(1, $sheet->getHighestRow());
+
+        return [
+            "A1:D{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
+            '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
+            'D' => ['numberFormat' => ['formatCode' => '"PHP "#,##0.00']],
+        ];
+    }
+}
+
+class StatusSummarySheet implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
+{
+    public function __construct(private readonly Collection $statusSummary)
+    {
+    }
+
+    public function collection(): Collection
+    {
+        return $this->statusSummary;
+    }
+
+    public function headings(): array
+    {
+        return ['Status', 'Activity Count', 'Total Participants', 'Total Estimated Budget'];
+    }
+
+    public function map($summary): array
+    {
+        return [
+            $summary['status'],
+            $summary['activity_count'],
+            $summary['participants'],
+            (float) $summary['budget'],
+        ];
+    }
+
+    public function title(): string
+    {
+        return 'Status Summary';
+    }
+
+    public function styles(Worksheet $sheet): array
+    {
+        $lastRow = max(1, $sheet->getHighestRow());
+
+        return [
+            "A1:D{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
+            '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
+            'D' => ['numberFormat' => ['formatCode' => '"PHP "#,##0.00']],
         ];
     }
 }

@@ -78,13 +78,30 @@ class BackupService
 
         $zip = new ZipArchive();
         if ($zip->open($resolvedPath) !== true) {
-            return false;
+            throw new \RuntimeException('The selected file is not a readable ZIP archive.');
+        }
+
+        if ($zip->locateName('database.sql') === false) {
+            $zip->close();
+            throw new \RuntimeException('The archive does not contain the required database.sql dump.');
+        }
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entry = str_replace('\\', '/', (string) $zip->getNameIndex($index));
+            if (str_starts_with($entry, '/') || preg_match('/^[A-Za-z]:/', $entry) || preg_match('#(^|/)\.\.(?:/|$)#', $entry)) {
+                $zip->close();
+                throw new \RuntimeException('The archive contains an unsafe file path.');
+            }
         }
 
         $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'orgtrack_restore_' . uniqid();
         mkdir($tempDir, 0777, true);
 
-        $zip->extractTo($tempDir);
+        if (! $zip->extractTo($tempDir)) {
+            $zip->close();
+            $this->deleteDirectory($tempDir);
+            throw new \RuntimeException('Unable to extract the selected backup archive.');
+        }
         $zip->close();
 
         $publicStorage = storage_path('app/public');
@@ -100,9 +117,12 @@ class BackupService
         }
 
         $sqlFile = $tempDir . DIRECTORY_SEPARATOR . 'database.sql';
-        if (file_exists($sqlFile)) {
-            $this->importDatabase($sqlFile);
+        if (! is_file($sqlFile)) {
+            $this->deleteDirectory($tempDir);
+            throw new \RuntimeException('The archive does not contain the required database.sql dump.');
         }
+
+        $this->importDatabase($sqlFile);
 
         $this->deleteDirectory($tempDir);
 

@@ -15,7 +15,7 @@ class ActivityRequest extends Model
         'plan_key_strategy', 'target_participants', 'person_in_charge',
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
         'preceding_activity', 'description', 'participants_count',
-        'communication_letter', 'status', 'reject_reason',
+        'communication_letter', 'reservation_slip', 'status', 'reject_reason',
     ];
 
     protected $casts = [

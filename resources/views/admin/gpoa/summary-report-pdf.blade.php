@@ -19,22 +19,43 @@
         Term: {{ $term ?: 'All Terms' }} | Organization: {{ $organization ?: 'All Organizations' }} | Category: {{ $category ?: 'All Categories' }} | Date range: {{ $dateFrom ?: 'Any' }} to {{ $dateTo ?: 'Any' }}<br>
         Generated: {{ now()->format('M d, Y h:i A') }}
     </div>
-    <h2>Category Summary</h2>
-    <table style="margin-bottom: 18px;">
-        <thead><tr><th>Category</th><th class="number">Activities</th><th class="number">Participants</th><th class="number">Estimated Budget</th></tr></thead>
-        <tbody>
-            @forelse($categorySummary as $summary)
-                <tr>
-                    <td>{{ $summary['category'] }}</td>
-                    <td class="number">{{ $summary['activity_count'] }}</td>
-                    <td class="number">{{ number_format($summary['participants']) }}</td>
-                    <td class="number">PHP {{ number_format($summary['budget'], 2) }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="4">No category data for the selected filters.</td></tr>
-            @endforelse
-        </tbody>
-    </table>
+    @if($includeSummaries)
+        <h2>Organization Summary</h2>
+        <table style="margin-bottom: 18px;">
+            <thead><tr><th>Organization</th><th class="number">Activities</th><th class="number">Participants</th><th class="number">Estimated Budget</th></tr></thead>
+            <tbody>
+                @forelse($organizationSummary as $summary)
+                    <tr><td>{{ $summary['organization'] }}</td><td class="number">{{ $summary['activity_count'] }}</td><td class="number">{{ number_format($summary['participants']) }}</td><td class="number">PHP {{ number_format($summary['budget'], 2) }}</td></tr>
+                @empty
+                    <tr><td colspan="4">No organization data for the selected filters.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        <h2>Category Summary</h2>
+        <table style="margin-bottom: 18px;">
+            <thead><tr><th>Category</th><th class="number">Activities</th><th class="number">Participants</th><th class="number">Estimated Budget</th></tr></thead>
+            <tbody>
+                @forelse($categorySummary as $summary)
+                    <tr><td>{{ $summary['category'] }}</td><td class="number">{{ $summary['activity_count'] }}</td><td class="number">{{ number_format($summary['participants']) }}</td><td class="number">PHP {{ number_format($summary['budget'], 2) }}</td></tr>
+                @empty
+                    <tr><td colspan="4">No category data for the selected filters.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        <h2>Status Summary</h2>
+        <table style="margin-bottom: 18px;">
+            <thead><tr><th>Status</th><th class="number">Activities</th><th class="number">Participants</th><th class="number">Estimated Budget</th></tr></thead>
+            <tbody>
+                @forelse($statusSummary as $summary)
+                    <tr><td>{{ $summary['status'] }}</td><td class="number">{{ $summary['activity_count'] }}</td><td class="number">{{ number_format($summary['participants']) }}</td><td class="number">PHP {{ number_format($summary['budget'], 2) }}</td></tr>
+                @empty
+                    <tr><td colspan="4">No status data for the selected filters.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    @endif
     <table>
         <thead><tr><th>Organization</th><th>Term / SY</th><th>Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th class="number">Budget</th></tr></thead>
         <tbody>

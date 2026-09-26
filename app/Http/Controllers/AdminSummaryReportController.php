@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\SummaryReportExport;
 use App\Models\ActivityRequest;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -22,7 +23,10 @@ class AdminSummaryReportController extends Controller
     public function index(Request $request)
     {
         $filters = $this->filters($request);
-        $activityRequests = $this->activityRequests($filters)->get();
+        $allActivityRequests = $this->activityRequests($filters, false)->get();
+        $activityRequests = $allActivityRequests->whereIn('status', [
+            'approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed',
+        ])->values();
         $organizations = User::query()
             ->where('role', '!=', 'admin')
             ->whereNotNull('org_name')
@@ -33,9 +37,11 @@ class AdminSummaryReportController extends Controller
 
         return view('admin.gpoa.summary-report', [
             'activityRequests' => $activityRequests,
-            'totalRequestCount' => $this->activityRequests($filters, false)->count(),
+            'totalRequestCount' => $allActivityRequests->count(),
             'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
-            'categorySummary' => $this->categorySummary($activityRequests),
+            'categorySummary' => $this->categorySummary($allActivityRequests),
+            'organizationSummary' => $this->organizationSummary($allActivityRequests),
+            'statusSummary' => $this->statusSummary($allActivityRequests),
             'filters' => $filters,
             'organizations' => $organizations,
             'categories' => self::CATEGORIES,
@@ -46,15 +52,39 @@ class AdminSummaryReportController extends Controller
     {
         $filters = $this->filters($request);
         $activityRequests = $this->activityRequests($filters)->get();
+        $allActivityRequests = $this->activityRequests($filters, false)->get();
 
         return Excel::download(
             new SummaryReportExport(
                 $activityRequests,
-                $this->categorySummary($activityRequests),
+                $this->organizationSummary($allActivityRequests),
+                $this->categorySummary($allActivityRequests),
+                $this->statusSummary($allActivityRequests),
                 $request->boolean('include_category_summary', true),
             ),
             'summary-report.xlsx'
         );
+    }
+
+    public function downloadPdf(Request $request)
+    {
+        $filters = $this->filters($request);
+        $activityRequests = $this->activityRequests($filters)->get();
+        $allActivityRequests = $this->activityRequests($filters, false)->get();
+
+        return Pdf::loadView('admin.gpoa.summary-report-pdf', [
+            'activityRequests' => $activityRequests,
+            'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
+            'organizationSummary' => $this->organizationSummary($allActivityRequests),
+            'categorySummary' => $this->categorySummary($allActivityRequests),
+            'statusSummary' => $this->statusSummary($allActivityRequests),
+            'includeSummaries' => $request->boolean('include_category_summary', true),
+            'term' => $filters['term'],
+            'organization' => $filters['organization'],
+            'category' => $filters['category'],
+            'dateFrom' => $filters['date_from'],
+            'dateTo' => $filters['date_to'],
+        ])->download('summary-report.pdf');
     }
 
     private function filters(Request $request): array
@@ -75,7 +105,10 @@ class AdminSummaryReportController extends Controller
                 'approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed',
             ]))
             ->when($filters['term'], function ($query, $term) {
-                $query->whereHas('gpoaActivity.gpoa', fn ($gpoaQuery) => $gpoaQuery->where('term', $term));
+                $query->where(function ($gpoaQuery) use ($term) {
+                    $gpoaQuery->whereHas('gpoa', fn ($directGpoa) => $directGpoa->where('term', $term))
+                        ->orWhereHas('gpoaActivity.gpoa', fn ($activityGpoa) => $activityGpoa->where('term', $term));
+                });
             })
             ->when($filters['organization'], function ($query, $organization) {
                 $query->whereHas('user', fn ($userQuery) => $userQuery->where('org_name', $organization));
@@ -96,6 +129,34 @@ class AdminSummaryReportController extends Controller
                 'participants' => $activities->sum(fn ($activity) => (int) ($activity->participants_count ?? 0)),
                 'budget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
             ])
+            ->values();
+    }
+
+    private function organizationSummary($activityRequests)
+    {
+        return $activityRequests
+            ->groupBy(fn ($activity) => $activity->user->org_name ?? $activity->user->name ?? 'Unknown Organization')
+            ->map(fn ($activities, $organization) => [
+                'organization' => $organization,
+                'activity_count' => $activities->count(),
+                'participants' => $activities->sum(fn ($activity) => (int) ($activity->participants_count ?? 0)),
+                'budget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
+            ])
+            ->sortBy('organization')
+            ->values();
+    }
+
+    private function statusSummary($activityRequests)
+    {
+        return $activityRequests
+            ->groupBy('status')
+            ->map(fn ($activities, $status) => [
+                'status' => str_replace('_', ' ', ucfirst($status)),
+                'activity_count' => $activities->count(),
+                'participants' => $activities->sum(fn ($activity) => (int) ($activity->participants_count ?? 0)),
+                'budget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
+            ])
+            ->sortBy('status')
             ->values();
     }
 }

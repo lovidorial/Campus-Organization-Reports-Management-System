@@ -86,6 +86,13 @@
                          Edit Profile
                     </a>
                 </li>
+                                <li>
+                                        <a href="{{ route('my-backup.index') }}"
+                                             class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                                             style="background-color: {{ request()->routeIs('my-backup.*') ? '#e89600' : 'transparent' }};">
+                                                 My Data Backup
+                                        </a>
+                                </li>
 
                 @else
                 <!-- ADMIN MENU -->

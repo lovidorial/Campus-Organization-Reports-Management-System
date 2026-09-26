@@ -30,6 +30,26 @@ class ActivityRequestPolicy
         return $this->allowsOrganizationAccess($user, $activityRequest->user?->organization_id);
     }
 
+    public function uploadReservationSlip(User $user, ActivityRequest $activityRequest): bool
+    {
+        if ($user->isAdmin()) {
+            return false;
+        }
+
+        $canAccessRequest = $user->id === $activityRequest->user_id
+            || $this->allowsOrganizationAccess($user, $activityRequest->user?->organization_id);
+
+        return $canAccessRequest
+            && filled($activityRequest->communication_letter)
+            && in_array($activityRequest->status, [
+                ActivityRequest::STATUS_APPROVED,
+                ActivityRequest::STATUS_IN_PROGRESS,
+                ActivityRequest::STATUS_AWAITING_REPORT,
+                ActivityRequest::STATUS_REPORT_SUBMITTED,
+                ActivityRequest::STATUS_CLOSED,
+            ], true);
+    }
+
     public function delete(User $user, ActivityRequest $activityRequest): bool
     {
         if ($user->id === $activityRequest->user_id) {

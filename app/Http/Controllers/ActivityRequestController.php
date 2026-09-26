@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\GpoaMatchValidator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ActivityRequestController extends Controller
@@ -72,8 +73,29 @@ class ActivityRequestController extends Controller
                 'report_status' => $request->report?->status,
                 'report_feedback' => $request->report?->feedback,
                 'monitoring_compliance_status' => $request->monitoringResult?->compliance_status,
+                'can_upload_reservation_slip' => auth()->user()->can('uploadReservationSlip', $request),
+                'reservation_slip_url' => $request->reservation_slip ? asset('storage/' . $request->reservation_slip) : null,
             ])->values(),
         ]);
+    }
+
+    public function uploadReservationSlip(Request $request, ActivityRequest $activityRequest)
+    {
+        $this->authorize('uploadReservationSlip', $activityRequest);
+
+        $validated = $request->validate([
+            'reservation_slip' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        $path = $validated['reservation_slip']->store('uploads/reservation-slips', 'public');
+
+        if ($activityRequest->reservation_slip) {
+            Storage::disk('public')->delete($activityRequest->reservation_slip);
+        }
+
+        $activityRequest->update(['reservation_slip' => $path]);
+
+        return back()->with('success', 'Venue reservation slip uploaded successfully.');
     }
 
     public function create(Request $request)

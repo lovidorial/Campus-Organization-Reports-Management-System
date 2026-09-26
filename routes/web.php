@@ -14,6 +14,7 @@ use App\Http\Controllers\GpoaModificationRequestController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicOrgChartController;
 use App\Http\Controllers\WorkflowDocumentController;
+use App\Http\Controllers\WorkflowSubmissionHistoryController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -36,7 +37,7 @@ Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('publ
 
 require __DIR__ . '/auth.php';
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit::class])->group(function () {
 
     Route::get('/terms', [\App\Http\Controllers\TermsController::class, 'show'])->name('terms.accept');
     Route::post('/terms/accept', [\App\Http\Controllers\TermsController::class, 'accept'])->name('terms.accept.store');
@@ -44,6 +45,9 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['terms.accepted'])->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/my-backup', [\App\Http\Controllers\UserBackupController::class, 'index'])->name('my-backup.index');
+        Route::post('/my-backup/export', [\App\Http\Controllers\UserBackupController::class, 'export'])->name('my-backup.export');
+        Route::get('/my-backup/download/{filename}', [\App\Http\Controllers\UserBackupController::class, 'download'])->name('my-backup.download');
 
         // GPOA Management
         Route::get('/gpoa', [GpoaController::class, 'index'])->name('gpoa.index');
@@ -59,6 +63,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/workflow/communication-letter', [WorkflowDocumentController::class, 'storeCommunicationLetter'])->name('workflow.communication-letter.store');
         Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
         Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
+        Route::get('/workflow/submission-history', [WorkflowSubmissionHistoryController::class, 'index'])->name('workflow.submission-history');
         Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
         Route::get('/notifications/unread-count', [WorkflowDocumentController::class, 'unreadNotificationCount'])->name('notifications.unread-count');
         Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
@@ -68,6 +73,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
         Route::get('/activity-monitor', [ActivityRequestController::class, 'monitor'])->name('activity-monitor.index');
         Route::get('/activity-requests/statuses', [ActivityRequestController::class, 'statuses'])->name('activity-requests.statuses');
+        Route::post('/activity-requests/{activityRequest}/reservation-slip', [ActivityRequestController::class, 'uploadReservationSlip'])->name('activity-requests.reservation-slip');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
         Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
@@ -102,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reports/{report}/reject', [ActivityReportController::class, 'reject'])->name('reports.reject');
         Route::post('/reports/{report}/return-for-correction', [ActivityReportController::class, 'returnForCorrection'])->name('reports.return-for-correction');
         Route::get('/summary-report', [AdminSummaryReportController::class, 'index'])->name('summary-report');
+        Route::get('/summary-report/pdf', [AdminSummaryReportController::class, 'downloadPdf'])->name('summary-report.pdf');
         Route::get('/summary-report/download', [AdminSummaryReportController::class, 'download'])->name('summary-report.download');
         Route::get('/approve/{id}', [AdminController::class, 'approve'])->name('approve');
         Route::post('/reject/{id}', [AdminController::class, 'reject'])->name('reject');
@@ -161,6 +168,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/organization-classifications/classify', [\App\Http\Controllers\AdminOrganizationClassificationController::class, 'classify'])->name('organization-classifications.classify');
 
         Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::get('/maintenance', [\App\Http\Controllers\AdminMaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::get('/activity-logs', [\App\Http\Controllers\AdminActivityLogController::class, 'index'])->name('activity-logs.index');
         Route::post('/backups', [BackupController::class, 'store'])->name('backups.store');
         Route::get('/backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
         Route::post('/backups/restore', [BackupController::class, 'restore'])->name('backups.restore');

@@ -66,40 +66,51 @@
 
 <!-- Activities Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
-    <table class="w-full text-sm min-w-[700px]">
+    @php
+        $statusClasses = [
+            'approved' => 'bg-green-100 text-green-700',
+            'closed' => 'bg-green-100 text-green-700',
+            'pending' => 'bg-amber-100 text-amber-700',
+            'in_progress' => 'bg-blue-100 text-blue-700',
+            'awaiting_report' => 'bg-orange-100 text-orange-700',
+            'report_submitted' => 'bg-indigo-100 text-indigo-700',
+            'rejected' => 'bg-red-100 text-red-700',
+        ];
+    @endphp
+    <table class="w-full table-fixed text-sm min-w-[1080px]">
         <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Title</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Organization</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Category</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Term / SY</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Basis</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Files</th>
-                <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                <th class="text-center px-4 py-3 font-semibold text-gray-600">Actions</th>
+                <th class="w-[18%] text-left px-3 py-2 font-semibold text-gray-600">Title</th>
+                <th class="w-[13%] text-left px-3 py-2 font-semibold text-gray-600">Organization</th>
+                <th class="w-[10%] text-left px-3 py-2 font-semibold text-gray-600">Category</th>
+                <th class="w-[9%] text-left px-3 py-2 font-semibold text-gray-600">Date</th>
+                <th class="w-[10%] text-left px-3 py-2 font-semibold text-gray-600">Term / SY</th>
+                <th class="w-[11%] text-left px-3 py-2 font-semibold text-gray-600">Basis</th>
+                <th class="w-[7%] text-left px-3 py-2 font-semibold text-gray-600">Files</th>
+                <th class="w-[11%] text-left px-3 py-2 font-semibold text-gray-600">Status</th>
+                <th class="w-[11%] text-center px-3 py-2 font-semibold text-gray-600">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y">
             @forelse($activities as $item)
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-4 font-medium max-w-[180px] truncate" title="{{ $item->title }}">{{ $item->title }}</td>
-                <td class="px-4 py-4 text-gray-500">
+                <td class="px-3 py-2.5 font-medium truncate" title="{{ $item->title }}">{{ $item->title }}</td>
+                <td class="px-3 py-2.5 text-gray-500 truncate">
                     @if($item->user)
                         {{ $item->user->org_name ?? $item->user->name }}
                     @else
                         {{ $item->organization ?? '—' }}
                     @endif
                 </td>
-                <td class="px-4 py-4">
+                <td class="px-3 py-2.5 truncate">
                     @if($item->category)
                     <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ $item->category }}</span>
                     @else <span class="text-gray-300">—</span> @endif
                 </td>
-                <td class="px-4 py-4">{{ $item->date->format('M d, Y') }}</td>
-                <td class="px-4 py-4 text-xs text-gray-500">{{ $item->term ?? '—' }}<br>{{ $item->school_year ?? '—' }}</td>
-                <td class="px-4 py-4 text-xs text-gray-500">{{ $item->basis_grading ?? '—' }}</td>
-                <td class="px-4 py-4 space-y-2">
+                <td class="px-3 py-2.5 whitespace-nowrap">{{ $item->date->format('M d, Y') }}</td>
+                <td class="px-3 py-2.5 text-xs text-gray-500">{{ $item->term ?? '—' }}<br>{{ $item->school_year ?? '—' }}</td>
+                <td class="px-3 py-2.5 text-xs text-gray-500 truncate">{{ $item->basis_grading ?? '—' }}</td>
+                <td class="px-3 py-2.5">
                     @if($item->communication_letter)
                         <div class="flex items-center gap-2">
                             <a href="{{ asset('storage/'.$item->communication_letter) }}" target="_blank"
@@ -116,12 +127,9 @@
                         <span class="text-gray-300">—</span>
                     @endif
                 </td>
-                <td class="px-4 py-4">
-                    <span class="px-2 py-1 rounded-full text-xs font-bold
-                        {{ $item->status == 'pending'  ? 'bg-yellow-100 text-yellow-700' : '' }}
-                        {{ $item->status == 'approved' ? 'bg-green-100 text-green-700'  : '' }}
-                        {{ $item->status == 'rejected' ? 'bg-red-100 text-red-700'      : '' }}">
-                        {{ ucfirst($item->status) }}
+                <td class="px-3 py-2.5">
+                    <span class="inline-flex whitespace-nowrap px-2 py-1 rounded-full text-xs font-bold {{ $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-700' }}">
+                        {{ str_replace('_', ' ', ucfirst($item->status)) }}
                     </span>
                     @if($item->status == 'rejected' && $item->reject_reason)
                     <p class="text-xs text-red-500 mt-1 max-w-[180px]" title="{{ $item->reject_reason }}">
@@ -129,7 +137,7 @@
                     </p>
                     @endif
                 </td>
-                <td class="px-4 py-4 text-center space-y-2">
+                <td class="px-3 py-2.5 text-center space-y-1">
                     @if($item->status !== 'approved')
                         <a href="{{ route('user.activities.edit', $item) }}"
                            class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 font-semibold">Edit</a>
