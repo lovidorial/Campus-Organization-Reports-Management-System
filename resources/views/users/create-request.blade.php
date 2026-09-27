@@ -73,22 +73,6 @@
                     </div>
                 </div>
 
-                @if($gpoa->activities->isNotEmpty())
-                    <div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Available Planned Activities</p>
-                        <div class="mt-3 space-y-2">
-                            @foreach($gpoa->activities as $activity)
-                                <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                                    <div class="font-semibold text-slate-900">{{ $activity->title }}</div>
-                                    <div class="mt-1 text-xs text-slate-500">
-                                        {{ $activity->date ? $activity->date->format('M d, Y') : 'No date' }} • {{ $activity->venue ?? 'Venue not set' }}
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
                 <section class="form-section">
                     <div class="section-heading">
                         <div>
@@ -323,7 +307,7 @@
                         @error('plan_key_strategy')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
 
-                    <div class="grid gap-6 md:grid-cols-2 mt-6">
+                    <div class="grid gap-6 md:grid-cols-1 mt-6">
                         <div class="form-group">
                             <label for="date">Date *</label>
                             <input id="date" type="date" name="date" value="{{ old('date') }}" required>
@@ -335,7 +319,7 @@
                             @error('end_date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
-                            <label for="start_time">Start Time (optional)</label>
+                            <label for="start_time">Start Time</label>
                             <input id="start_time" type="time" name="start_time" value="{{ old('start_time') }}">
                             @error('start_time')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
@@ -346,22 +330,88 @@
                         </div>
                     </div>
 
+                    <section class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4"
+                             x-data="{
+                                rows: @js(old('program_flows', [])),
+                                addRow() {
+                                    this.rows.push({ time: '', flow: '', person_in_charge: '' });
+                                },
+                                removeRow(index) {
+                                    this.rows.splice(index, 1);
+                                }
+                             }">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-semibold text-slate-800">Program Flow</h3>
+                            <p class="mt-1 text-xs text-slate-500">Optional schedule for the Activity Date selected above.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-[640px] text-sm">
+                                <thead class="text-xs uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="px-2 py-2 text-left">Time</th>
+                                        <th class="px-2 py-2 text-left">Flow / Program</th>
+                                        <th class="px-2 py-2 text-left">Person in Charge</th>
+                                        <th class="w-12 px-2 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    <template x-for="(row, index) in rows" :key="index">
+                                        <tr>
+                                            <td class="px-2 py-2 align-top">
+                                                <input type="text" :name="`program_flows[${index}][time]`" x-model="row.time"
+                                                       placeholder="e.g. 8:00 AM" class="w-full rounded-lg border border-gray-300 px-3 py-2">
+                                            </td>
+                                            <td class="px-2 py-2 align-top">
+                                                <input type="text" :name="`program_flows[${index}][flow]`" x-model="row.flow"
+                                                       placeholder="e.g. Opening Remarks" class="w-full rounded-lg border border-gray-300 px-3 py-2">
+                                            </td>
+                                            <td class="px-2 py-2 align-top">
+                                                <input type="text" :name="`program_flows[${index}][person_in_charge]`" x-model="row.person_in_charge"
+                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2">
+                                            </td>
+                                            <td class="px-2 py-2 align-top">
+                                                <button type="button" @click="removeRow(index)" aria-label="Remove program flow row"
+                                                        title="Remove row" class="rounded p-2 text-red-600 hover:bg-red-50">
+                                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18m-2 0-.9 14H5.9L5 6m4 0V4h6v2m-5 4v6m4-6v6" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        @foreach($errors->getMessages() as $field => $messages)
+                            @if(str_starts_with($field, 'program_flows.'))
+                                <p class="mt-2 text-xs text-red-600">{{ $messages[0] }}</p>
+                            @endif
+                        @endforeach
+                        <button type="button" @click="addRow()"
+                                class="mt-3 inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
+                            Add row
+                        </button>
+                    </section>
+
+                    <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+                        <label for="is_urgent" class="flex items-center gap-2 font-semibold text-red-800">
+                            <input id="is_urgent" type="checkbox" name="is_urgent" value="1" {{ old('is_urgent') ? 'checked' : '' }}>
+                            Mark this request as urgent
+                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Urgent</span>
+                        </label>
+                        <p class="mt-1 text-xs text-red-700">Urgent requests may be submitted less than 7 days before the activity, but cannot be dated in the past. A reason is required.</p>
+                        <div class="form-group mt-3">
+                            <label for="urgent_reason">Urgent reason <span class="text-xs text-gray-500">(required when urgent)</span></label>
+                            <textarea id="urgent_reason" name="urgent_reason" rows="2" maxlength="2000">{{ old('urgent_reason') }}</textarea>
+                            @error('urgent_reason')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
                         <div class="form-group">
                             <label for="venue">Venue *</label>
                             <input id="venue" type="text" name="venue" value="{{ old('venue') }}" required>
                             @error('venue')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
-
-                    <div class="grid gap-4 md:grid-cols-2 mt-6">
-                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                            <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Target Participants</p>
-                            <p id="targetParticipantsSummary" class="mt-1 text-sm font-semibold text-slate-800">Not set</p>
-                        </div>
-                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                            <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Estimated Budget</p>
-                            <p id="estimatedBudgetSummary" class="mt-1 text-sm font-semibold text-slate-800">₱ 0.00</p>
                         </div>
                     </div>
 
@@ -405,19 +455,6 @@
                             </select>
                             @error('source_of_funds')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
-                        <div class="form-group">
-                            <label for="preceding_activity">Preceding Activity</label>
-                            <input id="preceding_activity" type="text" name="preceding_activity" value="{{ old('preceding_activity') }}">
-                            @error('preceding_activity')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
-
-                    <div class="form-row grid-2 mt-6">
-                        <div class="form-group">
-                            <label for="participants_count">Participants Override</label>
-                            <input id="participants_count" type="number" name="participants_count" min="1" value="{{ old('participants_count') }}" placeholder="Leave blank to use planned amount">
-                            @error('participants_count')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
                     </div>
 
                     <div class="form-group mt-6">
@@ -449,30 +486,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const endDateInput = document.getElementById('end_date');
     const targetParticipantsInput = document.getElementById('target_participants');
     const estimatedBudgetInput = document.getElementById('estimated_budget');
-    const targetParticipantsSummary = document.getElementById('targetParticipantsSummary');
-    const estimatedBudgetSummary = document.getElementById('estimatedBudgetSummary');
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
-
-    function updateParticipantAndBudgetSummary() {
-        const participants = targetParticipantsInput?.value?.trim();
-        const budgetValue = estimatedBudgetInput?.value;
-
-        if (targetParticipantsSummary) {
-            targetParticipantsSummary.textContent = participants || 'Not set';
-        }
-
-        if (estimatedBudgetSummary) {
-            const budget = parseFloat(budgetValue || '0');
-            estimatedBudgetSummary.textContent = Number.isFinite(budget) ? `₱ ${budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱ 0.00';
-        }
-    }
-
-    [targetParticipantsInput, estimatedBudgetInput].forEach(input => {
-        input?.addEventListener('input', updateParticipantAndBudgetSummary);
-    });
-
-    updateParticipantAndBudgetSummary();
 
     function prefillFromPlannedActivity() {
         const activity = plannedActivities[plannedActivitySelect?.value];
@@ -480,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         ['title', 'category', 'objectives', 'expected_outcome', 'plan_key_strategy', 'date',
             'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
-            'estimated_budget', 'source_of_funds', 'preceding_activity'].forEach(field => {
+            'estimated_budget', 'source_of_funds'].forEach(field => {
             const input = document.getElementById(field);
             if (input && activity[field] !== null && activity[field] !== undefined) {
                 input.value = activity[field];

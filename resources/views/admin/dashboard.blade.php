@@ -20,14 +20,14 @@
                 </div>
                 <div class="relative">
                     <button id="adminProfileToggle" class="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm hover:shadow-md">
-                        <img src="{{ auth()->user()->profile_photo_path ? asset('storage/'.auth()->user()->profile_photo_path) : asset('images/osdw.logo.jpg') }}" class="h-10 w-10 rounded-full object-cover" alt="Profile"/>
+                        <img src="{{ auth()->user()->avatar_url }}" class="h-10 w-10 rounded-full object-cover" alt="{{ auth()->user()->name }} profile photo"/>
                         <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M6 8l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/></svg>
                     </button>
                     <div id="adminProfileMenu" class="hidden absolute right-0 mt-3 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Settings</a>
                         <a href="{{ route('admin.backups.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Backup & Restore</a>
-                        <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Logout</a>
-                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>
+                        <a href="{{ route('admin.maintenance.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">System Maintenance</a>
+                        <a href="{{ route('admin.document-deadlines.index') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Document Deadlines</a>
                     </div>
                 </div>
             </div>

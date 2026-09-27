@@ -100,7 +100,13 @@ class AdminSummaryReportController extends Controller
 
     private function activityRequests(array $filters, bool $completedOnly = true)
     {
-        return ActivityRequest::with(['user', 'gpoaActivity.gpoa', 'gpoa', 'report'])
+        return ActivityRequest::with([
+            'user',
+            'gpoaActivity.gpoa',
+            'gpoa',
+            'report',
+            'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
+        ])
             ->when($completedOnly, fn ($query) => $query->whereIn('status', [
                 'approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed',
             ]))

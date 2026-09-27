@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -112,6 +113,9 @@ class AuthenticationTest extends TestCase
 
     public function test_organization_logo_is_used_as_user_avatar_when_present(): void
     {
+        Storage::fake('public');
+        Storage::disk('public')->put('organization-logos/test-logo.jpg', 'fake-logo-image');
+
         $organization = Organization::create([
             'name' => 'CTESC',
             'type' => 'Student Council',
@@ -130,6 +134,19 @@ class AuthenticationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('storage/organization-logos/test-logo.jpg');
+    }
+
+    public function test_missing_profile_photo_uses_the_default_avatar(): void
+    {
+        $user = User::factory()->create([
+            'profile_photo_path' => 'profile-photos/missing-photo.jpg',
+        ]);
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertOk();
+        $response->assertSee(asset('images/osdw.logo.jpg'), false);
+        $response->assertDontSee('storage/profile-photos/missing-photo.jpg');
     }
 
     public function test_public_storage_files_are_served_from_storage_route(): void

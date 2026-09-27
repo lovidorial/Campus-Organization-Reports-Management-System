@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityReportController;
 use App\Http\Controllers\ActivityRequestController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminDocumentDeadlineController;
 use App\Http\Controllers\AdminGpoaController;
 use App\Http\Controllers\AdminSummaryReportController;
 use App\Http\Controllers\AdminWorkflowController;
@@ -13,6 +15,7 @@ use App\Http\Controllers\GpoaController;
 use App\Http\Controllers\GpoaModificationRequestController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicOrgChartController;
+use App\Http\Controllers\PublicScheduleController;
 use App\Http\Controllers\WorkflowDocumentController;
 use App\Http\Controllers\WorkflowSubmissionHistoryController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +36,7 @@ Route::get('/storage/{path}', function (string $path) {
 })->where('path', '.*');
 
 Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
+Route::get('/schedule', [PublicScheduleController::class, 'index'])->name('public.schedule');
 Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('public.orgchart');
 
 require __DIR__ . '/auth.php';
@@ -45,6 +49,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
     Route::middleware(['terms.accepted'])->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/activities/calendar', [ActivityCalendarController::class, 'index'])->name('activities.calendar');
         Route::get('/faq', function (\Illuminate\Http\Request $request) {
             return view('faq.index', [
                 'isAdmin' => $request->user()?->isAdmin() ?? false,
@@ -83,6 +88,8 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
         Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
+        Route::get('/activity-requests/{activityRequest}', [ActivityRequestController::class, 'show'])->name('activity-requests.show');
+        Route::get('/activity-requests/{activityRequest}/pdf', [ActivityRequestController::class, 'downloadPdf'])->name('activity-requests.pdf');
         Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
         Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
@@ -175,6 +182,8 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
 
         Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
         Route::get('/maintenance', [\App\Http\Controllers\AdminMaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::get('/document-deadlines', [AdminDocumentDeadlineController::class, 'index'])->name('document-deadlines.index');
+        Route::put('/document-deadlines', [AdminDocumentDeadlineController::class, 'update'])->name('document-deadlines.update');
         Route::get('/activity-logs', [\App\Http\Controllers\AdminActivityLogController::class, 'index'])->name('activity-logs.index');
         Route::post('/backups', [BackupController::class, 'store'])->name('backups.store');
         Route::get('/backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');

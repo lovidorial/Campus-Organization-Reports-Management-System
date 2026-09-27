@@ -5,17 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Gpoa;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ActivityRequest extends Model
 {
     protected $fillable = [
-        'user_id', 'gpoa_id', 'gpoa_activity_id', 'title', 'date', 'end_date', 'start_time', 'end_time', 'venue',
+        'user_id', 'gpoa_id', 'gpoa_activity_id', 'venue_id', 'title', 'date', 'end_date', 'start_time', 'end_time', 'venue',
         'category', 'sdgs', 'objectives', 'expected_outcome',
         'plan_key_strategy', 'target_participants', 'person_in_charge',
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
         'preceding_activity', 'description', 'participants_count',
-        'communication_letter', 'reservation_slip', 'status', 'reject_reason',
+        'communication_letter', 'reservation_slip', 'status', 'reject_reason', 'is_urgent', 'urgent_reason',
     ];
 
     protected $casts = [
@@ -23,6 +24,7 @@ class ActivityRequest extends Model
         'end_date' => 'date',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
+        'is_urgent' => 'boolean',
     ];
 
     public const STATUS_PENDING = 'pending';
@@ -43,9 +45,33 @@ class ActivityRequest extends Model
         return $this->belongsTo(Gpoa::class);
     }
 
+    public function venueRecord(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class, 'venue_id');
+    }
+
     public function gpoaActivity(): BelongsTo
     {
         return $this->belongsTo(GpoaActivity::class);
+    }
+
+    public function programFlows(): HasMany
+    {
+        return $this->hasMany(ActivityProgramFlow::class)->orderBy('sort_order');
+    }
+
+    public function replaceProgramFlows(array $rows): void
+    {
+        $this->programFlows()->delete();
+
+        foreach (array_values($rows) as $sortOrder => $row) {
+            $this->programFlows()->create([
+                'time' => $row['time'],
+                'flow' => $row['flow'],
+                'person_in_charge' => $row['person_in_charge'],
+                'sort_order' => $sortOrder,
+            ]);
+        }
     }
 
     public function report(): HasOne

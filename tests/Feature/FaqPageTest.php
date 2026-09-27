@@ -17,6 +17,7 @@ class FaqPageTest extends TestCase
         $response = $this->actingAs($user)->get(route('faq'));
 
         $response->assertOk();
+        $response->assertSee('href="' . route('faq') . '"', false);
         $response->assertSee('What is a GPOA, and why must it be approved before I submit activities?');
         $response->assertDontSee('How do I review and approve or reject a GPOA or Activity Request?');
     }
@@ -28,7 +29,18 @@ class FaqPageTest extends TestCase
         $response = $this->actingAs($admin)->get(route('faq'));
 
         $response->assertOk();
+        $response->assertSee('href="' . route('faq') . '"', false);
         $response->assertSee('How do I review and approve or reject a GPOA or Activity Request?');
         $response->assertDontSee('What is a GPOA, and why must it be approved before I submit activities?');
+    }
+
+    public function test_user_dashboard_sidebar_links_to_the_faq(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('href="' . route('faq') . '"', false);
     }
 }

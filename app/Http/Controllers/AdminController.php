@@ -14,6 +14,7 @@ use App\Models\WorkflowEvent;
 use App\Models\WorkflowSubmission;
 use App\Services\GpoaActivityLinker;
 use App\Services\OrganizationWorkflowService;
+use App\Services\VenueAvailabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -180,7 +181,14 @@ class AdminController extends Controller
 
     public function monitor(Request $request)
     {
-        $query = ActivityRequest::with(['user', 'gpoa', 'report', 'monitoringResult']);
+        $query = ActivityRequest::with([
+            'user',
+            'gpoa',
+            'report',
+            'monitoringResult',
+            'programFlows',
+            'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
+        ]);
 
         if ($request->filled('search')) {
             $term = $request->search;
@@ -266,6 +274,7 @@ class AdminController extends Controller
             'requests' => $activities->getCollection()->map(fn ($activity) => [
                 'id' => $activity->id,
                 'status' => $activity->status,
+                'is_urgent' => (bool) $activity->is_urgent,
                 'report_status' => $activity->report?->status,
                 'report_id' => $activity->report?->id,
                 'monitoring_compliance_status' => $activity->monitoringResult?->compliance_status,
@@ -273,7 +282,7 @@ class AdminController extends Controller
         ]);
     }
 
-    public function approve($id)
+    public function approve($id, VenueAvailabilityService $venueAvailability)
     {
         $activity = ActivityRequest::findOrFail($id);
 
@@ -281,14 +290,20 @@ class AdminController extends Controller
             return back()->with('error', 'Only pending activity requests can be approved.');
         }
 
-        $conflict = ActivityRequest::where('date', $activity->date)
-            ->where('venue', $activity->venue)
-            ->whereIn('status', [ActivityRequest::STATUS_APPROVED, ActivityRequest::STATUS_IN_PROGRESS])
-            ->where('id', '!=', $id)
-            ->exists();
+        $venue = $activity->venue_id
+            ? $activity->venueRecord
+            : $venueAvailability->resolveVenue($activity->venue);
+        $availabilityData = array_merge($activity->only([
+            'date', 'end_date', 'start_time', 'end_time', 'venue',
+        ]), ['venue_id' => $venue->id]);
+        $conflict = $venueAvailability->conflictingRequest($availabilityData, $activity->id);
 
         if ($conflict) {
-            return back()->with('error', 'Cannot approve. Conflict detected at same venue/date.');
+            return back()->with('error', "Cannot approve: this venue and time conflict with '{$conflict->title}'. Resolve the scheduling conflict first.");
+        }
+
+        if (! $activity->venue_id) {
+            $activity->update(['venue_id' => $venue->id]);
         }
 
         // Use DB transaction to ensure both status update and GpoaActivity creation succeed or fail together

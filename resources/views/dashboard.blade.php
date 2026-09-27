@@ -2,6 +2,11 @@
 
 @php
     $user = auth()->user();
+    $hasThemeColor = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $user->theme_color) === 1;
+    $themeColor = $hasThemeColor ? $user->theme_color : '#e89600';
+    $themeColorLight = $hasThemeColor
+        ? "color-mix(in srgb, {$themeColor} 78%, white)"
+        : '#f5a623';
     $orgName = $user->organization->name ?? $user->org_name ?? '—';
     $semester = str_replace('Term', 'Semester', $term);
     $academicYear = str_replace('-', '–', $schoolYear);
@@ -76,18 +81,12 @@
 
 {{-- Welcome Header --}}
 <div class="rounded-2xl p-5 md:p-6 mb-5 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
-     style="background: linear-gradient(135deg, #f5a623 0%, #e89600 100%);">
+    style="background: linear-gradient(135deg, {{ $themeColorLight }} 0%, {{ $themeColor }} 100%);">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         <div class="flex items-start sm:items-center gap-4">
-            @if($user->profile_photo_path)
-                <img src="{{ asset('storage/'.$user->profile_photo_path) }}"
-                     alt="{{ $user->name }}"
-                     class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
-            @else
-                <div class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl bg-white/95 flex items-center justify-center text-2xl font-bold shadow-md shrink-0" style="color: #e89600;">
-                    {{ strtoupper(substr($user->name, 0, 1)) }}
-                </div>
-            @endif
+            <img src="{{ $user->avatar_url }}"
+                 alt="{{ $user->name }} profile photo"
+                  class="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"/>
             <div>
                 <p class="text-white/80 text-sm font-medium">Welcome,</p>
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight">{{ $user->name }}</h1>
@@ -315,9 +314,9 @@
             <tbody class="divide-y divide-gray-50">
                 @foreach($activities as $activity)
                 <tr class="hover:bg-orange-50/30 transition-colors duration-200">
-                    <td class="px-2 py-1.5 font-medium text-gray-800">{{ $activity->title }}</td>
+                    <td class="px-2 py-1.5 font-medium text-gray-800"><a href="{{ route('activity-requests.show', $activity) }}" class="text-sky-800 hover:underline">{{ $activity->title }}</a></td>
                     <td class="px-2 py-1.5 text-gray-600">{{ $activity->date->format('M d, Y') }}</td>
-                    <td class="px-2 py-1.5 text-gray-600">{{ $activity->venue }}</td>
+                    <td class="px-2 py-1.5 text-gray-600">{{ $activity->venue }} <x-venue-status-badge :venue="$activity->venueRecord" /></td>
                     <td class="px-2 py-1.5">
                         @php
                             $statusClass = match($activity->status) {

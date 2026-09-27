@@ -73,12 +73,12 @@
                          Dashboard
                     </a>
                 </li>
-                <li x-data="{ open: {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') || request()->routeIs('workflow.submission-history') ? 'true' : 'false' }} }">
+                <li x-data="{ open: {{ request()->routeIs('gpoa.*') || request()->routeIs('activities.calendar') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') || request()->routeIs('workflow.submission-history') ? 'true' : 'false' }} }">
                     <button type="button"
                             @click="open = !open"
                             :aria-expanded="open.toString()"
                             class="flex items-center justify-between gap-3 w-full px-4 py-2.5 rounded-lg transition font-bold text-white"
-                            :style="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') || request()->routeIs('workflow.submission-history') ? 'true' : 'false' }} ? 'background-color: #e89600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);' : 'background-color: rgba(0,0,0,0.12); text-shadow: 0 1px 3px rgba(0,0,0,0.5);'">
+                            :style="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activities.calendar') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') || request()->routeIs('workflow.submission-history') ? 'true' : 'false' }} ? 'background-color: #e89600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);' : 'background-color: rgba(0,0,0,0.12); text-shadow: 0 1px 3px rgba(0,0,0,0.5);'">
                         <span>Documents & Activities</span>
                         <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" :class="open ? 'rotate-90' : ''">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -102,6 +102,11 @@
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
                            style="background-color: {{ request()->routeIs('activity-requests.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                             Activity Requests
+                        </a>
+                        <a href="{{ route('activities.calendar') }}"
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
+                           style="background-color: {{ request()->routeIs('activities.calendar') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                            Activity Calendar
                         </a>
                         <a href="{{ route('activity-monitor.index') }}"
                            style="background-color: {{ request()->routeIs('activity-monitor.*') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
@@ -147,14 +152,6 @@
                          My Data Backup
                     </a>
                 </li>
-                                <li>
-                                        <a href="{{ route('faq') }}"
-                                             class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                                             style="background-color: {{ request()->routeIs('faq') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                                 FAQ
-                                        </a>
-                                </li>
-
                 @else
                 <!-- ADMIN MENU -->
                 <li class="pb-1">
@@ -176,6 +173,13 @@
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
                        style="background-color: {{ request()->routeIs('admin.activities') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Activity Monitoring
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('activities.calendar') }}"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                       style="background-color: {{ request()->routeIs('activities.calendar') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                        Activity Calendar
                     </a>
                 </li>
                 <li>
@@ -220,18 +224,18 @@
                                                  Activity Logs
                                             </a>
                                         </li>
-                                <li>
-                                        <a href="{{ route('faq') }}"
-                                             class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                                             style="background-color: {{ request()->routeIs('faq') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                                 FAQ
-                                        </a>
-                                </li>
                 <li class="mt-3">
                     <a href="{{ route('admin.organizations.index') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
                        style="background-color: {{ request()->routeIs('admin.organizations.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                          Organization account
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('faq') }}"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                       style="background-color: {{ request()->routeIs('faq') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                        FAQ
                     </a>
                 </li>
                 @endif

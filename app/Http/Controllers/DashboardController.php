@@ -40,7 +40,11 @@ class DashboardController extends Controller
             ->first();
 
         $activities = ActivityRequest::where('user_id', auth()->id())
-            ->with(['gpoaActivity', 'report'])
+            ->with([
+                'gpoaActivity',
+                'report',
+                'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
+            ])
             ->latest()
             ->paginate(5);
 

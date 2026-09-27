@@ -129,7 +129,7 @@
                 <tbody>
                     @forelse($activities as $act)
                     <tr class="border-b last:border-0 hover:bg-slate-50">
-                        <td class="p-3 font-medium text-slate-900">{{ $act->title }}</td>
+                        <td class="p-3 font-medium text-slate-900"><a href="{{ route('activity-requests.show', $act) }}" class="text-sky-800 hover:underline">{{ $act->title }}</a></td>
                         <td class="p-3 text-slate-500">{{ $act->user->name ?? '—' }}</td>
                         <td class="p-3">
                             <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{{ $act->category ?? '—' }}</span>

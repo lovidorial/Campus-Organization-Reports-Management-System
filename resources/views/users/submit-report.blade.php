@@ -12,7 +12,7 @@
         <div class="bg-gray-50 rounded-lg p-4 text-sm">
             <p><strong>Activity:</strong> {{ $activityRequest->title }}</p>
             <p><strong>Date:</strong> {{ $activityRequest->date->format('M d, Y') }}</p>
-            <p><strong>Venue:</strong> {{ $activityRequest->venue }}</p>
+            <p><strong>Venue:</strong> {{ $activityRequest->venue }} <x-venue-status-badge :venue="$activityRequest->venueRecord" /></p>
         </div>
 
         <div>

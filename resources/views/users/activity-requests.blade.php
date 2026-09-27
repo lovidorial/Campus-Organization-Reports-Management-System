@@ -8,22 +8,26 @@
        class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">+ Request Activity</a>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white rounded-xl border p-4 text-center">
-        <p class="text-xs text-gray-500 uppercase">Total</p>
-        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->count()) }}</p>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[11px] text-sky-700 font-bold uppercase tracking-wide">Total</p>
+        <p class="text-2xl font-normal text-sky-800 leading-tight">{{ $grouped->sum(fn($group) => $group->count()) }}</p>
+        <p class="text-[11px] text-sky-700 mt-0.5">All activity requests</p>
     </div>
-    <div class="bg-white rounded-xl border p-4 text-center">
-        <p class="text-xs text-gray-500 uppercase">Pending</p>
-        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->where('status','pending')->count()) }}</p>
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[11px] text-orange-600 font-bold uppercase tracking-wide">Pending</p>
+        <p class="text-2xl font-normal text-orange-600 leading-tight">{{ $grouped->sum(fn($group) => $group->where('status','pending')->count()) }}</p>
+        <p class="text-[11px] text-orange-700 mt-0.5">Awaiting review</p>
     </div>
-    <div class="bg-white rounded-xl border p-4 text-center">
-        <p class="text-xs text-gray-500 uppercase">In Progress</p>
-        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->whereIn('status',['approved','in_progress','awaiting_report'])->count()) }}</p>
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[11px] text-green-700 font-bold uppercase tracking-wide">In Progress</p>
+        <p class="text-2xl font-normal text-green-700 leading-tight">{{ $grouped->sum(fn($group) => $group->whereIn('status',['approved','in_progress','awaiting_report'])->count()) }}</p>
+        <p class="text-[11px] text-green-700 mt-0.5">Approved activities</p>
     </div>
-    <div class="bg-white rounded-xl border p-4 text-center">
-        <p class="text-xs text-gray-500 uppercase">Closed</p>
-        <p class="text-2xl font-bold text-slate-500">{{ $grouped->sum(fn($group) => $group->where('status','closed')->count()) }}</p>
+    <div class="bg-white p-3 border border-gray-100 shadow-sm">
+        <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wide">Closed</p>
+        <p class="text-2xl font-normal text-slate-700 leading-tight">{{ $grouped->sum(fn($group) => $group->where('status','closed')->count()) }}</p>
+        <p class="text-[11px] text-slate-600 mt-0.5">Completed activities</p>
     </div>
 </div>
 
@@ -192,7 +196,43 @@
                     <tbody class="divide-y bg-white">
                         @foreach($group as $req)
                             <tr class="hover:bg-slate-50" data-request-id="{{ $req->id }}">
-                                <td class="px-3 py-2.5 font-medium text-slate-900 truncate" title="{{ $req->title }}">{{ $req->title }}</td>
+                                <td class="px-3 py-2.5 font-medium text-slate-900" title="{{ $req->title }}">
+                                    <div class="flex flex-wrap items-center gap-1">
+                                        <a href="{{ route('activity-requests.show', $req) }}" class="truncate text-sky-800 hover:underline">{{ $req->title }}</a>
+                                        @if($req->is_urgent)
+                                            <span class="ml-1 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Urgent</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
+                                        <span>{{ $req->venue ?? '—' }}</span>
+                                        <x-venue-status-badge :venue="$req->venueRecord" />
+                                    </div>
+                                    @if($req->programFlows->isNotEmpty())
+                                        <details class="mt-2 font-normal">
+                                            <summary class="cursor-pointer text-xs font-semibold text-sky-700">Program Flow ({{ $req->programFlows->count() }})</summary>
+                                            <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                                                <table class="w-full min-w-[420px] text-xs">
+                                                    <thead class="bg-slate-50 text-slate-500">
+                                                        <tr>
+                                                            <th class="px-2 py-1.5 text-left">Time</th>
+                                                            <th class="px-2 py-1.5 text-left">Flow</th>
+                                                            <th class="px-2 py-1.5 text-left">Person in Charge</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-slate-100">
+                                                        @foreach($req->programFlows as $programFlow)
+                                                            <tr>
+                                                                <td class="px-2 py-1.5">{{ $programFlow->time }}</td>
+                                                                <td class="px-2 py-1.5">{{ $programFlow->flow }}</td>
+                                                                <td class="px-2 py-1.5">{{ $programFlow->person_in_charge }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </details>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->category ?? '—' }}</td>
                                 <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->activity_level ?? '—' }}</td>
                                 <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->target_participants ?? '—' }}</td>

@@ -18,6 +18,8 @@ class OrganizationWorkflow extends Model
     public const STAGE_COMPLETED = 'completed';
 
     public const DOC_GPOA = 'gpoa';
+    public const DOC_ACTIVITY_REQUEST = 'activity_request';
+    public const DOC_ACTIVITY_REPORT = 'activity_report';
     public const DOC_COMMUNICATION = 'communication_letter';
     public const DOC_SUMMARY = 'summary_report';
 
@@ -139,6 +141,11 @@ class OrganizationWorkflow extends Model
         $gpoa = $this->currentSubmission(self::DOC_GPOA);
 
         return $gpoa && $gpoa->status === WorkflowSubmission::STATUS_APPROVED;
+    }
+
+    public function documentDeadline(string $documentType): ?\Illuminate\Support\Carbon
+    {
+        return DocumentDeadline::forPeriod($documentType, $this->term, $this->school_year)?->deadline_date;
     }
 
     public function progressStages(): array
@@ -327,7 +334,7 @@ class OrganizationWorkflow extends Model
                 'submessage' => $gpoa->reject_reason,
                 'action_url' => route('gpoa.create'),
                 'action_label' => 'Resubmit GPOA',
-                'deadline' => $gpoa->updated_at?->copy()->addDays(14),
+                'deadline' => $this->documentDeadline(self::DOC_GPOA),
                 'estimated_review' => null,
             ];
         }
@@ -340,7 +347,7 @@ class OrganizationWorkflow extends Model
                 'submessage' => 'It is currently under review by the OSDW Office. No action is required at this time.',
                 'action_url' => null,
                 'action_label' => null,
-                'deadline' => null,
+                'deadline' => $this->documentDeadline(self::DOC_ACTIVITY_REQUEST),
                 'estimated_review' => '3–5 Working Days',
             ];
         }
@@ -363,7 +370,7 @@ class OrganizationWorkflow extends Model
         }
 
         if ($this->canSubmitSummaryReport() && (!$summary || $summary->status === WorkflowSubmission::STATUS_PENDING)) {
-            $deadline = $gpoa->approved_at?->copy()->addDays(30);
+            $deadline = $this->documentDeadline(self::DOC_SUMMARY);
 
             return [
                 'type' => 'action_required',
@@ -385,7 +392,7 @@ class OrganizationWorkflow extends Model
                 'submessage' => $summary->reject_reason,
                 'action_url' => route('workflow.summary-report'),
                 'action_label' => 'Resubmit Summary Report',
-                'deadline' => $summary->updated_at?->copy()->addDays(14),
+                'deadline' => $this->documentDeadline(self::DOC_SUMMARY),
                 'estimated_review' => null,
             ];
         }

@@ -10,6 +10,8 @@ use App\Models\WorkflowSubmission;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\GpoaMatchValidator;
+use App\Services\VenueAvailabilityService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -19,7 +21,14 @@ class ActivityRequestController extends Controller
     public function index()
     {
         $requests = ActivityRequest::where('user_id', auth()->id())
-            ->with(['gpoa', 'gpoaActivity.gpoa', 'report', 'monitoringResult'])
+            ->with([
+                'gpoa',
+                'gpoaActivity.gpoa',
+                'report',
+                'monitoringResult',
+                'programFlows',
+                'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
+            ])
             ->latest()
             ->get();
 
@@ -30,6 +39,58 @@ class ActivityRequestController extends Controller
         $grouped = $requests->groupBy(fn ($request) => optional($request->gpoa ?? $request->gpoaActivity?->gpoa)->id ?: 'ungrouped');
 
         return view('users.activity-requests', compact('grouped'));
+    }
+
+    public function show(ActivityRequest $activityRequest)
+    {
+        $this->authorize('view', $activityRequest);
+        $activityRequest->refreshLifecycleStatus();
+        $activityRequest->load([
+            'user',
+            'gpoa',
+            'gpoaActivity',
+            'report',
+            'monitoringResult',
+            'programFlows',
+            'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
+        ]);
+
+        return view('users.activity-request-show', compact('activityRequest'));
+    }
+
+    public function downloadPdf(ActivityRequest $activityRequest)
+    {
+        $this->authorize('view', $activityRequest);
+
+        abort_unless(in_array($activityRequest->status, [
+            ActivityRequest::STATUS_APPROVED,
+            ActivityRequest::STATUS_IN_PROGRESS,
+            ActivityRequest::STATUS_AWAITING_REPORT,
+            ActivityRequest::STATUS_REPORT_SUBMITTED,
+            ActivityRequest::STATUS_CLOSED,
+        ], true), 403);
+
+        $activityRequest->loadMissing(['user.organization', 'gpoa', 'programFlows']);
+        $organization = $activityRequest->user?->organization;
+        $organizationName = $organization?->name ?? $activityRequest->user?->org_name ?? 'Campus Organization';
+        $logoDataUri = null;
+        $logoPath = $organization?->logo_path;
+
+        if ($logoPath && Storage::disk('public')->exists($logoPath)) {
+            $imageInfo = @getimagesize(Storage::disk('public')->path($logoPath));
+            $mimeType = $imageInfo['mime'] ?? null;
+            if ($mimeType && str_starts_with($mimeType, 'image/')) {
+                $logoDataUri = 'data:' . $mimeType . ';base64,' . base64_encode(Storage::disk('public')->get($logoPath));
+            }
+        }
+
+        return Pdf::loadView('users.activity-request-pdf', [
+            'activityRequest' => $activityRequest,
+            'organizationName' => $organizationName,
+            'logoDataUri' => $logoDataUri,
+        ])
+            ->setPaper('letter', 'portrait')
+            ->download('activity-request-' . $activityRequest->id . '.pdf');
     }
 
     public function monitor()
@@ -70,6 +131,7 @@ class ActivityRequestController extends Controller
             'requests' => $requests->map(fn ($request) => [
                 'id' => $request->id,
                 'status' => $request->status,
+                'is_urgent' => (bool) $request->is_urgent,
                 'report_status' => $request->report?->status,
                 'report_feedback' => $request->report?->feedback,
                 'monitoring_compliance_status' => $request->monitoringResult?->compliance_status,
@@ -174,7 +236,7 @@ class ActivityRequestController extends Controller
         ));
     }
 
-    public function resubmit(ActivityRequest $activityRequest)
+    public function resubmit(ActivityRequest $activityRequest, VenueAvailabilityService $venueAvailability)
     {
         $this->authorize('update', $activityRequest);
 
@@ -182,7 +244,22 @@ class ActivityRequestController extends Controller
             return back()->with('error', 'Only rejected activity requests can be resubmitted.');
         }
 
+        $venue = $activityRequest->venue_id
+            ? $activityRequest->venueRecord
+            : $venueAvailability->resolveVenue($activityRequest->venue);
+        $availabilityData = array_merge($activityRequest->only([
+            'date', 'end_date', 'start_time', 'end_time', 'venue',
+        ]), ['venue_id' => $venue->id]);
+        $conflict = $venueAvailability->conflictingRequest($availabilityData, $activityRequest->id);
+
+        if ($conflict) {
+            return back()->withErrors([
+                'venue' => "Another activity is already scheduled at this venue and time ({$conflict->title}). Choose a different time or venue before resubmitting.",
+            ]);
+        }
+
         $activityRequest->update([
+            'venue_id' => $venue->id,
             'status' => ActivityRequest::STATUS_PENDING,
             'reject_reason' => null,
         ]);
@@ -191,8 +268,22 @@ class ActivityRequestController extends Controller
             ->with('success', 'Activity request resubmitted for review.');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, VenueAvailabilityService $venueAvailability)
     {
+        $programFlows = collect($request->input('program_flows', []))
+            ->filter(fn ($row) => is_array($row) && (
+                filled($row['time'] ?? null)
+                || filled($row['flow'] ?? null)
+                || filled($row['person_in_charge'] ?? null)
+            ))
+            ->values()
+            ->all();
+        $request->merge(['program_flows' => $programFlows]);
+
+        $minimumDate = $request->boolean('is_urgent')
+            ? today()->toDateString()
+            : today()->addDays(7)->toDateString();
+
         $validated = $request->validate([
             'gpoa_id' => [
                 'required',
@@ -214,7 +305,7 @@ class ActivityRequestController extends Controller
             'objectives' => 'required|string',
             'expected_outcome' => 'required|string',
             'plan_key_strategy' => 'required|string',
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:' . $minimumDate,
             'end_date' => 'nullable|date|after_or_equal:date',
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i|after:start_time',
@@ -224,9 +315,22 @@ class ActivityRequestController extends Controller
             'facilities_materials' => 'required|string|max:255',
             'estimated_budget' => 'required|numeric|min:0',
             'source_of_funds' => 'required|string|max:100',
-            'preceding_activity' => 'nullable|string|max:255',
-            'participants_count' => 'nullable|integer|min:1',
             'communication_letter' => 'required|file|mimes:pdf|max:20480',
+            'program_flows' => 'nullable|array',
+            'program_flows.*.time' => 'required|string|max:50',
+            'program_flows.*.flow' => 'required|string|max:255',
+            'program_flows.*.person_in_charge' => 'required|string|max:255',
+            'is_urgent' => 'sometimes|boolean',
+            'urgent_reason' => [
+                Rule::requiredIf(fn () => $request->boolean('is_urgent')),
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+        ], [
+            'date.after_or_equal' => $request->boolean('is_urgent')
+                ? 'Urgent activities cannot be scheduled in the past.'
+                : 'Activity requests must be submitted at least 7 days before the activity date unless marked urgent.',
         ]);
 
         $gpoa = Gpoa::findOrFail($validated['gpoa_id']);
@@ -282,33 +386,14 @@ class ActivityRequestController extends Controller
             return back()->withErrors(['title' => 'An activity request with the same title, date, and venue already exists for this GPOA.'])->withInput();
         }
 
-        $newStartDate = $validated['date'];
-        $newEndDate = $validated['end_date'] ?? $validated['date'];
-        $approvedAtVenue = ActivityRequest::where('venue', $validated['venue'])
-            ->where('status', ActivityRequest::STATUS_APPROVED)
-            ->get();
-
-        $conflict = $approvedAtVenue->contains(function (ActivityRequest $existing) use ($newStartDate, $newEndDate, $validated) {
-            $existingStartDate = $existing->date->toDateString();
-            $existingEndDate = ($existing->end_date ?? $existing->date)->toDateString();
-
-            if ($existingStartDate > $newEndDate || $existingEndDate < $newStartDate) {
-                return false;
-            }
-
-            $bothHaveTimes = $existing->start_time && $existing->end_time
-                && !empty($validated['start_time']) && !empty($validated['end_time']);
-
-            if (!$bothHaveTimes) {
-                return true;
-            }
-
-            return $existing->start_time < $validated['end_time']
-                && $existing->end_time > $validated['start_time'];
-        });
+        $venue = $venueAvailability->resolveVenue($validated['venue']);
+        $validated['venue_id'] = $venue->id;
+        $conflict = $venueAvailability->conflictingRequest($validated);
 
         if ($conflict) {
-            return back()->withErrors(['venue' => 'An approved activity is already scheduled at this venue on this date.'])->withInput();
+            return back()->withErrors([
+                'venue' => "Another activity is already scheduled at this venue and time ({$conflict->title}). Choose a different time or venue.",
+            ])->withInput();
         }
 
         $commPath = $request->file('communication_letter')->store('uploads/comm', 'public');
@@ -323,6 +408,7 @@ class ActivityRequestController extends Controller
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
             'venue' => $validated['venue'],
+            'venue_id' => $venue->id,
             'category' => $validated['category'],
             'sdgs' => $validated['sdgs'],
             'objectives' => $validated['objectives'],
@@ -333,11 +419,15 @@ class ActivityRequestController extends Controller
             'facilities_materials' => $validated['facilities_materials'],
             'estimated_budget' => $validated['estimated_budget'],
             'source_of_funds' => $validated['source_of_funds'],
-            'preceding_activity' => $validated['preceding_activity'] ?? null,
-            'participants_count' => $validated['participants_count'] ?? null,
+            'preceding_activity' => $linkedActivity->preceding_activity,
+            'participants_count' => $linkedActivity->participants_count,
             'communication_letter' => $commPath,
+            'is_urgent' => $request->boolean('is_urgent'),
+            'urgent_reason' => $validated['urgent_reason'] ?? null,
             'status' => ActivityRequest::STATUS_PENDING,
         ]);
+
+        $activityRequest->replaceProgramFlows($validated['program_flows'] ?? []);
 
         if ($activityRequest->gpoa_activity_id) {
             $linkedActivity->update([
@@ -350,7 +440,6 @@ class ActivityRequestController extends Controller
                 'facilities_materials' => $validated['facilities_materials'],
                 'estimated_budget' => $validated['estimated_budget'],
                 'source_of_funds' => $validated['source_of_funds'],
-                'preceding_activity' => $validated['preceding_activity'] ?? null,
             ]);
         }
 

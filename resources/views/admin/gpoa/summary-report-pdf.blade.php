@@ -67,7 +67,15 @@
                     <td>{{ $req->title }}</td>
                     <td>{{ $req->category ?? '—' }}</td>
                     <td>{{ $req->date ? $req->date_range_label : '—' }}</td>
-                    <td>{{ $req->venue ?? '—' }}</td>
+                    @php
+                        $venueStatus = $req->venueRecord?->availability_status ?? 'Available';
+                        $venueColors = match ($venueStatus) {
+                            'Scheduled' => ['#dbeafe', '#1e40af'],
+                            'Reserved' => ['#fef3c7', '#92400e'],
+                            default => ['#dcfce7', '#166534'],
+                        };
+                    @endphp
+                    <td>{{ $req->venue ?? '—' }} <span style="background-color:{{ $venueColors[0] }};color:{{ $venueColors[1] }};padding:2px 6px;border-radius:8px;font-size:8px;font-weight:bold;">{{ $venueStatus }}</span></td>
                     <td>{{ str_replace('_', ' ', ucfirst($req->status)) }}</td>
                     <td class="number">PHP {{ number_format((float) ($req->estimated_budget ?? 0), 2) }}</td>
                 </tr>

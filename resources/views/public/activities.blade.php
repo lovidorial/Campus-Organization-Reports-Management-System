@@ -773,6 +773,17 @@
             margin-bottom: 20px;
         }
 
+        .venue-status-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
         .detail-card {
             background: #f5f3ec;
             border-radius: 18px;
@@ -1140,7 +1151,7 @@
                                 <span class="activity-status status-completed">Completed</span>
                                 <div class="activity-meta">
                                     <div class="meta-item"><span>{{ $activity->date->format('M d, Y') }}</span></div>
-                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span> <x-venue-status-badge :venue="$activity->venueRecord" /></div>
                                 </div>
                                 <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
                             </div>
@@ -1150,6 +1161,7 @@
                                     data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
                                     data-date="{{ $activity->date->format('M d, Y') }}"
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
+                                    data-venue-status="{{ $activity->venueRecord?->availability_status ?? 'Available' }}"
                                     data-category="{{ $activity->category ?? '' }}"
                                     data-participants="{{ $activity->participants_count ?? '' }}"
                                     data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
@@ -1181,7 +1193,7 @@
                                 <span class="activity-status status-ongoing">Ongoing</span>
                                 <div class="activity-meta">
                                     <div class="meta-item"><span>{{ $activity->date->format('M d, Y') }}</span></div>
-                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span> <x-venue-status-badge :venue="$activity->venueRecord" /></div>
                                 </div>
                                 <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
                             </div>
@@ -1191,6 +1203,7 @@
                                     data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
                                     data-date="{{ $activity->date->format('M d, Y') }}"
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
+                                    data-venue-status="{{ $activity->venueRecord?->availability_status ?? 'Available' }}"
                                     data-category="{{ $activity->category ?? 'N/A' }}"
                                     data-participants="{{ $activity->participants_count ?? '0' }}"
                                     data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
@@ -1222,7 +1235,7 @@
                                 <span class="activity-status status-upcoming">Upcoming</span>
                                 <div class="activity-meta">
                                     <div class="meta-item"><span>{{ $activity->date->format('M d, Y') }}</span></div>
-                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span></div>
+                                    <div class="meta-item"><span>{{ $activity->venue ?? 'Location TBA' }}</span> <x-venue-status-badge :venue="$activity->venueRecord" /></div>
                                 </div>
                                 <p class="activity-description">{{ Str::limit($activity->description, 120) }}</p>
                             </div>
@@ -1232,6 +1245,7 @@
                                     data-organization="{{ $activity->user?->org_name ?? $activity->user?->name ?? 'General' }}"
                                     data-date="{{ $activity->date->format('M d, Y') }}"
                                     data-venue="{{ $activity->venue ?? 'Location TBA' }}"
+                                    data-venue-status="{{ $activity->venueRecord?->availability_status ?? 'Available' }}"
                                     data-category="{{ $activity->category ?? 'N/A' }}"
                                     data-participants="{{ $activity->participants_count ?? '0' }}"
                                     data-term="{{ $formatActivityTerm($activity->gpoa?->term) }}"
@@ -1277,7 +1291,7 @@
                         </div>
                         <div class="detail-card">
                             <h6>Venue</h6>
-                            <p id="detailVenue"></p>
+                            <p><span id="detailVenue"></span> <span id="detailVenueStatus" class="venue-status-badge"></span></p>
                         </div>
                     </div>
 
@@ -1342,6 +1356,7 @@
             const organization = button.getAttribute('data-organization');
             const date = button.getAttribute('data-date');
             const venue = button.getAttribute('data-venue');
+            const venueStatus = button.getAttribute('data-venue-status') || 'Available';
             const category = button.getAttribute('data-category');
             const participants = button.getAttribute('data-participants');
             const term = button.getAttribute('data-term');
@@ -1358,6 +1373,16 @@
                 document.getElementById('detailOrg').textContent = organization;
                 document.getElementById('detailDate').textContent = date;
                 document.getElementById('detailVenue').textContent = venue;
+                const venueStatusBadge = document.getElementById('detailVenueStatus');
+                venueStatusBadge.textContent = venueStatus;
+                const venueStatusColors = {
+                    Scheduled: ['#dbeafe', '#1e40af'],
+                    Reserved: ['#fef3c7', '#92400e'],
+                    Available: ['#dcfce7', '#166534'],
+                };
+                const colors = venueStatusColors[venueStatus] || venueStatusColors.Available;
+                venueStatusBadge.style.backgroundColor = colors[0];
+                venueStatusBadge.style.color = colors[1];
                 document.getElementById('detailTermBadge').textContent = term;
                 document.getElementById('detailSYBadge').textContent = sy;
 

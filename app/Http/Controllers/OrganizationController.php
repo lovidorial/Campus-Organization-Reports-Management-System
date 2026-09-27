@@ -180,6 +180,7 @@ class OrganizationController extends Controller
         // Current student submissions are stored as activity requests.
         $memberIds = $organization->members->pluck('id');
         $activities = ActivityRequest::whereIn('user_id', $memberIds)
+            ->with(['venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests'])])
             ->latest()
             ->paginate(10);
 

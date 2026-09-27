@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -41,6 +42,35 @@ class ProfileTest extends TestCase
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_uploading_a_profile_photo_saves_its_theme_color(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'photo' => UploadedFile::fake()->image('profile.png', 32, 32),
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertMatchesRegularExpression('/^#[0-9a-f]{6}$/i', $user->refresh()->theme_color);
+    }
+
+    public function test_dashboard_uses_the_users_saved_theme_color(): void
+    {
+        $user = User::factory()->create([
+            'terms_accepted_at' => now(),
+            'theme_color' => '#123456',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('linear-gradient(135deg, color-mix(in srgb, #123456 78%, white) 0%, #123456 100%)', false);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void

@@ -65,6 +65,11 @@
                            style="background-color: {{ request()->routeIs('activity-requests.*') ? '#e89600' : 'transparent' }};">
                             Activity Requests
                         </a>
+                        <a href="{{ route('activities.calendar') }}"
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
+                           style="background-color: {{ request()->routeIs('activities.calendar') ? '#e89600' : 'transparent' }};">
+                            Activity Calendar
+                        </a>
                         <a href="{{ route('workflow.summary-report') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
                            style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'transparent' }};">
@@ -93,6 +98,13 @@
                                                  My Data Backup
                                         </a>
                                 </li>
+                <li>
+                    <a href="{{ route('faq') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('faq') ? '#e89600' : 'transparent' }};">
+                        FAQ
+                    </a>
+                </li>
 
                 @else
                 <!-- ADMIN MENU -->
@@ -118,6 +130,13 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('activities.calendar') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('activities.calendar') ? '#e89600' : 'transparent' }};">
+                        Activity Calendar
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('admin.officers.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
                        style="background-color: {{ request()->routeIs('admin.officers.*') ? '#e89600' : 'transparent' }};">
@@ -138,6 +157,13 @@
                          Organization account
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('faq') }}"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                       style="background-color: {{ request()->routeIs('faq') ? '#e89600' : 'transparent' }};">
+                        FAQ
+                    </a>
+                </li>
                 @endif
 
                 <!-- Logout -->
@@ -156,18 +182,7 @@
         <div class="p-4 border-t border-slate-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3 flex-1">
-                    @php
-                        $sidebarAvatarPath = auth()->user()->organization?->logo_path
-                            ?: auth()->user()->profile_photo_path;
-                        $sidebarAvatarUrl = $sidebarAvatarPath
-                            ? Storage::disk('public')->url($sidebarAvatarPath)
-                            : asset('images/osdw.logo.jpg');
-                    @endphp
-                    @if($sidebarAvatarPath)
-                        <img src="{{ $sidebarAvatarUrl }}" class="w-9 h-9 rounded-full object-cover"/>
-                    @else
-                        <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" class="w-9 h-9 rounded-full object-cover" onerror="this.style.display='none'"/>
-                    @endif
+                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }} profile photo" class="w-9 h-9 rounded-full object-cover"/>
                     <div class="min-w-0">
                         <p class="text-sm font-semibold text-white truncate">{{ auth()->user()->name }}</p>
                         <p class="text-xs text-slate-400 uppercase">{{ auth()->user()->role }}</p>
@@ -249,18 +264,7 @@
                 </svg>
             </button>
             <span class="font-bold text-gray-800">CORMS</span>
-            @php
-                $mobileAvatarPath = auth()->user()->organization?->logo_path
-                    ?: auth()->user()->profile_photo_path;
-                $mobileAvatarUrl = $mobileAvatarPath
-                    ? Storage::disk('public')->url($mobileAvatarPath)
-                    : asset('images/osdw.logo.jpg');
-            @endphp
-            @if($mobileAvatarPath)
-                <img src="{{ $mobileAvatarUrl }}" class="w-9 h-9 rounded-full object-cover"/>
-            @else
-                <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" class="w-9 h-9 rounded-full object-cover" onerror="this.style.display='none'"/>
-            @endif
+            <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }} profile photo" class="w-9 h-9 rounded-full object-cover"/>
         </header>
 
         <!-- Page Content -->

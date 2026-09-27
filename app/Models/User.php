@@ -49,7 +49,9 @@ class User extends Authenticatable
 
             $path = str_replace('\\', '/', $imagePath);
             if (Storage::disk('public')->exists($path)) {
-                return rtrim(config('app.url'), '/') . '/storage/' . ltrim($path, '/');
+                $baseUrl = app()->runningInConsole() ? '' : request()->getBaseUrl();
+
+                return $baseUrl . '/storage/' . ltrim($path, '/');
             }
         }
 
