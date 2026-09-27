@@ -401,21 +401,36 @@ class AdminController extends Controller
         }
 
         $headers = ['ID', 'Title', 'Organization', 'Venue', 'Date', 'Status', 'GPOA'];
-        $csv = implode(',', $headers) . "\n";
+        $csvStream = fopen('php://temp', 'r+');
+        $sanitizeForSpreadsheet = static function ($value): string {
+            $value = (string) $value;
+
+            return $value !== '' && in_array($value[0], ['=', '+', '-', '@'], true)
+                ? "'" . $value
+                : $value;
+        };
+
+        fputcsv($csvStream, array_map($sanitizeForSpreadsheet, $headers), ',', '"', '');
 
         foreach ($activities as $activity) {
-            $csv .= implode(',', [
+            $row = [
                 $activity->id,
-                str_replace(',', ' ', $activity->title),
-                str_replace(',', ' ', $activity->user->org_name ?? $activity->user->name ?? 'N/A'),
-                str_replace(',', ' ', $activity->venue),
+                $activity->title,
+                $activity->user->org_name ?? $activity->user->name ?? 'N/A',
+                $activity->venue,
                 $activity->date?->toDateString() ?? '',
                 $activity->status,
                 $activity->gpoa
                     ? $activity->gpoa->term . ' / SY ' . $activity->gpoa->school_year
                     : 'N/A',
-            ]) . "\n";
+            ];
+
+            fputcsv($csvStream, array_map($sanitizeForSpreadsheet, $row), ',', '"', '');
         }
+
+        rewind($csvStream);
+        $csv = stream_get_contents($csvStream);
+        fclose($csvStream);
 
         $fileName = 'activities_export_' . now()->format('Ymd_His') . '.csv';
 

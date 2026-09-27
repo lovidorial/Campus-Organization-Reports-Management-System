@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-CSORMS: A Web-Based Monitoring System for Campus Student Organization Narrative, Accomplishment and Summary Reports.
+Orgtrack: A Web-Based Monitoring System for Campus Student Organization Narrative, Accomplishment and Summary Reports.
 
 
  CSORMS  is an integrated platform designed to simplify the documentation, monitoring, and evaluation of organizational activities and General Plan of Activities (GPOA). It provides specific features for two types of users: organizations or departments that submit activities, and administrators who monitor and review submissions.
@@ -76,6 +75,3 @@ Major and specialized activity distribution
 Organization rankings based on activity count
 Allows administrators to export data and generate printable reports.
 Includes monitoring tools for evaluating organizational performance.
-=======
-# Campus-Organization-Reports-Management-System
->>>>>>> 338d7961b96bbc5ad68efd72e4661dd52aa36d47
