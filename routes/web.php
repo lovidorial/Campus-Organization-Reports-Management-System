@@ -45,6 +45,11 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
     Route::middleware(['terms.accepted'])->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/faq', function (\Illuminate\Http\Request $request) {
+            return view('faq.index', [
+                'isAdmin' => $request->user()?->isAdmin() ?? false,
+            ]);
+        })->name('faq');
         Route::get('/my-backup', [\App\Http\Controllers\UserBackupController::class, 'index'])->name('my-backup.index');
         Route::post('/my-backup/export', [\App\Http\Controllers\UserBackupController::class, 'export'])->name('my-backup.export');
         Route::get('/my-backup/download/{filename}', [\App\Http\Controllers\UserBackupController::class, 'download'])->name('my-backup.download');
@@ -64,6 +69,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
         Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
         Route::get('/workflow/submission-history', [WorkflowSubmissionHistoryController::class, 'index'])->name('workflow.submission-history');
+        Route::get('/submission-history', [WorkflowSubmissionHistoryController::class, 'index'])->name('submission-history');
         Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
         Route::get('/notifications/unread-count', [WorkflowDocumentController::class, 'unreadNotificationCount'])->name('notifications.unread-count');
         Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');

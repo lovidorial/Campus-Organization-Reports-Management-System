@@ -354,6 +354,17 @@
                         </div>
                     </div>
 
+                    <div class="grid gap-4 md:grid-cols-2 mt-6">
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Target Participants</p>
+                            <p id="targetParticipantsSummary" class="mt-1 text-sm font-semibold text-slate-800">Not set</p>
+                        </div>
+                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Estimated Budget</p>
+                            <p id="estimatedBudgetSummary" class="mt-1 text-sm font-semibold text-slate-800">₱ 0.00</p>
+                        </div>
+                    </div>
+
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
                         <div class="form-group">
                             <label for="target_participants">Target Participants *</label>
@@ -436,8 +447,32 @@ document.addEventListener('DOMContentLoaded', function(){
     const requestForm = document.getElementById('requestForm');
     const dateInput = document.getElementById('date');
     const endDateInput = document.getElementById('end_date');
+    const targetParticipantsInput = document.getElementById('target_participants');
+    const estimatedBudgetInput = document.getElementById('estimated_budget');
+    const targetParticipantsSummary = document.getElementById('targetParticipantsSummary');
+    const estimatedBudgetSummary = document.getElementById('estimatedBudgetSummary');
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
+
+    function updateParticipantAndBudgetSummary() {
+        const participants = targetParticipantsInput?.value?.trim();
+        const budgetValue = estimatedBudgetInput?.value;
+
+        if (targetParticipantsSummary) {
+            targetParticipantsSummary.textContent = participants || 'Not set';
+        }
+
+        if (estimatedBudgetSummary) {
+            const budget = parseFloat(budgetValue || '0');
+            estimatedBudgetSummary.textContent = Number.isFinite(budget) ? `₱ ${budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱ 0.00';
+        }
+    }
+
+    [targetParticipantsInput, estimatedBudgetInput].forEach(input => {
+        input?.addEventListener('input', updateParticipantAndBudgetSummary);
+    });
+
+    updateParticipantAndBudgetSummary();
 
     function prefillFromPlannedActivity() {
         const activity = plannedActivities[plannedActivitySelect?.value];

@@ -178,12 +178,14 @@
                 <table class="w-full table-fixed text-sm min-w-[1100px]">
                     <thead class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wide">
                         <tr>
-                            <th class="w-[22%] px-3 py-2 text-left">Title</th>
-                            <th class="w-[14%] px-3 py-2 text-left">Category</th>
-                            <th class="w-[14%] px-3 py-2 text-left">Activity Level</th>
-                            <th class="w-[14%] px-3 py-2 text-left">Date</th>
-                            <th class="w-[12%] px-3 py-2 text-left">Status</th>
-                            <th class="w-[16%] px-3 py-2 text-left">Reservation Slip</th>
+                            <th class="w-[18%] px-3 py-2 text-left">Title</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Category</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Activity Level</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Target Participants</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Est. Budget</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Date</th>
+                            <th class="w-[10%] px-3 py-2 text-left">Status</th>
+                            <th class="w-[14%] px-3 py-2 text-left">Reservation Slip</th>
                             <th class="w-[8%] px-3 py-2 text-center">Actions</th>
                         </tr>
                     </thead>
@@ -193,6 +195,8 @@
                                 <td class="px-3 py-2.5 font-medium text-slate-900 truncate" title="{{ $req->title }}">{{ $req->title }}</td>
                                 <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->category ?? '—' }}</td>
                                 <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->activity_level ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-slate-700 truncate">{{ $req->target_participants ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-slate-700 whitespace-nowrap">₱ {{ number_format((float) ($req->estimated_budget ?? 0), 2) }}</td>
                                 <td class="px-3 py-2.5 text-slate-700 whitespace-nowrap">{{ $req->date ? $req->date_range_label : '—' }}</td>
                                 <td class="px-3 py-2.5" data-status-cell>
                                     @php

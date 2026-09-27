@@ -147,6 +147,13 @@
                          My Data Backup
                     </a>
                 </li>
+                                <li>
+                                        <a href="{{ route('faq') }}"
+                                             class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                                             style="background-color: {{ request()->routeIs('faq') ? '#e89600' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                                                 FAQ
+                                        </a>
+                                </li>
 
                 @else
                 <!-- ADMIN MENU -->
@@ -213,6 +220,13 @@
                                                  Activity Logs
                                             </a>
                                         </li>
+                                <li>
+                                        <a href="{{ route('faq') }}"
+                                             class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
+                                             style="background-color: {{ request()->routeIs('faq') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                                                 FAQ
+                                        </a>
+                                </li>
                 <li class="mt-3">
                     <a href="{{ route('admin.organizations.index') }}"
                        class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"

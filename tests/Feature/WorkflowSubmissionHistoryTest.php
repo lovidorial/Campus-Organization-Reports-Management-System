@@ -44,9 +44,14 @@ class WorkflowSubmissionHistoryTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Review Officer');
-        $response->assertSee('Jan 15, 2026 1:45 PM');
+        $response->assertSee('Jan 15, 2026');
         $response->assertSee('v2');
-        $response->assertDontSee('Jan 10, 2026 9:00 AM');
+        $response->assertDontSee('Jan 10, 2026');
+
+        $this->get(route('submission-history'))
+            ->assertOk()
+            ->assertSee('Requests')
+            ->assertSee('Approved');
     }
 
     private function createWorkflow(User $user): OrganizationWorkflow

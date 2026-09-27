@@ -190,251 +190,145 @@
 
 @include('components.workflow-progress', ['workflow' => $workflow, 'progressStages' => $progressStages])
 
-{{-- Document Cards --}}
+{{-- Your Documents --}}
 <div class="mb-5">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h2 class="text-lg font-bold text-gray-900 tracking-tight">Your Documents</h2>
-            <p class="text-sm text-gray-500">Track submission status for each required document</p>
+            <p class="text-sm text-gray-500">Track your current submissions and activity requests</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        @foreach($documents as $doc)
-        @php
-            $sub = $doc['submission'];
-            $isLocked = $doc['locked'] && !$sub;
-        @endphp
-        <div class="group bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col h-full transition-all duration-300 hover:shadow-md hover:border-orange-200 hover:-translate-y-0.5 {{ $isLocked ? 'opacity-70' : '' }}">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm transition-transform duration-300 group-hover:scale-105"
-                          style="background: linear-gradient(135deg, #f5a623, #e89600);">
-                        {{ $doc['step'] }}
-                    </span>
-                    <div>
-                        <h3 class="font-bold text-gray-900">{{ $doc['title'] }}</h3>
-                        <p class="text-xs text-gray-500">{{ $doc['subtitle'] }}</p>
-                    </div>
-                </div>
-                @if($isLocked)
-                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    Locked
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-lg font-bold text-gray-900">GPOA</h3>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-green-50 text-green-700 border-green-200">
+                    {{ $gpoa ? ucfirst(str_replace('_', ' ', $gpoa->status)) : 'Not submitted' }}
                 </span>
-                @endif
+            </div>
+            <p class="text-sm text-gray-500 mb-4">General Plan of Activities</p>
+
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+                    <span class="text-gray-500">Submitted</span>
+                    <span class="text-gray-800 font-medium">{{ $gpoa?->submitted_at?->format('M d, Y') ?? '—' }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+                    <span class="text-gray-500">Version</span>
+                    <span class="text-gray-800 font-medium">{{ $gpoa ? 'v' . $gpoa->version : '—' }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+                    <span class="text-gray-500">Last Updated</span>
+                    <span class="text-gray-800 font-medium">{{ $gpoa?->updated_at?->format('M d, Y') ?? '—' }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+                    <span class="text-gray-500">Approved</span>
+                    <span class="text-gray-800 font-medium">{{ $gpoa?->approved_at?->format('M d, Y') ?? '—' }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1.5">
+                    <span class="text-gray-500">Reviewer</span>
+                    <span class="text-gray-800 font-medium">{{ $gpoa?->reviewer?->name ?? '—' }}</span>
+                </div>
             </div>
 
-            <div class="flex-1 space-y-3">
-                @if($sub)
-                <div>
-                    <span class="inline-flex text-xs px-2.5 py-1 rounded-full border font-semibold {{ $sub->statusClasses() }}">
-                        {{ ucfirst(str_replace('_', ' ', $sub->status)) }}
-                    </span>
-                </div>
+            @if($gpoa)
+            <a href="{{ route('gpoa.index') }}"
+               class="mt-4 inline-flex items-center justify-center px-3.5 py-2 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:border-orange-300 hover:text-orange-700 transition-all duration-300">
+                View
+            </a>
+            @endif
+        </div>
 
-                <div class="space-y-2 text-sm">
-                    @if($sub->submitted_at)
-                    <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
-                        <span class="text-gray-500 text-xs">Submitted</span>
-                        <span class="text-gray-800 text-xs font-medium">{{ $sub->submitted_at->format('M d, Y') }}</span>
-                    </div>
-                    @endif
-                    <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
-                        <span class="text-gray-500 text-xs">Version</span>
-                        <span class="text-gray-800 text-xs font-medium">v{{ $sub->version }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
-                        <span class="text-gray-500 text-xs">Last Updated</span>
-                        <span class="text-gray-800 text-xs font-medium">{{ $sub->updated_at->format('M d, Y') }}</span>
-                    </div>
-                    @if($sub->approved_at)
-                    <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
-                        <span class="text-gray-500 text-xs">Approved</span>
-                        <span class="text-green-700 text-xs font-medium">{{ $sub->approved_at->format('M d, Y') }}</span>
-                    </div>
-                    @endif
-                    @if($sub->reviewer)
-                    <div class="flex justify-between items-center py-1.5">
-                        <span class="text-gray-500 text-xs">Reviewer</span>
-                        <span class="text-gray-800 text-xs font-medium truncate max-w-[120px]" title="{{ $sub->reviewer->name }}">{{ $sub->reviewer->name }}</span>
-                    </div>
-                    @endif
-                </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-lg font-bold text-gray-900">Activity Requests</h3>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+                    {{ $stats['total'] }} submitted
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Individual activity plans and letters</p>
 
-                @if($sub->reject_reason)
-                <div class="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                    <p class="text-[10px] font-semibold text-red-600 uppercase tracking-wide mb-0.5">OSDW Feedback</p>
-                    <p class="text-xs text-red-700 leading-relaxed">{{ $sub->reject_reason }}</p>
-                </div>
-                @endif
-
-                @if($sub->approval_remarks)
-                <div class="bg-green-50 border border-green-100 rounded-xl px-3 py-2">
-                    <p class="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-0.5">Remarks</p>
-                    <p class="text-xs text-green-700 leading-relaxed">{{ $sub->approval_remarks }}</p>
-                </div>
-                @endif
-                @else
-                <div>
-                    <span class="inline-flex text-xs px-2.5 py-1 rounded-full border font-semibold bg-gray-50 text-gray-500 border-gray-200">Not Submitted</span>
-                </div>
-
-                @endif
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
+                    {{ $stats['pending'] }} Pending
+                </span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 text-xs font-semibold">
+                    {{ $stats['approved'] }} Active
+                </span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-semibold">
+                    {{ $stats['rejected'] }} Rejected
+                </span>
             </div>
 
-            <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
-                @if($doc['can_submit'] && (!$sub || $sub->status === 'rejected' || ($doc['step'] === 1 && !$sub)))
-                <a href="{{ $doc['submit_url'] }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 {{ $sub?->status === 'rejected' ? 'bg-red-500 hover:bg-red-600' : '' }}"
-                   @if($sub?->status !== 'rejected') style="background: linear-gradient(135deg, #f5a623, #e89600);" @endif>
-                    {{ $doc['submit_label'] }}
+            <div class="flex gap-2">
+                <a href="{{ route('activity-requests.index') }}"
+                   class="inline-flex items-center justify-center px-3.5 py-2 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:border-orange-300 hover:text-orange-700 transition-all duration-300">
+                    View requests
                 </a>
-                @endif
-                @if($doc['edit_url'])
-                <a href="{{ $doc['edit_url'] }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200 transition-all duration-300">
-                    Edit GPOA
+                <a href="{{ route('activity-requests.create') }}"
+                   class="inline-flex items-center justify-center px-3.5 py-2 rounded-xl text-white text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+                   style="background: linear-gradient(135deg, #f5a623, #e89600);">
+                    New request
                 </a>
-                @endif
-                @if($doc['view_url'] && $sub)
-                <a href="{{ $doc['view_url'] }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-semibold hover:border-orange-300 hover:text-orange-700 transition-all duration-300">
-                    View
-                </a>
-                @endif
             </div>
         </div>
-        @endforeach
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-lg font-bold text-gray-900">Summary Report</h3>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-gray-50 text-gray-600 border-gray-200">
+                    {{ $summarySub ? ucfirst(str_replace('_', ' ', $summarySub->status)) : 'Not submitted' }}
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">End-of-term activity summary</p>
+
+            <a href="{{ route('workflow.summary-report') }}"
+               class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+               style="background: linear-gradient(135deg, #f5a623, #e89600);">
+                Submit report
+            </a>
+        </div>
     </div>
 </div>
 
-{{-- Notifications --}}
-@if($notifications->count())
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md">
-    <div class="flex justify-between items-center mb-4">
-        <div>
-            <h3 class="font-bold text-gray-900">Recent Notifications</h3>
-            <p class="text-xs text-gray-500 mt-0.5">Updates from OSDW on your submissions</p>
-        </div>
-        <a href="{{ route('notifications.index') }}" class="text-sm font-semibold hover:underline transition-colors" style="color:#e89600;">View all →</a>
-    </div>
-    <div class="space-y-2">
-        @foreach($notifications as $notification)
-        <div class="flex items-start gap-3 p-3.5 rounded-xl transition-colors duration-200 {{ $notification->read_at ? 'bg-gray-50 hover:bg-gray-100' : 'bg-orange-50/50 border border-orange-100 hover:bg-orange-50' }}">
-            <div class="w-2 h-2 rounded-full mt-2 shrink-0 {{ $notification->read_at ? 'bg-gray-300' : 'bg-orange-500' }}"></div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800">{{ $notification->title }}</p>
-                <p class="text-xs text-gray-600 mt-0.5">{{ $notification->message }}</p>
-                <p class="text-[10px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
-            </div>
-        </div>
-        @endforeach
-    </div>
-</div>
-@endif
-
-{{-- Submission History --}}
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 mb-5 transition-all duration-300 hover:shadow-md">
-    <div class="mb-4">
-        <h3 class="font-bold text-gray-900">Submission History</h3>
-        <p class="text-xs text-gray-500 mt-0.5">Complete record of all document versions</p>
-    </div>
-    @if($submissionHistory->count())
-    <div class="overflow-x-auto -mx-1">
-        <table class="w-full text-sm min-w-[640px]">
-            <thead>
-                <tr class="border-b border-gray-100">
-                    <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Document</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Version</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Submitted</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Approved</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Reviewer</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @foreach($submissionHistory as $sub)
-                <tr class="hover:bg-orange-50/30 transition-colors duration-200">
-                    <td class="px-3 py-3 font-medium text-gray-800">{{ $sub->documentLabel() }}</td>
-                    <td class="px-3 py-3 text-gray-600">v{{ $sub->version }}</td>
-                    <td class="px-3 py-3">
-                        <span class="text-xs px-2.5 py-1 rounded-full border font-semibold {{ $sub->statusClasses() }}">
-                            {{ ucfirst(str_replace('_', ' ', $sub->status)) }}
-                        </span>
-                    </td>
-                    <td class="px-3 py-3 text-xs text-gray-500">{{ $sub->submitted_at?->format('M d, Y') ?? '—' }}</td>
-                    <td class="px-3 py-3 text-xs text-gray-500">{{ $sub->approved_at?->format('M d, Y') ?? '—' }}</td>
-                    <td class="px-3 py-3 text-xs text-gray-600">{{ $sub->reviewer?->name ?? '—' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-    @else
-    <div class="text-center py-8">
-        <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-            <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        </div>
-        <p class="text-gray-500 text-sm">No submissions yet.</p>
-        <p class="text-gray-400 text-xs mt-1">Start by submitting your GPOA.</p>
-        @if(!$workflow->is_locked)
-        <a href="{{ route('gpoa.create') }}" class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 text-white rounded-xl text-sm font-semibold transition-all duration-300 hover:shadow-md"
-           style="background: linear-gradient(135deg, #f5a623, #e89600);">
-            Submit GPOA
-        </a>
-        @endif
-    </div>
-    @endif
-</div>
-
-{{-- Activity Requests (secondary) --}}
 @if($hasApprovedGpoa)
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
-    @foreach([
-        ['label' => 'Requests', 'value' => $stats['total'], 'color' => 'text-blue-600', 'bg' => 'bg-blue-50'],
-        ['label' => 'Pending', 'value' => $stats['pending'], 'color' => 'text-amber-600', 'bg' => 'bg-amber-50'],
-        ['label' => 'Active', 'value' => $stats['approved'], 'color' => 'text-green-600', 'bg' => 'bg-green-50'],
-        ['label' => 'Rejected', 'value' => $stats['rejected'], 'color' => 'text-red-600', 'bg' => 'bg-red-50'],
-    ] as $stat)
-    <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl {{ $stat['bg'] }} flex items-center justify-center">
-                <span class="text-lg font-bold {{ $stat['color'] }}">{{ $stat['value'] }}</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase font-semibold tracking-wide">{{ $stat['label'] }}</p>
-        </div>
-    </div>
-    @endforeach
-</div>
-
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 transition-all duration-300 hover:shadow-md">
     <div class="flex justify-between items-center mb-4">
         <div>
-            <h3 class="text-lg font-bold text-gray-900">Recent Activity Requests</h3>
+            <h3 class="text-lg font-bold text-gray-900">Recent activities</h3>
             <p class="text-xs text-gray-500 mt-0.5">Activities approved through your GPOA</p>
         </div>
-        <a href="{{ route('activity-requests.index') }}" class="text-sm font-semibold hover:underline transition-colors" style="color:#e89600;">View all →</a>
+        <a href="{{ route('submission-history') }}" class="text-sm font-semibold hover:underline transition-colors" style="color:#e89600;">Submission History →</a>
     </div>
     @if($activities->count() > 0)
     <div class="overflow-x-auto -mx-1">
         <table class="w-full text-sm min-w-[500px]">
             <thead>
                 <tr class="border-b border-gray-100">
-                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Venue</th>
-                    <th class="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                    <th class="text-left px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Activity</th>
+                    <th class="text-left px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                    <th class="text-left px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Venue</th>
+                    <th class="text-left px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activities as $activity)
                 <tr class="hover:bg-orange-50/30 transition-colors duration-200">
-                    <td class="py-3 px-3 font-medium text-gray-800">{{ $activity->title }}</td>
-                    <td class="py-3 px-3 text-gray-600">{{ $activity->date->format('M d, Y') }}</td>
-                    <td class="py-3 px-3 text-gray-600">{{ $activity->venue }}</td>
-                    <td class="py-3 px-3">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                    <td class="px-2 py-1.5 font-medium text-gray-800">{{ $activity->title }}</td>
+                    <td class="px-2 py-1.5 text-gray-600">{{ $activity->date->format('M d, Y') }}</td>
+                    <td class="px-2 py-1.5 text-gray-600">{{ $activity->venue }}</td>
+                    <td class="px-2 py-1.5">
+                        @php
+                            $statusClass = match($activity->status) {
+                                'closed', 'completed' => 'bg-green-100 text-green-700 border border-green-200',
+                                'pending' => 'bg-amber-100 text-amber-700 border border-amber-200',
+                                'active', 'approved', 'in_progress', 'awaiting_report', 'report_submitted' => 'bg-blue-100 text-blue-700 border border-blue-200',
+                                'rejected' => 'bg-red-100 text-red-700 border border-red-200',
+                                default => 'bg-gray-100 text-gray-700 border border-gray-200',
+                            };
+                        @endphp
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">
                             {{ str_replace('_', ' ', ucfirst($activity->status)) }}
                         </span>
                     </td>
