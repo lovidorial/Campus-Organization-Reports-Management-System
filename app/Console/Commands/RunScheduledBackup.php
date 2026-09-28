@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\BackupSetting;
 use App\Services\BackupService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class RunScheduledBackup extends Command
@@ -41,13 +42,31 @@ class RunScheduledBackup extends Command
             return self::SUCCESS;
         }
 
-        $created = $backupService->createBackup();
-        $settings->update([
-            'last_run_at' => now(),
-        ]);
-        $backupService->pruneOldBackups();
+        try {
+            $created = $backupService->createBackup();
+            $settings->update([
+                'last_run_at' => now(),
+            ]);
+            $backupService->pruneOldBackups();
+            activity('backups')
+                ->event('backup_created')
+                ->withProperties([
+                    'filename' => $created['filename'],
+                    'size' => $created['size'],
+                    'source' => 'scheduled',
+                ])
+                ->log('Scheduled local backup created: '.$created['filename']);
+        } catch (\Throwable $exception) {
+            Log::error('Scheduled backup failed.', ['exception' => $exception]);
+            if (Schema::hasColumn('backup_settings', 'last_error')) {
+                $settings->forceFill(['last_error' => $exception->getMessage()])->save();
+            }
+            $this->error('Scheduled backup failed: '.$exception->getMessage());
 
-        $this->info('Backup created: ' . $created['filename']);
+            return self::FAILURE;
+        }
+
+        $this->info('Backup created: '.$created['filename']);
 
         return self::SUCCESS;
     }
