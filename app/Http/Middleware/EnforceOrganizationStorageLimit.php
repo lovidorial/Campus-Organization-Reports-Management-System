@@ -75,7 +75,6 @@ class EnforceOrganizationStorageLimit
     {
         return match ($request->route()?->getName()) {
             'profile.update' => [$request->user()?->profile_photo_path],
-            'activity-requests.reservation-slip' => [$request->route('activityRequest')?->reservation_slip],
             'gpoa.update' => [$request->route('gpoa')?->document_path],
             'organization.members.update' => [$request->route('member')?->photo_path],
             'activity-reports.store' => [$request->route('activityRequest')?->report?->narrative_report],

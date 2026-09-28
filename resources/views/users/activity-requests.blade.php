@@ -5,7 +5,7 @@
         <p class="text-sm text-gray-500">Submit detailed activity requests under your approved GPOA.</p>
     </div>
     <a href="{{ route('activity-requests.create') }}"
-       class="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">+ Request Activity</a>
+       class="min-h-10 md:min-h-0 px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">+ Request Activity</a>
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
@@ -35,7 +35,7 @@
     <div class="bg-white rounded-xl border p-8 text-center text-slate-500">
         <p class="text-lg font-semibold mb-2">No activity requests yet.</p>
         <p class="text-sm mb-4">Submit your first activity request under an approved GPOA.</p>
-        <a href="{{ route('activity-requests.create') }}" class="inline-flex px-4 py-2 bg-sky-600 text-white rounded-lg text-sm">Request your first activity</a>
+        <a href="{{ route('activity-requests.create') }}" class="inline-flex min-h-10 items-center px-4 py-2 bg-sky-600 text-white rounded-lg text-sm">Request your first activity</a>
     </div>
 @else
     <div
@@ -100,21 +100,6 @@
 
                 return '<span class=\'text-xs text-slate-400\'>—</span>';
             },
-            renderReservationSlip(request, cell) {
-                const uploadUrl = cell.dataset.uploadUrl;
-                const link = request.reservation_slip_url
-                    ? `<a href='${this.escapeHtml(request.reservation_slip_url)}' target='_blank' rel='noopener' class='block text-xs font-semibold text-sky-700 hover:underline'>View slip</a>`
-                    : '';
-                const upload = request.can_upload_reservation_slip
-                    ? `<form method='POST' action='${uploadUrl}' enctype='multipart/form-data' class='mt-1 space-y-1'>
-                        <input type='hidden' name='_token' value='{{ csrf_token() }}'>
-                        <input type='file' name='reservation_slip' accept='.pdf,.jpg,.jpeg,.png' required class='block w-full text-[10px] text-slate-600'>
-                        <button type='submit' class='rounded bg-sky-700 px-2 py-1 text-[10px] font-semibold text-white hover:bg-sky-800'>${request.reservation_slip_url ? 'Replace slip' : 'Upload slip'}</button>
-                    </form>`
-                    : '';
-
-                return link || upload ? `${link}${upload}` : '<span class=\'text-xs text-slate-400\'>Available after approval</span>';
-            },
             refreshStatuses() {
                 fetch('{{ route('activity-requests.statuses') }}', {
                     credentials: 'same-origin',
@@ -130,12 +115,9 @@
 
                             const badge = row.querySelector('[data-status-badge]');
                             const actions = row.querySelector('[data-actions-cell]');
-                            const reservationSlip = row.querySelector('[data-reservation-slip-cell]');
-
                             badge.textContent = this.formatStatus(request.status);
                             badge.className = `inline-flex rounded-full px-2 py-1 text-xs font-semibold ${this.statusColors[request.status] || 'bg-gray-100 text-gray-700'}`;
                             actions.innerHTML = this.renderActions(request, actions);
-                            reservationSlip.innerHTML = this.renderReservationSlip(request, reservationSlip);
                         });
                     })
                     .catch(() => {});
@@ -177,20 +159,19 @@
                 </div>
             </button>
 
-            <div class="px-5 pb-5 {{ $index > 0 ? 'hidden' : '' }}">
-            <div class="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50">
+            <div class="min-w-0 max-w-full px-5 pb-5 {{ $index > 0 ? 'hidden' : '' }}">
+            <div class="min-w-0 max-w-full overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50">
                 <table class="w-full table-fixed text-sm min-w-[1100px]">
                     <thead class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wide">
                         <tr>
-                            <th class="w-[18%] px-3 py-2 text-left">Title</th>
-                            <th class="w-[12%] px-3 py-2 text-left">Category</th>
-                            <th class="w-[12%] px-3 py-2 text-left">Activity Level</th>
-                            <th class="w-[12%] px-3 py-2 text-left">Target Participants</th>
-                            <th class="w-[12%] px-3 py-2 text-left">Est. Budget</th>
+                            <th class="w-[20%] px-3 py-2 text-left">Title</th>
+                            <th class="w-[11%] px-3 py-2 text-left">Category</th>
+                            <th class="w-[11%] px-3 py-2 text-left">Activity Level</th>
+                            <th class="w-[13%] px-3 py-2 text-left">Target Participants</th>
+                            <th class="w-[11%] px-3 py-2 text-left">Est. Budget</th>
                             <th class="w-[12%] px-3 py-2 text-left">Date</th>
-                            <th class="w-[10%] px-3 py-2 text-left">Status</th>
-                            <th class="w-[14%] px-3 py-2 text-left">Reservation Slip</th>
-                            <th class="w-[8%] px-3 py-2 text-center">Actions</th>
+                            <th class="w-[12%] px-3 py-2 text-left">Status</th>
+                            <th class="w-[10%] px-3 py-2 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y bg-white">
@@ -199,9 +180,6 @@
                                 <td class="px-3 py-2.5 font-medium text-slate-900" title="{{ $req->title }}">
                                     <div class="flex flex-wrap items-center gap-1">
                                         <a href="{{ route('activity-requests.show', $req) }}" class="truncate text-sky-800 hover:underline">{{ $req->title }}</a>
-                                        @if($req->is_urgent)
-                                            <span class="ml-1 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Urgent</span>
-                                        @endif
                                     </div>
                                     <div class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
                                         <span>{{ $req->venue ?? '—' }}</span>
@@ -253,22 +231,6 @@
                                     <span data-status-badge class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $statusColors[$req->status] ?? 'bg-gray-100 text-gray-700' }}">
                                         {{ str_replace('_', ' ', ucfirst($req->status)) }}
                                     </span>
-                                </td>
-                                <td class="px-3 py-2.5" data-reservation-slip-cell data-upload-url="{{ route('activity-requests.reservation-slip', $req) }}">
-                                    @if($req->reservation_slip)
-                                        <a href="{{ asset('storage/'.$req->reservation_slip) }}" target="_blank" rel="noopener" class="block text-xs font-semibold text-sky-700 hover:underline">View slip</a>
-                                    @endif
-                                    @if(auth()->user()->can('uploadReservationSlip', $req))
-                                        <form method="POST" action="{{ route('activity-requests.reservation-slip', $req) }}" enctype="multipart/form-data" class="mt-1 space-y-1">
-                                            @csrf
-                                            <input type="file" name="reservation_slip" accept=".pdf,.jpg,.jpeg,.png" required class="block w-full text-[10px] text-slate-600">
-                                            <button type="submit" class="rounded bg-sky-700 px-2 py-1 text-[10px] font-semibold text-white hover:bg-sky-800">
-                                                {{ $req->reservation_slip ? 'Replace slip' : 'Upload slip' }}
-                                            </button>
-                                        </form>
-                                    @elseif(!$req->reservation_slip)
-                                        <span class="text-xs text-slate-400">Available after approval</span>
-                                    @endif
                                 </td>
                                 <td
                                     class="px-3 py-2.5 text-center"

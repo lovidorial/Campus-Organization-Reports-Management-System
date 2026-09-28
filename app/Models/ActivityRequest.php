@@ -16,7 +16,7 @@ class ActivityRequest extends Model
         'plan_key_strategy', 'target_participants', 'person_in_charge',
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
         'preceding_activity', 'description', 'participants_count',
-        'communication_letter', 'reservation_slip', 'status', 'reject_reason', 'is_urgent', 'urgent_reason',
+        'communication_letter', 'status', 'reject_reason',
     ];
 
     protected $casts = [
@@ -24,7 +24,6 @@ class ActivityRequest extends Model
         'end_date' => 'date',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
-        'is_urgent' => 'boolean',
     ];
 
     public const STATUS_PENDING = 'pending';

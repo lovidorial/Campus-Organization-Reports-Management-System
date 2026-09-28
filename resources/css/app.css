@@ -5,3 +5,13 @@
 [x-cloak] {
     display: none !important;
 }
+
+@media (max-width: 767px) {
+    [data-actions-cell] a,
+    [data-actions-cell] button {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        justify-content: center;
+    }
+}

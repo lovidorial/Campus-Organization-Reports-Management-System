@@ -53,11 +53,7 @@
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I submit an Activity Request, and what is a Communication Letter?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('activity-requests.index') }}">Activity Requests</a>, create a request under an approved GPOA, and provide the venue, date, start and end time, category, description, objectives, expected outcome, target participants, person in charge, facilities/materials, and estimated budget. Submit requests at least 7 days before the activity. If the activity must be submitted sooner, mark it as <strong>Urgent</strong> and provide the required reason. A Communication Letter is the supporting document submitted with the request for review.</p>
-                    </details>
-                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">What is a reservation slip, and when do I upload it?</summary>
-                        <p class="mt-2 text-sm text-gray-600">The reservation slip documents the venue or facility reservation for an activity. Upload it using the file picker on the Activity Request’s row or detail page after the Communication Letter has been approved, when the request is eligible for the upload action. It is for the admin’s reference to confirm that the venue was secured.</p>
+                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('activity-requests.index') }}">Activity Requests</a>, create a request under an approved GPOA, and provide the venue, date, start and end time, category, description, objectives, expected outcome, target participants, person in charge, facilities/materials, and estimated budget. A Communication Letter is the supporting document submitted with the request for review.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">What does each activity status mean?</summary>

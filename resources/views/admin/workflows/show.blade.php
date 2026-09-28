@@ -38,25 +38,6 @@
             @if($sub->approval_remarks)<p class="text-xs text-green-700 mt-1">Remarks: {{ $sub->approval_remarks }}</p>@endif
             @if($sub->reject_reason)<p class="text-xs text-red-600 mt-1 bg-red-50 p-2 rounded">{{ $sub->reject_reason }}</p>@endif
 
-            @if($type === 'gpoa' && $sub->status === 'under_review' && $sub->gpoa)
-                @php
-                    $imminentActivities = $sub->gpoa->activities
-                        ->filter(fn ($activity) => $activity->date?->betweenIncluded(today(), today()->addDays(7)))
-                        ->sortBy('date');
-                @endphp
-                @if($imminentActivities->isNotEmpty())
-                    <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                        <p class="font-semibold">Timing warning</p>
-                        <p class="mt-1 text-xs">This GPOA includes {{ $imminentActivities->count() }} planned {{ \Illuminate\Support\Str::plural('activity', $imminentActivities->count()) }} scheduled within the next 7 days. Under the current Activity Request rule, each request for these activities will require the <strong>Urgent</strong> flag and a required reason.</p>
-                        <ul class="mt-2 list-disc space-y-1 pl-5 text-xs">
-                            @foreach($imminentActivities as $activity)
-                                <li>{{ $activity->title }} — {{ $activity->date->format('M d, Y') }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-            @endif
-
             <div class="mt-3 flex flex-wrap gap-2">
                 @if($sub->file_path || ($sub->gpoa && $sub->gpoa->document_path))
                 <button type="button" onclick="openDocumentModal('{{ route('admin.workflows.submissions.document', $sub) }}')" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded font-semibold">View Document</button>

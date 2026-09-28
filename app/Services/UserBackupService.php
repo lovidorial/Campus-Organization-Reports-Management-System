@@ -52,7 +52,6 @@ class UserBackupService
 
             foreach ($requests as $request) {
                 $this->addDocument($zip, $request->communication_letter, "documents/activity-requests/{$request->id}/communication");
-                $this->addDocument($zip, $request->reservation_slip, "documents/activity-requests/{$request->id}/reservation");
                 if ($request->report) {
                     $this->addDocument($zip, $request->report->narrative_report, "documents/activity-requests/{$request->id}/narrative");
                     foreach ($request->report->photos as $photo) {

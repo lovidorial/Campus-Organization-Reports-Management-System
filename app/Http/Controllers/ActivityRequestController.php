@@ -131,33 +131,11 @@ class ActivityRequestController extends Controller
             'requests' => $requests->map(fn ($request) => [
                 'id' => $request->id,
                 'status' => $request->status,
-                'is_urgent' => (bool) $request->is_urgent,
                 'report_status' => $request->report?->status,
                 'report_feedback' => $request->report?->feedback,
                 'monitoring_compliance_status' => $request->monitoringResult?->compliance_status,
-                'can_upload_reservation_slip' => auth()->user()->can('uploadReservationSlip', $request),
-                'reservation_slip_url' => $request->reservation_slip ? asset('storage/' . $request->reservation_slip) : null,
             ])->values(),
         ]);
-    }
-
-    public function uploadReservationSlip(Request $request, ActivityRequest $activityRequest)
-    {
-        $this->authorize('uploadReservationSlip', $activityRequest);
-
-        $validated = $request->validate([
-            'reservation_slip' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ]);
-
-        $path = $validated['reservation_slip']->store('uploads/reservation-slips', 'public');
-
-        if ($activityRequest->reservation_slip) {
-            Storage::disk('public')->delete($activityRequest->reservation_slip);
-        }
-
-        $activityRequest->update(['reservation_slip' => $path]);
-
-        return back()->with('success', 'Venue reservation slip uploaded successfully.');
     }
 
     public function create(Request $request)
@@ -280,10 +258,6 @@ class ActivityRequestController extends Controller
             ->all();
         $request->merge(['program_flows' => $programFlows]);
 
-        $minimumDate = $request->boolean('is_urgent')
-            ? today()->toDateString()
-            : today()->addDays(7)->toDateString();
-
         $validated = $request->validate([
             'gpoa_id' => [
                 'required',
@@ -305,7 +279,7 @@ class ActivityRequestController extends Controller
             'objectives' => 'required|string',
             'expected_outcome' => 'required|string',
             'plan_key_strategy' => 'required|string',
-            'date' => 'required|date|after_or_equal:' . $minimumDate,
+            'date' => 'required|date|after_or_equal:today',
             'end_date' => 'nullable|date|after_or_equal:date',
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i|after:start_time',
@@ -320,17 +294,8 @@ class ActivityRequestController extends Controller
             'program_flows.*.time' => 'required|string|max:50',
             'program_flows.*.flow' => 'required|string|max:255',
             'program_flows.*.person_in_charge' => 'required|string|max:255',
-            'is_urgent' => 'sometimes|boolean',
-            'urgent_reason' => [
-                Rule::requiredIf(fn () => $request->boolean('is_urgent')),
-                'nullable',
-                'string',
-                'max:2000',
-            ],
         ], [
-            'date.after_or_equal' => $request->boolean('is_urgent')
-                ? 'Urgent activities cannot be scheduled in the past.'
-                : 'Activity requests must be submitted at least 7 days before the activity date unless marked urgent.',
+            'date.after_or_equal' => 'Activity date cannot be in the past.',
         ]);
 
         $gpoa = Gpoa::findOrFail($validated['gpoa_id']);
@@ -422,8 +387,6 @@ class ActivityRequestController extends Controller
             'preceding_activity' => $linkedActivity->preceding_activity,
             'participants_count' => $linkedActivity->participants_count,
             'communication_letter' => $commPath,
-            'is_urgent' => $request->boolean('is_urgent'),
-            'urgent_reason' => $validated['urgent_reason'] ?? null,
             'status' => ActivityRequest::STATUS_PENDING,
         ]);
 

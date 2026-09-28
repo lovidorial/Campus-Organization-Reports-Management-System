@@ -7,7 +7,9 @@
                 <div>
                     <p class="eyebrow">Activity Request</p>
                     <h1>Request an Activity</h1>
-                        <p class="page-description">Submit a detailed activity request under your approved GPOA submission.</p>
+                    <p class="page-description">Submit a detailed activity request under your approved GPOA submission.</p>
+                </div>
+            </div>
             <form action="{{ route('activity-requests.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="requestForm">
                 @csrf
 
@@ -310,7 +312,7 @@
                     <div class="grid gap-6 md:grid-cols-1 mt-6">
                         <div class="form-group">
                             <label for="date">Date *</label>
-                            <input id="date" type="date" name="date" value="{{ old('date') }}" required>
+                            <input id="date" type="date" name="date" value="{{ old('date') }}" min="{{ today()->toDateString() }}" required>
                             @error('date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
@@ -330,7 +332,7 @@
                         </div>
                     </div>
 
-                    <section class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4"
+                    <section class="mt-6 min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-4"
                              x-data="{
                                 rows: @js(old('program_flows', [])),
                                 addRow() {
@@ -344,7 +346,7 @@
                             <h3 class="text-sm font-semibold text-slate-800">Program Flow</h3>
                             <p class="mt-1 text-xs text-slate-500">Optional schedule for the Activity Date selected above.</p>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="max-w-full min-w-0 overflow-x-auto">
                             <table class="w-full min-w-[640px] text-sm">
                                 <thead class="text-xs uppercase tracking-wide text-slate-500">
                                     <tr>
@@ -392,20 +394,6 @@
                             Add row
                         </button>
                     </section>
-
-                    <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
-                        <label for="is_urgent" class="flex items-center gap-2 font-semibold text-red-800">
-                            <input id="is_urgent" type="checkbox" name="is_urgent" value="1" {{ old('is_urgent') ? 'checked' : '' }}>
-                            Mark this request as urgent
-                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Urgent</span>
-                        </label>
-                        <p class="mt-1 text-xs text-red-700">Urgent requests may be submitted less than 7 days before the activity, but cannot be dated in the past. A reason is required.</p>
-                        <div class="form-group mt-3">
-                            <label for="urgent_reason">Urgent reason <span class="text-xs text-gray-500">(required when urgent)</span></label>
-                            <textarea id="urgent_reason" name="urgent_reason" rows="2" maxlength="2000">{{ old('urgent_reason') }}</textarea>
-                            @error('urgent_reason')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
 
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
                         <div class="form-group">

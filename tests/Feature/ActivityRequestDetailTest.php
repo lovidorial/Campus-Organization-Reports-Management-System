@@ -42,10 +42,7 @@ class ActivityRequestDetailTest extends TestCase
             'remarks' => 'Bring printed materials.',
             'reject_reason' => 'Prior rejection notes.',
             'status' => ActivityRequest::STATUS_PENDING,
-            'is_urgent' => true,
-            'urgent_reason' => 'Required by a campus directive.',
             'communication_letter' => 'uploads/comm/letter.pdf',
-            'reservation_slip' => 'uploads/reservations/slip.pdf',
         ]);
         $request->forceFill(['activity_level' => 'Institutional'])->save();
         $request->programFlows()->create([
@@ -80,10 +77,8 @@ class ActivityRequestDetailTest extends TestCase
             ->assertSee('4, 16')
             ->assertSee('Bring printed materials.')
             ->assertSee('Prior rejection notes.')
-            ->assertSee('Required by a campus directive.')
             ->assertSee('Opening Remarks')
-            ->assertSee('letter.pdf')
-            ->assertSee('slip.pdf');
+            ->assertSee('letter.pdf');
 
         $this->actingAs($owner)
             ->get(route('activity-requests.index'))

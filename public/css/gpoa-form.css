@@ -791,9 +791,82 @@ body.modal-open {
 .badge-not-submitted{background:#9ca3af;color:#ffffff;border-color:rgba(0,0,0,0.06)} /* gray */
 
 @media (max-width:639px){
-    .org-info-grid{grid-template-columns:1fr 1fr}
-    .org-info-grid .cell.label{order:0}
-    .org-info-grid .cell.value{order:1}
+    .org-info-grid{grid-template-columns:minmax(0,1fr)}
+}
+
+@media (max-width:767px){
+    .page-wrapper,
+    .gpoa-card,
+    .gpoa-form,
+    .activity-card,
+    .activity-card .form-row,
+    .activity-card .form-row.grid-2,
+    .form-section,
+    .org-info-block,
+    .org-info-grid,
+    .sdg-widget {
+        box-sizing:border-box;
+        min-width:0;
+        max-width:100%;
+    }
+
+    .org-info-grid .cell {
+        min-width:0;
+        overflow-wrap:anywhere;
+    }
+
+    .page-wrapper,
+    .gpoa-card,
+    .gpoa-form {
+        width:100%;
+    }
+
+    .org-info-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+    .activity-card .form-row,
+    .activity-card .form-row.grid-2 {
+        grid-template-columns:minmax(0,1fr);
+    }
+
+    .gpoa-form input:not([type="checkbox"]):not([type="radio"]),
+    .gpoa-form select,
+    .gpoa-form textarea,
+    .activity-card input:not([type="checkbox"]):not([type="radio"]),
+    .activity-card select,
+    .activity-card textarea {
+        box-sizing:border-box;
+        max-width:100%;
+        min-height:40px;
+        min-width:0;
+    }
+
+    .gpoa-form button,
+    .activity-card button {
+        min-height:40px;
+    }
+
+    .sdg-checkbox-item,
+    .form-group.checkbox {
+        min-height:40px;
+    }
+}
+
+@media (max-width:639px){
+    .org-info-grid{grid-template-columns:minmax(0,1fr)}
+
+    .sdg-picker,
+    .sdg-picker-menu {
+        box-sizing:border-box;
+        width:100%;
+        min-width:0;
+        max-width:100%;
+    }
+
+    .sdg-label-row,
+    .sdg-summary-badges {
+        min-width:0;
+        max-width:100%;
+    }
 }
 
     /* SDG option checkbox styles removed (using native select) */

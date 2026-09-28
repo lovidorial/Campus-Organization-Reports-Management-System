@@ -5,7 +5,7 @@
                 <h1 class="text-xl font-bold text-gray-900">Submission History</h1>
                 <p class="mt-1 text-sm text-gray-500">Complete record of all document versions</p>
             </div>
-            <a href="{{ route('dashboard') }}" aria-label="Back to dashboard" title="Back to dashboard" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
+            <a href="{{ route('dashboard') }}" aria-label="Back to dashboard" title="Back to dashboard" class="inline-flex h-10 w-10 md:h-9 md:w-9 shrink-0 items-center justify-center rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
                 <svg aria-hidden="true" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
@@ -30,9 +30,9 @@
             @endforeach
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div class="min-w-0 max-w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
             @if($submissionHistory->count())
-                <div class="overflow-x-auto">
+            <div class="min-w-0 max-w-full overflow-x-auto">
                     <table class="w-full min-w-[640px] text-left text-sm">
                         <thead class="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                             <tr>

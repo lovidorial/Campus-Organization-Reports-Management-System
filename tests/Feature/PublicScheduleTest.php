@@ -33,7 +33,6 @@ class PublicScheduleTest extends TestCase
             'estimated_budget' => 98765.43,
             'source_of_funds' => 'Private Fund Source',
             'remarks' => 'Internal remark secret.',
-            'urgent_reason' => 'Internal urgency secret.',
             'status' => ActivityRequest::STATUS_APPROVED,
         ]);
 
@@ -55,7 +54,6 @@ class PublicScheduleTest extends TestCase
             ->assertDontSee('Private Contact Name')
             ->assertDontSee('98765.43')
             ->assertDontSee('Internal remark secret.')
-            ->assertDontSee('Internal urgency secret.')
             ->assertDontSee('Internal description must not be exposed.');
 
         $response->assertSessionHasNoErrors();

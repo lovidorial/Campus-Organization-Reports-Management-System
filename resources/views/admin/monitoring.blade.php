@@ -10,22 +10,22 @@
     </div>
 
     <form method="GET" action="{{ route('admin.activities') }}" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
             <input type="text" name="search" placeholder="Search title/venue..." value="{{ request('search') }}"
-                   class="border rounded px-3 py-2 text-sm col-span-2 md:col-span-1"/>
-            <select name="status" class="border rounded px-3 py-2 text-sm">
+                     class="min-h-10 md:min-h-0 min-w-0 max-w-full border rounded px-3 py-2 text-sm col-span-1"/>
+                 <select name="status" class="min-h-10 md:min-h-0 min-w-0 max-w-full border rounded px-3 py-2 text-sm">
                 <option value="">All Status</option>
                 @foreach(['pending','approved','in_progress','awaiting_report','report_submitted','closed','rejected'] as $s)
                 <option value="{{ $s }}" {{ request('status')==$s?'selected':'' }}>{{ str_replace('_',' ',ucfirst($s)) }}</option>
                 @endforeach
             </select>
-            <select name="organization" class="border rounded px-3 py-2 text-sm">
+            <select name="organization" class="min-h-10 md:min-h-0 min-w-0 max-w-full border rounded px-3 py-2 text-sm">
                 <option value="">All Organizations</option>
                 @foreach($organizations as $org)
                 <option value="{{ $org->id }}" {{ request('organization')==$org->id?'selected':'' }}>{{ $org->org_name ?? $org->name }}</option>
                 @endforeach
             </select>
-            <select name="category" class="border rounded px-3 py-2 text-sm">
+            <select name="category" class="min-h-10 md:min-h-0 min-w-0 max-w-full border rounded px-3 py-2 text-sm">
                 <option value="">All Categories</option>
                 @foreach($categories as $cat)
                 <option value="{{ $cat }}" {{ request('category')==$cat?'selected':'' }}>{{ $cat }}</option>
@@ -33,8 +33,8 @@
             </select>
         </div>
         <div class="mt-3 flex gap-2">
-            <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700">Filter</button>
-            <a href="{{ route('admin.activities') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm">Reset</a>
+            <button type="submit" class="min-h-10 md:min-h-0 px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700">Filter</button>
+            <a href="{{ route('admin.activities') }}" class="inline-flex min-h-10 md:min-h-0 items-center px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm">Reset</a>
         </div>
     </form>
 </div>
@@ -162,7 +162,7 @@
     }"
 >
 <!-- Existing rows only are updated; adding or removing rows needs a separate diffing approach. -->
-<div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+<div class="min-w-0 max-w-full overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
     <table class="w-full table-fixed text-sm min-w-[1000px]">
         <thead class="bg-gray-50 border-b">
             <tr>
@@ -183,9 +183,6 @@
                 <td class="w-32 px-2 py-1.5 text-sm font-medium" title="{{ $activity->title }}">
                     <div class="flex flex-wrap items-center gap-1">
                         <a href="{{ route('activity-requests.show', $activity) }}" class="truncate text-sky-800 hover:underline">{{ $activity->title }}</a>
-                    @if($activity->is_urgent)
-                        <span class="ml-1 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Urgent</span>
-                    @endif
                     </div>
                 </td>
                 <td class="w-24 px-2 py-1.5 text-xs truncate">{{ $activity->user->org_name ?? $activity->user->name ?? '—' }}</td>
@@ -214,7 +211,6 @@
                     @php
                         $existingFiles = 0;
                         if ($activity->communication_letter) { $existingFiles++; }
-                        if ($activity->reservation_slip) { $existingFiles++; }
                         if ($activity->report) { $existingFiles++; }
 
                         $reportBadgeClasses = [
@@ -356,13 +352,6 @@
                                         @endif
                                     </div>
                                 </div>
-
-                                @if($activity->reservation_slip)
-                                    <div class="flex min-w-0 items-center gap-3 rounded-md border border-dashed border-gray-200 p-2">
-                                        <div class="min-w-0 flex-1 text-sm font-semibold text-gray-800">Venue Reservation Slip</div>
-                                        <a href="{{ asset('storage/'.$activity->reservation_slip) }}" target="_blank" rel="noopener" class="shrink-0 text-xs font-semibold text-sky-700 hover:underline">View</a>
-                                    </div>
-                                @endif
 
                                 <div class="flex min-w-0 items-center gap-3 rounded-md border border-dashed border-gray-200 p-2">
                                     <div class="min-w-0 flex-1">

@@ -106,11 +106,25 @@ class ActivityRequestAvailabilityTest extends TestCase
         $response->assertDontSee('Preceding Activity');
     }
 
-    public function test_activity_requests_inside_seven_days_require_urgent_flag(): void
+    public function test_activity_request_dated_tomorrow_is_accepted(): void
     {
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext(
-            'Soon Event',
-            today()->addDays(6)->toDateString(),
+            'Tomorrow Event',
+            today()->addDay()->toDateString(),
+            'Main Hall'
+        );
+
+        $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
+
+        $response->assertRedirect(route('activity-requests.index'));
+        $this->assertDatabaseHas('activity_requests', ['title' => 'Tomorrow Event']);
+    }
+
+    public function test_activity_request_dated_yesterday_is_rejected(): void
+    {
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext(
+            'Yesterday Event',
+            today()->subDay()->toDateString(),
             'Main Hall'
         );
 
@@ -120,67 +134,21 @@ class ActivityRequestAvailabilityTest extends TestCase
         $this->assertDatabaseCount('activity_requests', 0);
     }
 
-    public function test_activity_request_exactly_seven_days_ahead_is_allowed(): void
+    public function test_activity_request_uses_venue_id(): void
     {
+        Storage::fake('public');
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext(
-            'Seven Day Event',
-            today()->addDays(7)->toDateString(),
-            'Main Hall'
+            'Tomorrow Event',
+            today()->addDay()->toDateString(),
+            ' Main Hall '
         );
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
 
         $response->assertRedirect(route('activity-requests.index'));
-        $this->assertDatabaseHas('activity_requests', ['title' => 'Seven Day Event', 'is_urgent' => false]);
-    }
-
-    public function test_urgent_activity_requires_a_reason(): void
-    {
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext(
-            'Urgent Event',
-            today()->addDays(2)->toDateString(),
-            'Main Hall'
-        );
-
-        $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
-            'is_urgent' => '1',
-        ]));
-
-        $response->assertSessionHasErrors('urgent_reason');
-        $this->assertDatabaseCount('activity_requests', 0);
-    }
-
-    public function test_urgent_activity_with_reason_can_be_submitted_and_uses_venue_id(): void
-    {
-        Storage::fake('public');
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext(
-            'Urgent Event',
-            today()->addDays(2)->toDateString(),
-            ' Main Hall '
-        );
-
-        $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
-            'is_urgent' => '1',
-            'urgent_reason' => 'Required for a time-sensitive campus response.',
-        ]));
-
-        $response->assertRedirect(route('activity-requests.index'));
         $request = ActivityRequest::firstOrFail();
-        $this->assertTrue($request->is_urgent);
-        $this->assertSame('Required for a time-sensitive campus response.', $request->urgent_reason);
         $this->assertNotNull($request->venue_id);
         $this->assertSame('Main Hall', Venue::findOrFail($request->venue_id)->name);
-
-        $this->actingAs($user)
-            ->get(route('activity-requests.index'))
-            ->assertOk()
-            ->assertSee('Urgent');
-
-        $admin = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($admin)
-            ->get(route('admin.activities'))
-            ->assertOk()
-            ->assertSee('Urgent');
     }
 
     public function test_admin_cannot_approve_a_request_with_an_overlapping_venue_booking(): void

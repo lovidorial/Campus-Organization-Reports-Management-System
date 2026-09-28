@@ -341,9 +341,9 @@
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
 
     <!-- Main Content -->
-    <div class="flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-auto">
+    <div class="min-w-0 max-w-full flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-auto">
         <!-- Top bar (mobile) -->
-        <header class="bg-white shadow-sm h-14 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 md:hidden">
+        <header class="w-full min-w-0 max-w-full bg-white shadow-sm h-14 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 md:hidden">
             <button id="sidebarToggle" class="p-2 focus:outline-none">
                 <svg class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -357,7 +357,7 @@
         </header>
 
         <!-- Page Content -->
-        <main class="p-3 sm:p-4 md:p-8 max-w-7xl mx-auto w-full">
+        <main class="min-w-0 max-w-full p-3 sm:p-4 md:p-8 w-full mx-auto md:max-w-7xl">
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-5 flex items-center justify-between">
                     <span>{{ session('success') }}</span>

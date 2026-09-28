@@ -24,10 +24,9 @@ class StorageUsageService
             $this->addPath($pathsByUser, (int) $row->user_id, $row->document_path);
         }
         foreach (DB::table('activity_requests')->where(function ($query) {
-            $query->whereNotNull('communication_letter')->orWhereNotNull('reservation_slip');
-        })->get(['user_id', 'communication_letter', 'reservation_slip']) as $row) {
+            $query->whereNotNull('communication_letter');
+        })->get(['user_id', 'communication_letter']) as $row) {
             $this->addPath($pathsByUser, (int) $row->user_id, $row->communication_letter);
-            $this->addPath($pathsByUser, (int) $row->user_id, $row->reservation_slip);
         }
         foreach (DB::table('activities')->where(function ($query) {
             $query->whereNotNull('communication_letter')->orWhereNotNull('narrative_report');
@@ -97,7 +96,7 @@ class StorageUsageService
         if ($userIds) {
             foreach ([
                 ['gpoas', ['document_path']],
-                ['activity_requests', ['communication_letter', 'reservation_slip']],
+                ['activity_requests', ['communication_letter']],
                 ['activities', ['communication_letter', 'narrative_report']],
             ] as [$table, $columns]) {
                 $select = array_merge(['user_id'], $columns);

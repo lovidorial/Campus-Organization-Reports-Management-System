@@ -274,7 +274,6 @@ class AdminController extends Controller
             'requests' => $activities->getCollection()->map(fn ($activity) => [
                 'id' => $activity->id,
                 'status' => $activity->status,
-                'is_urgent' => (bool) $activity->is_urgent,
                 'report_status' => $activity->report?->status,
                 'report_id' => $activity->report?->id,
                 'monitoring_compliance_status' => $activity->monitoringResult?->compliance_status,

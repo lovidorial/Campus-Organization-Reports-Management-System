@@ -42,9 +42,6 @@
         <section class="rounded border border-slate-200 bg-slate-50 p-2.5">
             <div class="mb-2 flex flex-wrap items-center gap-1.5">
                 <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $statusClasses[$request->status] ?? 'bg-slate-100 text-slate-700' }}">{{ str_replace('_', ' ', ucfirst($request->status)) }}</span>
-                @if($request->is_urgent)
-                    <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800">Urgent</span>
-                @endif
             </div>
 
             <dl class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -69,12 +66,7 @@
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Preceding Activity</dt><dd class="{{ $valueClass }}">{{ $request->preceding_activity ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Remarks</dt><dd class="{{ $valueClass }}">{{ $request->remarks ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Rejection Reason</dt><dd class="{{ $valueClass }}">{{ $request->reject_reason ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Urgent</dt><dd class="{{ $valueClass }}">{{ $request->is_urgent ? 'Yes' : 'No' }}</dd></div>
-                @if($request->is_urgent && $request->urgent_reason)
-                    <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Urgent Reason</dt><dd class="{{ $valueClass }}">{{ $request->urgent_reason }}</dd></div>
-                @endif
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Communication Letter</dt><dd class="{{ $valueClass }}">{!! $fileLink($request->communication_letter) !!}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Reservation Slip</dt><dd class="{{ $valueClass }}">{!! $fileLink($request->reservation_slip) !!}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Created / Updated</dt><dd class="{{ $valueClass }}">{{ $request->created_at?->format('M d, Y H:i') ?? '—' }} / {{ $request->updated_at?->format('M d, Y H:i') ?? '—' }}</dd></div>
             </dl>
         </section>
