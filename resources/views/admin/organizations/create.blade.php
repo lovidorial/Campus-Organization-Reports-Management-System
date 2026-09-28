@@ -12,7 +12,7 @@
         @csrf
 
         <div class="grid gap-6 lg:grid-cols-2">
-            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
                 <h3 class="text-lg font-semibold text-slate-900 mb-5">Organization Information</h3>
                 <div class="space-y-4">
                     <div>
@@ -101,7 +101,7 @@
                 </div>
             </div>
 
-            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
                 <h3 class="text-lg font-semibold text-slate-900 mb-5">Secretary Account</h3>
                 <div class="space-y-4">
                     <div>

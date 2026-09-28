@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between gap-4 mb-6">
+    <div class="max-w-6xl mx-auto px-0 py-6 sm:px-4 sm:py-8">
+        <div class="flex flex-col items-start justify-between gap-3 mb-6 sm:flex-row sm:items-center sm:gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Activity Monitor</h1>
                 <p class="text-sm text-slate-500 mt-1">Approved planned activities and their current request status.</p>

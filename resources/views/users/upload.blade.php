@@ -41,7 +41,7 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-8 border border-gray-200">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Submit Activity Report</h2>
         
         <form action="{{ route('user.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6" id="activityForm" onsubmit="return validateForm(event)">

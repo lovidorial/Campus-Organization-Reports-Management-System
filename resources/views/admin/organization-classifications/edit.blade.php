@@ -6,7 +6,7 @@
         <p class="mt-2 text-sm text-slate-500">Update the org name mapping used for auto-detection.</p>
     </div>
 
-    <form action="{{ route('admin.organization-classifications.update', $organizationClassification) }}" method="POST" class="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form action="{{ route('admin.organization-classifications.update', $organizationClassification) }}" method="POST" class="space-y-6 rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
         @csrf
         @method('PATCH')
 

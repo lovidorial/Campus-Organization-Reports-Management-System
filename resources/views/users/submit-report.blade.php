@@ -5,7 +5,7 @@
     <p class="text-sm text-gray-500">{{ $activityRequest->title }} — {{ $activityRequest->date->format('M d, Y') }}</p>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border p-8 max-w-xl">
+<div class="bg-white rounded-xl shadow-sm border p-4 sm:p-8 max-w-xl">
     <form action="{{ route('activity-reports.store', $activityRequest) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf
 

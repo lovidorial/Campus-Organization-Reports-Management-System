@@ -1,5 +1,5 @@
 <x-app-layout>
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-8">
     <div class="mb-6 flex items-center justify-between">
         <div>
             <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-sky-700 hover:text-sky-900 mb-3">

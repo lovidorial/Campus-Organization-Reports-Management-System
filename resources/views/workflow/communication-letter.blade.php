@@ -1,6 +1,6 @@
 <x-app-layout>
 <div class="max-w-2xl mx-auto">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-2">Submit Communication Letter</h2>
         <p class="text-sm text-gray-500 mb-6">Upload your organization's communication letter for OSDW review.</p>
 
@@ -34,7 +34,7 @@
             </div>
             @error('verify')<p class="text-red-500 text-xs">{{ $message }}</p>@enderror
 
-            <div class="flex gap-3">
+            <div class="flex flex-col gap-3 sm:flex-row">
                 <a href="{{ route('dashboard') }}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Cancel</a>
                 <button type="submit" class="px-6 py-2 text-white rounded-lg font-semibold hover:opacity-90" style="background:#e89600;" @if(!$canSubmit) disabled @endif>Submit for Review</button>
             </div>

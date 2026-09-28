@@ -7,7 +7,7 @@
     <p class="text-sm text-gray-500 mt-1">Add a new member to the system</p>
 </div>
 
-<div class="max-w-2xl bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+<div class="max-w-2xl bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-8">
     <form action="{{ route('admin.users.store') }}" method="POST" class="space-y-6">
         @csrf
 

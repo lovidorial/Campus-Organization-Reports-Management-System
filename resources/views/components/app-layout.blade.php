@@ -357,7 +357,7 @@
         </header>
 
         <!-- Page Content -->
-        <main class="min-w-0 max-w-full p-3 sm:p-4 md:p-8 w-full mx-auto md:max-w-7xl">
+        <main class="min-w-0 max-w-full p-3 md:p-8 w-full mx-auto md:max-w-7xl">
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-5 flex items-center justify-between">
                     <span>{{ session('success') }}</span>

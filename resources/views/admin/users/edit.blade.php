@@ -6,7 +6,7 @@
     </div>
 
     <form action="{{ route('admin.users.update', $user) }}" method="POST"
-          class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+          class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 space-y-5">
         @csrf @method('PATCH')
 
         <!-- Profile Photo Preview -->

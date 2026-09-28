@@ -8,11 +8,11 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.organizations.update', $organization) }}" method="POST" enctype="multipart/form-data" class="space-y-6 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+    <form action="{{ route('admin.organizations.update', $organization) }}" method="POST" enctype="multipart/form-data" class="space-y-6 bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 shadow-sm">
         @csrf @method('PATCH')
 
         <div class="grid gap-6 lg:grid-cols-2">
-            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
                 <h2 class="text-lg font-semibold text-slate-900 mb-5">Organization Information</h2>
                 <div class="space-y-4">
                     <div>

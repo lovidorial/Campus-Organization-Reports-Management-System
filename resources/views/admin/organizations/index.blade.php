@@ -1,12 +1,12 @@
 <x-app-layout>
 <div class="space-y-8">
     <!-- Header Section -->
-    <div class="flex items-start justify-between gap-4">
+    <div class="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div class="flex-1">
             <h1 class="text-3xl font-bold text-slate-900">Organization Accounts</h1>
             <p class="mt-3 text-sm text-slate-600 max-w-2xl">Manage organization accounts, secretary access, and activity submission status from a single dashboard.</p>
         </div>
-        <a href="{{ route('admin.organizations.create') }}" class="flex-shrink-0 inline-flex items-center justify-center gap-2 rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition whitespace-nowrap">+ Add Organization</a>
+        <a href="{{ route('admin.organizations.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:flex-shrink-0 sm:whitespace-nowrap">+ Add Organization</a>
     </div>
 
     <!-- Information Card -->

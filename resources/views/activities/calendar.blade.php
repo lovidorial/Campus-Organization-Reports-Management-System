@@ -8,7 +8,7 @@
         $selectedVenue = $selectedVenue ? (int) $selectedVenue : null;
     @endphp
 
-    <main class="mx-auto max-w-7xl space-y-4 p-3 sm:p-5">
+    <main class="mx-auto max-w-7xl space-y-4 p-0 sm:p-5">
         <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Activity Calendar</h1>

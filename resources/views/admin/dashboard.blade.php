@@ -10,7 +10,7 @@
     }
 </style>
     <div class="min-h-[calc(100vh-3rem)] bg-white py-10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto px-0 sm:px-6 lg:px-8">
             <!-- Top bar -->
             <div class="flex items-center justify-between mb-8">
                 <div>

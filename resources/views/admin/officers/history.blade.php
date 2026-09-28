@@ -83,6 +83,6 @@
             </div>
         </div>
     @empty
-        <div class="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-400">No archived officers found.</div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 text-center text-gray-400 sm:p-8">No archived officers found.</div>
     @endforelse
 </x-app-layout>

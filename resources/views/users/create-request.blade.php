@@ -452,8 +452,8 @@
                     </div>
                 </section>
 
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('activity-requests.index') }}" class="inline-flex items-center justify-center rounded-lg bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-300">
+                <div class="flex flex-col items-stretch gap-3 md:flex-row md:items-center">
+                    <a href="{{ route('activity-requests.index') }}" class="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-300 md:w-auto">
                         Cancel
                     </a>
                     <button type="submit" class="btn-secondary">Submit Activity Request</button>

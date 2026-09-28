@@ -25,7 +25,7 @@
         ], true);
     @endphp
 
-    <main class="mx-auto max-w-6xl space-y-3 p-3 sm:p-4">
+    <main class="mx-auto max-w-6xl space-y-3 p-0 sm:p-4">
         <header class="flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
                 <p class="text-[11px] text-slate-500">Activity Request #{{ $request->id }}</p>

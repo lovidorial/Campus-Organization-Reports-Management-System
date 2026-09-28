@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-8 border border-gray-200">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Edit Submitted Activity</h2>
 
         <form action="{{ route('user.activities.update', $activity) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
