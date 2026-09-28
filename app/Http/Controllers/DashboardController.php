@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
-use App\Models\OrganizationWorkflow;
-use App\Models\UserNotification;
 use App\Services\OrganizationWorkflowService;
 use Illuminate\Support\Facades\Auth;
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
-use App\Models\Activity;
 use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Services\OrganizationClassifierService;
