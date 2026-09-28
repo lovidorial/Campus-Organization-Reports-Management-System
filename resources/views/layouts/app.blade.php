@@ -263,7 +263,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
-            <span class="font-bold text-gray-800">CORMS</span>
+            <span class="font-bold text-gray-800">Orgtrack</span>
             <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }} profile photo" class="w-9 h-9 rounded-full object-cover"/>
         </header>
 

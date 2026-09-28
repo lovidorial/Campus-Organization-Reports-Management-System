@@ -5,7 +5,11 @@
                 <h1 class="text-xl font-bold text-gray-900">Submission History</h1>
                 <p class="mt-1 text-sm text-gray-500">Complete record of all document versions</p>
             </div>
-            <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-amber-700 hover:underline">Back to dashboard</a>
+            <a href="{{ route('dashboard') }}" aria-label="Back to dashboard" title="Back to dashboard" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
+                <svg aria-hidden="true" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
         </header>
 
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">

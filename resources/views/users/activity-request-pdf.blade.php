@@ -2,142 +2,232 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Activity Request {{ $activityRequest->id }}</title>
+    <title>Concept Paper - Activity Request {{ $activityRequest->id }}</title>
     <style>
-        @page { margin: 34px 38px; }
-        body { color: #1f2937; font-family: DejaVu Sans, sans-serif; font-size: 9px; }
-        .letterhead { border-bottom: 2px solid #b45309; margin-bottom: 16px; padding-bottom: 10px; width: 100%; }
-        .letterhead td { vertical-align: middle; }
-        .logo { height: 56px; max-width: 76px; }
-        .org-name { color: #7c2d12; font-size: 15px; font-weight: bold; }
-        .document-title { color: #334155; font-size: 11px; margin-top: 4px; }
-        .generated { color: #64748b; font-size: 8px; text-align: right; }
-        h2 { border-bottom: 1px solid #cbd5e1; color: #7c2d12; font-size: 10px; margin: 15px 0 7px; padding-bottom: 4px; text-transform: uppercase; }
+        @page { margin: 25px 30px; }
+        body { color: #26344a; font-family: "DejaVu Serif", serif; font-size: 8px; line-height: 1.3; }
         table { border-collapse: collapse; width: 100%; }
-        .summary { margin-bottom: 10px; }
-        .summary td { padding: 4px 6px; }
-        .summary .label { background: #f1f5f9; color: #475569; font-size: 8px; font-weight: bold; width: 17%; }
-        .summary .value { border-bottom: 1px solid #e2e8f0; width: 33%; }
-        .fields td { border: 1px solid #dbe2ea; padding: 5px 6px; vertical-align: top; width: 50%; }
-        .field-label { color: #64748b; display: block; font-size: 7px; font-weight: bold; margin-bottom: 3px; text-transform: uppercase; }
-        .field-value { line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
-        .flow th, .flow td { border: 1px solid #cbd5e1; padding: 5px 6px; text-align: left; }
-        .flow th { background: #f1f5f9; color: #475569; font-size: 8px; }
-        .flow td { font-size: 8px; }
-        .empty { color: #64748b; font-style: italic; padding: 6px 0; }
-        .footer { border-top: 1px solid #cbd5e1; color: #64748b; font-size: 7px; margin-top: 18px; padding-top: 6px; }
+        .title-table { margin-bottom: 9px; }
+        .title-table td { vertical-align: middle; }
+        .logo-cell { width: 48px; }
+        .logo { max-height: 38px; max-width: 42px; }
+        .title-cell { text-align: center; }
+        .document-title { color: #1e3a8a; font-size: 20px; font-weight: bold; }
+        .title-rule { border-top: 2px solid #1e3a8a; margin-top: 5px; }
+        .summary { margin-bottom: 8px; table-layout: fixed; }
+        .summary td { border: 1px solid #b8cce3; padding: 5px 7px; }
+        .label { background: #dbe7f5; color: #1e3a8a; font-weight: bold; }
+        .section-title { background: #dbe7f5; border: 1px solid #b8cce3; color: #1e3a8a; font-size: 9px; font-weight: bold; padding: 5px 7px; }
+        .section { margin-top: 8px; }
+        .details { table-layout: fixed; }
+        .details td { border: 1px solid #b8cce3; padding: 5px 7px; vertical-align: top; width: 50%; }
+        .field { margin-bottom: 5px; }
+        .field:last-child { margin-bottom: 0; }
+        .field-label { color: #1e3a8a; font-size: 7px; font-weight: bold; text-transform: uppercase; }
+        .field-value { margin-top: 2px; overflow-wrap: break-word; white-space: pre-wrap; }
+        .objectives { margin: 2px 0 0; padding-left: 16px; }
+        .objectives li { margin-bottom: 2px; }
+        .flow th, .flow td { border: 1px solid #b8cce3; padding: 4px 6px; text-align: left; vertical-align: top; }
+        .flow th { background: #dbe7f5; color: #1e3a8a; font-weight: bold; }
+        .bottom-row { margin-top: 8px; table-layout: fixed; }
+        .bottom-row > tbody > tr > td { vertical-align: top; width: 50%; }
+        .bottom-row > tbody > tr > td:first-child { padding-right: 4px; }
+        .bottom-row > tbody > tr > td:last-child { padding-left: 4px; }
+        .budget th, .budget td { border: 1px solid #b8cce3; padding: 4px 5px; text-align: left; vertical-align: top; }
+        .budget th { background: #dbe7f5; color: #1e3a8a; font-size: 7px; }
+        .budget .amount { text-align: right; white-space: nowrap; }
+        .budget-total td { background: #eef4fb; font-weight: bold; }
+        .additional td { border: 1px solid #b8cce3; padding: 4px 6px; vertical-align: top; }
+        .additional .label { width: 38%; }
+        .signatures { margin-top: 13px; table-layout: fixed; }
+        .signatures td { border-right: 1px solid #b8cce3; padding: 0 10px; text-align: center; vertical-align: top; width: 33.33%; }
+        .signatures td:first-child { padding-left: 0; }
+        .signatures td:last-child { border-right: 0; padding-right: 0; }
+        .signature-space { height: 25px; }
+        .signature-line { border-top: 1px solid #53647a; margin-bottom: 3px; }
+        .signature-name { color: #26344a; font-size: 8px; font-weight: bold; }
+        .signature-role { color: #52647c; font-size: 7px; }
+        .prepared-label { color: #1e3a8a; font-size: 7px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
+        .empty { color: #52647c; font-style: italic; }
     </style>
 </head>
 <body>
     @php
         $request = $activityRequest;
-        $statusLabel = str_replace('_', ' ', ucfirst($request->status));
-        $timeRange = ($request->start_time ? substr((string) $request->start_time, 0, 5) : '—')
-            . ' – '
-            . ($request->end_time ? substr((string) $request->end_time, 0, 5) : '—');
-        $dateRange = $request->date?->format('M d, Y') ?? '—';
-        if ($request->end_date) {
-            $dateRange .= ' – ' . $request->end_date->format('M d, Y');
+        $requester = $request->user;
+        $statusLabel = str_replace('_', ' ', ucfirst((string) $request->status));
+        $requestDate = $request->date?->format('M. d, Y') ?? '—';
+        if ($request->end_date && $request->end_date->ne($request->date)) {
+            $requestDate .= ' – ' . $request->end_date->format('M. d, Y');
         }
-        $fields = [
-            'Title' => $request->title,
-            'Category' => $request->category,
-            'Venue' => $request->venue,
-            'Request / User / GPOA / Planned Activity / Venue IDs' => implode(' / ', [
-                $request->id,
-                $request->user_id,
-                $request->gpoa_id ?? '—',
-                $request->gpoa_activity_id ?? '—',
-                $request->venue_id ?? '—',
-            ]),
-            'Date / End Date' => $dateRange,
-            'Start / End Time' => $timeRange,
-            'Activity Level' => $request->activity_level,
-            'SDGs' => $request->sdgs ? implode(', ', $request->sdgs) : '—',
-            'Description' => $request->description,
-            'Objectives' => $request->objectives,
-            'Expected Outcome' => $request->expected_outcome,
-            'Plan / Key Strategy' => $request->plan_key_strategy,
-            'Target Participants' => $request->target_participants,
-            'Participants Count' => $request->participants_count,
-            'Person in Charge' => $request->person_in_charge,
-            'Facilities / Materials' => $request->facilities_materials,
-            'Estimated Budget' => $request->estimated_budget !== null ? number_format((float) $request->estimated_budget, 2) : '—',
-            'Source of Funds' => $request->source_of_funds,
-            'Preceding Activity' => $request->preceding_activity,
-            'Remarks' => $request->remarks,
-            'Rejection Reason' => $request->reject_reason,
-            'Urgent' => $request->is_urgent ? 'Yes' : 'No',
-        ];
-
-        if ($request->is_urgent && $request->urgent_reason) {
-            $fields['Urgent Reason'] = $request->urgent_reason;
+        $startTime = $request->start_time ? substr((string) $request->start_time, 0, 5) : null;
+        $endTime = $request->end_time ? substr((string) $request->end_time, 0, 5) : null;
+        $timeRange = $startTime || $endTime
+            ? ($startTime ?? '—') . ' – ' . ($endTime ?? '—')
+            : 'Time not set';
+        $budget = $request->estimated_budget !== null
+            ? '₱' . number_format((float) $request->estimated_budget, 2)
+            : '—';
+        $objectives = preg_split('/\r\n|\r|\n/', trim((string) $request->objectives), -1, PREG_SPLIT_NO_EMPTY);
+        $createdBy = $requester?->name ?: '—';
+        if (filled($requester?->position)) {
+            $createdBy .= ' (' . $requester->position . ')';
         }
-
-        $fields['Communication Letter'] = $request->communication_letter ?? '—';
-        $fields['Reservation Slip'] = $request->reservation_slip ?? '—';
-        $fields['Created / Updated'] = ($request->created_at?->format('M d, Y H:i') ?? '—')
-            . ' / '
-            . ($request->updated_at?->format('M d, Y H:i') ?? '—');
+        $createdDate = $request->created_at?->format('M. d, Y') ?? '—';
+        $updatedDate = $request->updated_at?->format('M. d, Y') ?? '—';
+        $programFlows = $request->programFlows->sortBy('sort_order');
     @endphp
 
-    <table class="letterhead">
+    <table class="title-table">
         <tr>
-            @if($logoDataUri)
-                <td style="width: 88px;"><img class="logo" src="{{ $logoDataUri }}" alt="Organization logo"></td>
-            @endif
-            <td>
-                <div class="org-name">{{ $organizationName }}</div>
-                <div class="document-title">Activity Request Documentation</div>
+            <td class="logo-cell">
+                @if($logoDataUri)
+                    <img class="logo" src="{{ $logoDataUri }}" alt="Organization logo">
+                @endif
             </td>
-            <td class="generated">Generated {{ now()->format('M d, Y') }}</td>
+            <td class="title-cell"><div class="document-title">CONCEPT PAPER</div></td>
+            <td class="logo-cell"></td>
         </tr>
+        <tr><td colspan="3"><div class="title-rule"></div></td></tr>
     </table>
 
     <table class="summary">
         <tr>
-            <td class="label">Request ID</td><td class="value">{{ $request->id }}</td>
-            <td class="label">Status</td><td class="value">{{ $statusLabel }}</td>
+            <td class="label" style="width: 18%;">Request ID</td>
+            <td style="width: 32%;">{{ $request->id }}</td>
+            <td class="label" style="width: 18%;">Status</td>
+            <td style="width: 32%;">{{ filled($statusLabel) ? $statusLabel : '—' }}</td>
         </tr>
         <tr>
-            <td class="label">Organization</td><td class="value">{{ $organizationName }}</td>
-            <td class="label">Urgency</td><td class="value">{{ $request->is_urgent ? 'Urgent' : 'Standard' }}</td>
+            <td class="label">Organization</td>
+            <td>{{ filled($organizationName) ? $organizationName : '—' }}</td>
+            <td class="label">Category</td>
+            <td>{{ filled($request->category) ? $request->category : '—' }}</td>
         </tr>
     </table>
 
-    <h2>Activity Details</h2>
-    <table class="fields">
-        @foreach(collect($fields)->chunk(2) as $fieldPair)
+    <div class="section">
+        <div class="section-title">PROJECT INFORMATION</div>
+        <table class="details">
             <tr>
-                @foreach($fieldPair as $label => $value)
-                    <td>
-                        <span class="field-label">{{ $label }}</span>
-                        <span class="field-value">{{ filled($value) ? $value : '—' }}</span>
-                    </td>
-                @endforeach
-                @if($fieldPair->count() === 1)
-                    <td></td>
-                @endif
+                <td>
+                    <div class="field"><div class="field-label">Project Title</div><div class="field-value">{{ filled($request->title) ? $request->title : '—' }}</div></div>
+                    <div class="field"><div class="field-label">Date &amp; Time</div><div class="field-value">{{ $requestDate }}<br>{{ $timeRange }}</div></div>
+                    <div class="field"><div class="field-label">Venue</div><div class="field-value">{{ filled($request->venue) ? $request->venue : '—' }}</div></div>
+                </td>
+                <td>
+                    <div class="field"><div class="field-label">Activity Level</div><div class="field-value">{{ filled($request->activity_level) ? $request->activity_level : '—' }}</div></div>
+                    <div class="field"><div class="field-label">Target Participants</div><div class="field-value">{{ filled($request->target_participants) ? $request->target_participants : '—' }}</div></div>
+                    <div class="field"><div class="field-label">Expected Participants</div><div class="field-value">{{ $request->participants_count !== null ? $request->participants_count : '—' }}</div></div>
+                    <div class="field"><div class="field-label">Estimated Budget</div><div class="field-value">{{ $budget }}</div></div>
+                    <div class="field"><div class="field-label">Funding Source</div><div class="field-value">{{ filled($request->source_of_funds) ? $request->source_of_funds : '—' }}</div></div>
+                </td>
             </tr>
-        @endforeach
-    </table>
-
-    <h2>Program Flow</h2>
-    @if($request->programFlows->isNotEmpty())
-        <table class="flow">
-            <thead>
-                <tr><th style="width: 18%;">Time</th><th style="width: 52%;">Flow</th><th style="width: 30%;">Person in Charge</th></tr>
-            </thead>
-            <tbody>
-                @foreach($request->programFlows as $flow)
-                    <tr><td>{{ $flow->time }}</td><td>{{ $flow->flow }}</td><td>{{ $flow->person_in_charge }}</td></tr>
-                @endforeach
-            </tbody>
         </table>
-    @else
-        <p class="empty">No program flow items were provided.</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">ACTIVITY DETAILS</div>
+        <table class="details">
+            <tr>
+                <td>
+                    <div class="field">
+                        <div class="field-label">Objectives</div>
+                        @if(count($objectives))
+                            <ol class="objectives">
+                                @foreach($objectives as $objective)
+                                    <li>{{ $objective }}</li>
+                                @endforeach
+                            </ol>
+                        @else
+                            <div class="field-value">—</div>
+                        @endif
+                    </div>
+                    <div class="field"><div class="field-label">Target Participants / Beneficiaries</div><div class="field-value">{{ filled($request->target_participants) ? $request->target_participants : '—' }}</div></div>
+                </td>
+                <td>
+                    <div class="field"><div class="field-label">Expected Outcome</div><div class="field-value">{{ filled($request->expected_outcome) ? $request->expected_outcome : '—' }}</div></div>
+                    <div class="field"><div class="field-label">Description</div><div class="field-value">{{ filled($request->description) ? $request->description : '—' }}</div></div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    @if($programFlows->isNotEmpty())
+        <div class="section">
+            <div class="section-title">PROGRAM FLOW</div>
+            <table class="flow">
+                <thead>
+                    <tr><th style="width: 20%;">Time</th><th style="width: 48%;">Activity</th><th style="width: 32%;">Person Responsible</th></tr>
+                </thead>
+                <tbody>
+                    @foreach($programFlows as $flow)
+                        <tr>
+                            <td>{{ filled($flow->time) ? $flow->time : '—' }}</td>
+                            <td>{{ filled($flow->flow) ? $flow->flow : '—' }}</td>
+                            <td>{{ filled($flow->person_in_charge) ? $flow->person_in_charge : '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     @endif
 
-    <div class="footer">Activity Request #{{ $request->id }} · {{ $organizationName }} · Printed documentation copy</div>
+    <table class="bottom-row">
+        <tr>
+            <td>
+                <div class="section-title">BUDGETARY REQUIREMENTS</div>
+                <table class="budget">
+                    <thead>
+                        <tr><th style="width: 42%;">Particulars</th><th style="width: 17%;">Quantity</th><th style="width: 20%;">Unit Cost</th><th style="width: 21%;">Total Cost</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Estimated budget (single total)</td>
+                            <td>—</td>
+                            <td class="amount">—</td>
+                            <td class="amount">{{ $budget }}</td>
+                        </tr>
+                        <tr class="budget-total"><td colspan="3">TOTAL</td><td class="amount">{{ $budget }}</td></tr>
+                    </tbody>
+                </table>
+            </td>
+            <td>
+                <div class="section-title">ADDITIONAL INFORMATION</div>
+                <table class="additional">
+                    <tr><td class="label">Communication Letter</td><td>{{ filled($request->communication_letter) ? 'Yes' : 'No' }}</td></tr>
+                    <tr><td class="label">Created</td><td>{{ $createdDate }}</td></tr>
+                    <tr><td class="label">Updated</td><td>{{ $updatedDate }}</td></tr>
+                    <tr><td class="label">Created by</td><td>{{ $createdBy }}</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="signatures">
+        <tr>
+            <td>
+                <div class="prepared-label">Prepared by</div>
+                <div class="signature-space"></div>
+                <div class="signature-line"></div>
+                <div class="signature-name">{{ filled($requester?->name) ? $requester->name : '—' }}</div>
+                <div class="signature-role">{{ filled($requester?->position) ? $requester->position : 'Requester' }}</div>
+            </td>
+            <td>
+                <div class="prepared-label">Noted by</div>
+                <div class="signature-space"></div>
+                <div class="signature-line"></div>
+                <div class="signature-name">&nbsp;</div>
+                <div class="signature-role">Adviser</div>
+            </td>
+            <td>
+                <div class="prepared-label">Approved by</div>
+                <div class="signature-space"></div>
+                <div class="signature-line"></div>
+                <div class="signature-name">&nbsp;</div>
+                <div class="signature-role">Campus Dean</div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
