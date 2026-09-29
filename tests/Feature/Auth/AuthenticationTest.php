@@ -102,6 +102,9 @@ class AuthenticationTest extends TestCase
 
         $this->assertDatabaseMissing('users', ['id' => $secretary->id]);
 
+        $this->post('/logout');
+        $this->assertGuest();
+
         $this->post('/login', [
             'email' => $secretary->email,
             'password' => 'password',
@@ -151,11 +154,12 @@ class AuthenticationTest extends TestCase
 
     public function test_public_storage_files_are_served_from_storage_route(): void
     {
+        Storage::fake('public');
         $path = 'organization-logos/test-route-logo.jpg';
-        $content = 'fake-image-content';
-        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $content);
+        $content = base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAgBAQABPyF//9oADAMBAAIAAwAAABD/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EB//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/EB//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EB//2Q==', true);
+        Storage::disk('public')->put($path, $content);
 
-        $response = $this->get('/storage/' . $path);
+        $response = $this->get('/storage/'.$path);
 
         $response->assertOk();
         $response->assertHeader('content-type', 'image/jpeg');

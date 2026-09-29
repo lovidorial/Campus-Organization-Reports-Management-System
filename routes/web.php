@@ -15,7 +15,6 @@ use App\Http\Controllers\GpoaController;
 use App\Http\Controllers\GpoaModificationRequestController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicOrgChartController;
-use App\Http\Controllers\PublicScheduleController;
 use App\Http\Controllers\WorkflowDocumentController;
 use App\Http\Controllers\WorkflowSubmissionHistoryController;
 use Illuminate\Support\Facades\Route;
@@ -36,7 +35,6 @@ Route::get('/storage/{path}', function (string $path) {
 })->where('path', '.*');
 
 Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
-Route::get('/schedule', [PublicScheduleController::class, 'index'])->name('public.schedule');
 Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('public.orgchart');
 
 require __DIR__ . '/auth.php';

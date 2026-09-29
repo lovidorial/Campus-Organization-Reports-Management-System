@@ -46,7 +46,6 @@
                     </ul>
                 </li>
                 <li><a href="{{ route('public.activities') }}" class="nav-link">Browse Activities</a></li>
-                <li><a href="{{ route('public.schedule') }}" class="nav-link">Upcoming Schedule</a></li>
             </ul>
 
             <div class="nav-auth">
@@ -104,7 +103,6 @@
                     </ul>
                 </li>
                 <li class="mobile-nav-item"><a href="{{ route('public.activities') }}" class="mobile-nav-link" @click="mobileMenuOpen = false">Browse Activities</a></li>
-                <li class="mobile-nav-item"><a href="{{ route('public.schedule') }}" class="mobile-nav-link" @click="mobileMenuOpen = false">Upcoming Schedule</a></li>
                 <li class="mobile-nav-item mobile-auth-item">
                     @guest
                         <a href="{{ route('login') }}" class="nav-auth-link mobile-auth-link" @click="mobileMenuOpen = false">Login</a>

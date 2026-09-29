@@ -209,10 +209,6 @@
                                                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Persons Involved</dt>
                                                     <dd class="break-words text-sm text-slate-700">{{ $activity->person_in_charge ?? '—' }}</dd>
                                                 </div>
-                                                <div class="grid grid-cols-[minmax(7rem,35%)_1fr] gap-4 border-t border-slate-100 py-2 last:pb-0">
-                                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Preceding Activity</dt>
-                                                    <dd class="break-words text-sm text-slate-700">{{ $activity->preceding_activity ?? 'None — first activity' }}</dd>
-                                                </div>
                                             </dl>
                                         </section>
 
