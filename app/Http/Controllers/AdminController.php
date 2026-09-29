@@ -290,8 +290,8 @@ class AdminController extends Controller
                 $activity->date?->toDateString() ?? '',
                 $activity->monitoring_status,
                 $activity->monitoring_late ? 'Yes' : 'No',
-                filled($activity->activityRequest?->communication_letter) ? 'Submitted' : 'Not Started',
-                filled($activity->activityRequest?->report?->narrative_report) || filled($activity->activityRequest?->report?->narrative_content) ? 'Submitted' : 'Not Started',
+                filled($activity->activityRequest?->communication_letter) ? 'Submitted' : 'Pending',
+                filled($activity->activityRequest?->report?->narrative_report) || filled($activity->activityRequest?->report?->narrative_content) ? 'Submitted' : 'Pending',
                 $activity->gpoa?->term ?? '',
                 $activity->gpoa?->school_year ?? '',
             ];

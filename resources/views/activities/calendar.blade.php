@@ -1,7 +1,7 @@
 <x-app-layout>
     @php
         $statusClasses = [
-            'Not Started' => 'border-l-slate-400 bg-slate-50 text-slate-800',
+            'Pending' => 'border-l-slate-400 bg-slate-50 text-slate-800',
             'Ongoing' => 'border-l-amber-500 bg-amber-50 text-amber-900',
             'Completed' => 'border-l-emerald-500 bg-emerald-50 text-emerald-900',
         ];
@@ -37,7 +37,7 @@
                     <a href="{{ route('activities.calendar', array_filter(['month' => now()->format('Y-m'), 'venue' => $selectedVenue])) }}" class="ml-1 shrink-0 rounded border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Today</a>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-600">
-                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-slate-400"></span>Not Started</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-slate-400"></span>Pending</span>
                     <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-500"></span>Ongoing</span>
                     <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span>Completed</span>
                 </div>
@@ -65,7 +65,7 @@
                                     @foreach($eventsByDay[$day] ?? [] as $activity)
                                         <span title="{{ $activity->title }}" aria-label="{{ $activity->status }} activity: {{ $activity->title }}" @class([
                                             'mx-auto block h-2 w-2 rounded-full sm:hidden',
-                                            'bg-slate-400' => $activity->status === 'Not Started',
+                                            'bg-slate-400' => $activity->status === 'Pending',
                                             'bg-amber-500' => $activity->status === 'Ongoing',
                                             'bg-emerald-500' => $activity->status === 'Completed',
                                         ])></span>

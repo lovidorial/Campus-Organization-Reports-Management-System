@@ -61,7 +61,7 @@ class GpoaMonitoringUiTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('General Plan of Activities');
-        $response->assertSee('Not Started');
+        $response->assertSee('Pending');
         $response->assertSee('Ongoing');
         $response->assertSee('Completed');
         $response->assertSee('>1</span>', false);
@@ -77,7 +77,7 @@ class GpoaMonitoringUiTest extends TestCase
         $detailsResponse->assertOk();
         $detailsResponse->assertSee('Submitted');
         $detailsResponse->assertSee('Edit GPOA');
-        $detailsResponse->assertSee('Not Started');
+        $detailsResponse->assertSee('Pending');
         $detailsResponse->assertDontSee('Awaiting Approval');
         $detailsResponse->assertDontSee('Request a GPOA Activity Modification');
     }

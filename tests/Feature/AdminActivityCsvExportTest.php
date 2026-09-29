@@ -50,6 +50,6 @@ class AdminActivityCsvExportTest extends TestCase
         $this->assertSame("Title, with \"quotes\"\nand a second line", $row[1]);
         $this->assertSame("'=HYPERLINK(\"https://example.com\")", $row[2]);
         $this->assertSame("'@SUM(A1:A2)", $row[3]);
-        $this->assertSame('Not Started', $row[5]);
+        $this->assertSame('Pending', $row[5]);
     }
 }

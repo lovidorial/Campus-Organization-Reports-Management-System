@@ -37,7 +37,7 @@
         <p class="text-2xl font-normal text-slate-700 leading-tight">{{ $grouped->sum(fn($group) => $group->where('status','closed')->count()) }}</p>
         <p class="text-[11px] text-slate-600 mt-0.5">Completed activities</p>
             <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wide">Completed</p>
-            <p class="text-2xl font-normal text-slate-700 leading-tight">{{ $grouped->flatten()->filter(fn($item) => ($item->gpoaActivity?->monitoringStatus()['status'] ?? 'Not Started') === 'Completed')->count() }}</p>
+            <p class="text-2xl font-normal text-slate-700 leading-tight">{{ $grouped->flatten()->filter(fn($item) => ($item->gpoaActivity?->monitoringStatus()['status'] ?? 'Pending') === 'Completed')->count() }}</p>
             <p class="text-[11px] text-slate-600 mt-0.5">Both documents present</p>
     </div>
 </div>
@@ -54,7 +54,7 @@
         x-data="{
             statusInterval: null,
             statusColors: {
-                'Not Started': 'bg-slate-100 text-slate-700',
+                'Pending': 'bg-slate-100 text-slate-700',
                 'Ongoing': 'bg-amber-100 text-amber-700',
                 'Completed': 'bg-emerald-100 text-emerald-700',
             },

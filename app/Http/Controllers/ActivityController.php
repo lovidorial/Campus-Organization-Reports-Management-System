@@ -49,7 +49,7 @@ class ActivityController extends Controller
             $activity->monitoring = $activity->monitoringStatus();
         }
 
-        $upcoming = $allActivities->filter(fn ($activity) => $activity->monitoring['status'] === 'Not Started' && $activity->date?->isFuture())->take(12);
+        $upcoming = $allActivities->filter(fn ($activity) => $activity->monitoring['status'] === 'Pending' && $activity->date?->isFuture())->take(12);
         $ongoing = $allActivities->filter(fn ($activity) => $activity->monitoring['status'] === 'Ongoing')->take(12);
         $completed = $allActivities->filter(fn ($activity) => $activity->monitoring['status'] === 'Completed')->take(12);
 

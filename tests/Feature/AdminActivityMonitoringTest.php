@@ -57,7 +57,7 @@ class AdminActivityMonitoringTest extends TestCase
         $page = $this->actingAs($admin)->get(route('admin.activities'));
         $page->assertOk()
             ->assertSee('Organization GPOA Progress')
-            ->assertSee('Not Started')
+            ->assertSee('Pending')
             ->assertSee('Ongoing')
             ->assertSee('Completed')
             ->assertSee('Late')
@@ -125,7 +125,7 @@ class AdminActivityMonitoringTest extends TestCase
             'description' => 'monitoring.remark_recorded',
             'causer_id' => $admin->id,
         ]);
-        $this->assertSame('Not Started', $activity->fresh()->monitoringStatus()['status']);
+        $this->assertSame('Pending', $activity->fresh()->monitoringStatus()['status']);
     }
 
     public function test_admin_can_download_private_activity_documents_from_monitoring(): void
@@ -186,7 +186,7 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertOk()
             ->assertSee('Monitoring Dashboard')
             ->assertSee('Active Organizations')
-            ->assertSee('Not Started')
+            ->assertSee('Pending')
             ->assertSee('Monitoring Dashboard Activity')
             ->assertSee('Organizations by Completed Activities')
             ->assertSee('Activities by Category')

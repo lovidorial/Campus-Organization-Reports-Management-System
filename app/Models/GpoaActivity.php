@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GpoaActivity extends Model
 {
+    protected static array $monitoringDeadlineCache = [];
+
     protected $fillable = [
         'gpoa_id',
         'activity_request_id',
@@ -73,16 +75,13 @@ class GpoaActivity extends Model
     public function monitoringStatus(): array
     {
         $letterPresent = filled($this->activityRequest?->communication_letter);
-        $reportPresent = filled($this->activityRequest?->report?->narrative_report)
-            || filled($this->activityRequest?->report?->narrative_content);
+        $report = $this->activityRequest?->report;
+        $reportPresent = filled($report?->narrative_report) || filled($report?->narrative_content);
+        $needsRevision = $report?->status === 'needs_revision';
 
-        if (! $letterPresent && ! $reportPresent) {
-            $status = 'Not Started';
-        } elseif ($letterPresent xor $reportPresent) {
-            $status = 'Ongoing';
-        } else {
-            $status = 'Completed';
-        }
+        $status = ! $letterPresent
+            ? 'Pending'
+            : ($reportPresent && ! $needsRevision ? 'Completed' : 'Ongoing');
 
         return [
             'status' => $status,
@@ -100,6 +99,10 @@ class GpoaActivity extends Model
     public function narrativeStatusLabel(): string
     {
         $report = $this->activityRequest?->report;
+
+        if ($report?->status === 'needs_revision') {
+            return 'Needs Revision';
+        }
 
         if (! $report) {
             return 'Pending';
@@ -124,7 +127,7 @@ class GpoaActivity extends Model
             return true;
         }
 
-        $gpoa = $this->gpoa()->first();
+        $gpoa = $this->gpoa;
         if (! $gpoa) {
             return false;
         }
@@ -134,12 +137,17 @@ class GpoaActivity extends Model
             DocumentDeadline::TYPE_ACTIVITY_REPORT,
         ];
 
-        $deadline = DocumentDeadline::query()
-            ->whereIn('document_type', $deadlineTypes)
-            ->where('term', $gpoa->term)
-            ->where('school_year', $gpoa->school_year)
-            ->orderByDesc('deadline_date')
-            ->first();
+        $cacheKey = $gpoa->term . '|' . $gpoa->school_year;
+        if (! array_key_exists($cacheKey, self::$monitoringDeadlineCache)) {
+            self::$monitoringDeadlineCache[$cacheKey] = DocumentDeadline::query()
+                ->whereIn('document_type', $deadlineTypes)
+                ->where('term', $gpoa->term)
+                ->where('school_year', $gpoa->school_year)
+                ->orderByDesc('deadline_date')
+                ->first();
+        }
+
+        $deadline = self::$monitoringDeadlineCache[$cacheKey];
 
         if (! $deadline || ! $deadline->deadline_date) {
             return false;

@@ -21,7 +21,7 @@ class GpoaActivityMonitoringStatusTest extends TestCase
 
         $status = $activity->monitoringStatus();
 
-        $this->assertSame('Not Started', $status['status']);
+        $this->assertSame('Pending', $status['status']);
         $this->assertTrue($status['late']);
     }
 

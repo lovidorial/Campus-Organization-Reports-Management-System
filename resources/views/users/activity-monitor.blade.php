@@ -19,7 +19,7 @@
             <div class="h-3 w-full overflow-hidden rounded-full bg-slate-200">
                 <div class="h-full rounded-full bg-emerald-500 transition-all" style="width: {{ $progressPercent }}%"></div>
             </div>
-            <p class="mt-2 text-xs text-slate-500">{{ $completedCount }} of {{ $activities->count() }} activities completed</p>
+            <p class="mt-2 text-xs text-slate-500">{{ $completedCount }} Completed · {{ $ongoingCount }} Ongoing · {{ $pendingCount }} Pending</p>
         </div>
 
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -46,7 +46,7 @@
                             })
                             <tr>
                                 <td class="px-4 py-3">
-                                    <div class="font-semibold text-slate-900">{{ $activity->title }}</div>
+                                    <div class="font-semibold text-slate-900">Activity #{{ $activity->activity_number }}: {{ $activity->title }}</div>
                                     @if($activity->monitor_late)
                                         <div class="mt-1 text-[11px] font-medium text-rose-600">Late</div>
                                     @endif

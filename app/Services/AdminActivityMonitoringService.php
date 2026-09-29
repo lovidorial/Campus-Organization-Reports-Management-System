@@ -90,7 +90,7 @@ class AdminActivityMonitoringService
     public function counts(?Collection $activities = null): array
     {
         $activities ??= $this->all();
-        $counts = ['Not Started' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
+        $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
 
         foreach ($activities as $activity) {
             $counts[$activity->monitoring_status]++;

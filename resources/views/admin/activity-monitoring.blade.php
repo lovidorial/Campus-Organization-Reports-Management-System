@@ -11,7 +11,7 @@
         <section class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-5" aria-label="Monitoring totals">
             @foreach([
                 ['Total', $stats['Total'], 'text-slate-900'],
-                ['Not Started', $stats['Not Started'], 'text-slate-700'],
+                ['Pending', $stats['Pending'], 'text-slate-700'],
                 ['Ongoing', $stats['Ongoing'], 'text-amber-700'],
                 ['Completed', $stats['Completed'], 'text-emerald-700'],
                 ['Late', $stats['Late'], 'text-rose-700'],
@@ -27,7 +27,7 @@
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Search activity, organization, venue, date" class="min-w-0 rounded-md border-slate-300 text-sm">
             <select name="status" class="min-w-0 rounded-md border-slate-300 text-sm">
                 <option value="">All monitoring statuses</option>
-                @foreach(['Not Started', 'Ongoing', 'Completed', 'Late'] as $status)
+                @foreach(['Pending', 'Ongoing', 'Completed', 'Late'] as $status)
                     <option value="{{ $status }}" @selected(request('status') === $status)>{{ $status }}</option>
                 @endforeach
             </select>
@@ -134,7 +134,7 @@
                                         <a href="{{ $letterRoute }}" target="_blank" class="font-semibold text-sky-700 underline">View</a>
                                         <a href="{{ route('admin.file.download', [$activity->activityRequest->id, 'communication']) }}" class="ml-2 font-semibold text-sky-700 underline">Download</a>
                                     @else
-                                        <span class="text-slate-500">Not Started</span>
+                                        <span class="text-slate-500">Pending</span>
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 text-xs">
@@ -143,7 +143,7 @@
                                         <a href="{{ route('admin.file.download', [$activity->activityRequest->id, 'narrative']) }}" class="ml-2 font-semibold text-sky-700 underline">Download</a>
                                         @if($activity->activityRequest->report->narrative_source === 'generated')<span class="block text-slate-500">Created in system</span>@endif
                                     @else
-                                        <span class="text-slate-500">Not Started</span>
+                                        <span class="text-slate-500">Pending</span>
                                     @endif
                                 </td>
                                 <td class="px-3 py-3">

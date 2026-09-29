@@ -14,9 +14,9 @@
     $statusLabel = $gpoa ? 'GPOA submitted' : 'GPOA not submitted';
     $statusBadgeColor = $gpoa ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200';
     $showActionRequired = ! $gpoa;
-    $activityCounts = $counts ?? ['Not Started' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
+    $activityCounts = $counts ?? ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
     $monitoringCards = [
-        ['label' => 'Not Started', 'count' => $activityCounts['Not Started'] ?? 0, 'classes' => 'bg-slate-100 text-slate-700'],
+        ['label' => 'Pending', 'count' => $activityCounts['Pending'] ?? 0, 'classes' => 'bg-slate-100 text-slate-700'],
         ['label' => 'Ongoing', 'count' => $activityCounts['Ongoing'] ?? 0, 'classes' => 'bg-amber-100 text-amber-700'],
         ['label' => 'Completed', 'count' => $activityCounts['Completed'] ?? 0, 'classes' => 'bg-emerald-100 text-emerald-700'],
         ['label' => 'Late', 'count' => $activityCounts['Late'] ?? 0, 'classes' => 'bg-rose-100 text-rose-700'],

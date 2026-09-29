@@ -12,7 +12,7 @@
             @foreach([
             ['Active Organizations', $dashboardData['activeOrganizations'], 'text-sky-800'],
                 ['Total Activities', $stats['Total'], 'text-slate-900'],
-                ['Not Started', $stats['Not Started'], 'text-slate-700'],
+                ['Pending', $stats['Pending'], 'text-slate-700'],
                 ['Ongoing', $stats['Ongoing'], 'text-amber-700'],
                 ['Completed', $stats['Completed'], 'text-emerald-700'],
                 ['Late', $stats['Late'], 'text-rose-700'],

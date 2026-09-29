@@ -33,7 +33,14 @@ class ActivityRequestController extends Controller
             'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
         ]);
 
-        return view('users.activity-request-show', compact('activityRequest'));
+        $activityNumber = $activityRequest->gpoaActivity?->gpoa?->activities()
+            ->whereDate('date', '<=', $activityRequest->gpoaActivity->date)
+            ->orderBy('date')
+            ->pluck('id')
+            ->search($activityRequest->gpoaActivity->id);
+        $activityNumber = $activityNumber === false ? null : $activityNumber + 1;
+
+        return view('users.activity-request-show', compact('activityRequest', 'activityNumber'));
     }
 
     public function downloadPdf(ActivityRequest $activityRequest)
@@ -77,18 +84,21 @@ class ActivityRequestController extends Controller
             ])
             ->get();
 
-        $activities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->map(function ($activity) use ($gpoa) {
+        $activities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->values()->map(function ($activity, $index) use ($gpoa) {
             $status = $activity->monitoringStatus();
             $activity->monitor_status = $status['status'];
             $activity->monitor_late = $status['late'];
             $activity->monitor_gpoa = $gpoa;
+            $activity->activity_number = $index + 1;
             return $activity;
         }));
 
         $completedCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Completed')->count();
+        $ongoingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Ongoing')->count();
+        $pendingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Pending')->count();
         $progressPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
 
-        return view('users.activity-monitor', compact('activities', 'completedCount', 'progressPercent', 'term', 'schoolYear'));
+        return view('users.activity-monitor', compact('activities', 'completedCount', 'ongoingCount', 'pendingCount', 'progressPercent', 'term', 'schoolYear'));
     }
 
     public function statuses()
@@ -101,7 +111,7 @@ class ActivityRequestController extends Controller
         return response()->json([
             'requests' => $requests->map(fn ($request) => [
                 'id' => $request->id,
-                'status' => $request->gpoaActivity?->monitoringStatus()['status'] ?? 'Not Started',
+                'status' => $request->gpoaActivity?->monitoringStatus()['status'] ?? 'Pending',
                 'monitoring_compliance_status' => $request->monitoringResult?->compliance_status,
             ])->values(),
         ]);

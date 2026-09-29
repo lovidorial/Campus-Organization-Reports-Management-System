@@ -75,7 +75,7 @@ class ActivityCalendarController extends Controller
             $activity->setAttribute('start_time', $request?->start_time);
             $activity->setAttribute('end_time', $request?->end_time);
             $activity->setRelation('venueRecord', $request?->venueRecord);
-            return in_array($activity->monitoring_status, ['Not Started', 'Ongoing', 'Completed'], true);
+            return in_array($activity->monitoring_status, ['Pending', 'Ongoing', 'Completed'], true);
         })->values();
 
         if (! empty($validated['venue'])) {

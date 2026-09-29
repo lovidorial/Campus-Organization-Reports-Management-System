@@ -30,7 +30,7 @@ class DashboardController extends Controller
         $activities = $gpoa?->activities ?? collect();
 
         $counts = [
-            'Not Started' => 0,
+            'Pending' => 0,
             'Ongoing' => 0,
             'Completed' => 0,
             'Late' => 0,

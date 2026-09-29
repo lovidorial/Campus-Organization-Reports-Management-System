@@ -19,9 +19,34 @@
             </div>
         </header>
 
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg font-bold text-slate-900">Activity #{{ $activityNumber ?? '—' }}</h2>
+                <span class="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">{{ $monitoring['status'] ?? 'Pending' }}</span>
+            </div>
+            <div class="mt-4 space-y-2 text-sm text-slate-700">
+                <div class="flex items-center gap-2">
+                    <span class="text-base {{ $request->communication_letter ? 'text-emerald-600' : 'text-rose-600' }}">{{ $request->communication_letter ? '✔' : '✖' }}</span>
+                    <span>Signed Communication Letter: <strong>{{ $request->communication_letter ? 'Uploaded' : 'Pending' }}</strong></span>
+                </div>
+                @php($needsRevision = $request->report?->status === 'needs_revision')
+                @php($narrativeSubmitted = $request->report && ($request->report->narrative_report || $request->report->narrative_content))
+                <div class="flex items-start gap-2">
+                    <span class="text-base {{ $needsRevision ? 'text-amber-600' : ($narrativeSubmitted ? 'text-emerald-600' : 'text-rose-600') }}">{{ $needsRevision ? '⚠' : ($narrativeSubmitted ? '✔' : '✖') }}</span>
+                    <div>
+                        <span>Narrative Report: <strong>{{ $needsRevision ? 'Needs Revision' : ($narrativeSubmitted ? 'Submitted' : 'Pending') }}</strong></span>
+                        @if($needsRevision && $request->report?->feedback)
+                            <p class="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">{{ $request->report->feedback }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <p class="mt-4 text-xs text-slate-500">Activity is marked Completed once both requirements are submitted.</p>
+        </section>
+
         <section class="rounded border border-slate-200 bg-slate-50 p-2.5">
             <div class="mb-2 flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800">Monitoring: {{ $monitoring['status'] ?? 'Not Started' }}</span>
+                <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800">Monitoring: {{ $monitoring['status'] ?? 'Pending' }}</span>
             </div>
 
             <dl class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">

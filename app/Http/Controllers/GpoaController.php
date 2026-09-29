@@ -20,7 +20,7 @@ class GpoaController extends Controller
             ->paginate(10);
 
         $monitoringCounts = [
-            'Not Started' => 0,
+            'Pending' => 0,
             'Ongoing' => 0,
             'Completed' => 0,
         ];
