@@ -23,11 +23,6 @@ class Gpoa extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function approver(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'approved_by');
-    }
-
     public function activities(): HasMany
     {
         return $this->hasMany(GpoaActivity::class);
@@ -36,21 +31,6 @@ class Gpoa extends Model
     public function activityRequests(): HasMany
     {
         return $this->hasMany(ActivityRequest::class);
-    }
-
-    public function modificationRequests(): HasMany
-    {
-        return $this->hasMany(GpoaModificationRequest::class);
-    }
-
-    public function scopeApproved($query)
-    {
-        return $query->whereIn('status', ['approved', 'stored']);
-    }
-
-    public function isApproved(): bool
-    {
-        return in_array($this->status, ['approved', 'stored']);
     }
 
     public function scopeExcludeAdmins($query)

@@ -58,12 +58,12 @@ class UserBackupTest extends TestCase
             'title' => 'Owned Request',
             'date' => '2026-10-10',
             'venue' => 'Main Hall',
-            'communication_letter' => $this->createPublicFile('communication.pdf', 'letter'),
+            'communication_letter' => $this->createPrivateFile('communication.pdf', 'letter'),
             'status' => ActivityRequest::STATUS_APPROVED,
         ]);
         $report = ActivityReport::create([
             'activity_request_id' => $request->id,
-            'narrative_report' => $this->createPublicFile('narrative.pdf', 'report'),
+            'narrative_report' => $this->createPrivateFile('narrative.pdf', 'report'),
             'submitted_at' => now(),
         ]);
         ActivityReportPhoto::create([
@@ -146,6 +146,19 @@ class UserBackupTest extends TestCase
         $absolutePath = storage_path('app/public/' . $path);
         if (! is_dir(dirname($absolutePath))) {
             mkdir(dirname($absolutePath), 0777, true);
+        }
+        file_put_contents($absolutePath, $contents);
+        $this->testFiles[] = $absolutePath;
+
+        return $path;
+    }
+
+    private function createPrivateFile(string $filename, string $contents): string
+    {
+        $path = 'user-backup-test/' . uniqid('', true) . '-' . $filename;
+        $absolutePath = storage_path('app/private/' . $path);
+        if (! is_dir(dirname($absolutePath))) {
+            mkdir(dirname($absolutePath), 0700, true);
         }
         file_put_contents($absolutePath, $contents);
         $this->testFiles[] = $absolutePath;

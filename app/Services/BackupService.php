@@ -30,8 +30,12 @@ class BackupService
 
         try {
             $storagePublicPath = $this->publicStoragePath();
+            $storagePrivatePath = $this->privateStoragePath();
             if (! is_dir($storagePublicPath) && ! mkdir($storagePublicPath, 0777, true) && ! is_dir($storagePublicPath)) {
                 throw new \RuntimeException('Unable to create public storage directory for backup: '.$storagePublicPath);
+            }
+            if (! is_dir($storagePrivatePath) && ! mkdir($storagePrivatePath, 0700, true) && ! is_dir($storagePrivatePath)) {
+                throw new \RuntimeException('Unable to create private storage directory for backup: '.$storagePrivatePath);
             }
 
             $zipOpenResult = $zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
@@ -52,6 +56,22 @@ class BackupService
                 $relativePath = str_replace('\\', '/', ltrim(str_replace($storagePublicPath, '', $file->getPathname()), DIRECTORY_SEPARATOR));
                 if (! $zip->addFile($file->getPathname(), 'storage/public/'.ltrim($relativePath, '/'))) {
                     throw new \RuntimeException('Unable to add a public storage file to the backup archive.');
+                }
+            }
+
+            $zip->addEmptyDir('storage/private');
+            $privateFiles = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($storagePrivatePath, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::LEAVES_ONLY
+            );
+            foreach ($privateFiles as $file) {
+                if (! $file->isFile()) {
+                    continue;
+                }
+
+                $relativePath = str_replace('\\', '/', ltrim(str_replace($storagePrivatePath, '', $file->getPathname()), DIRECTORY_SEPARATOR));
+                if (! $zip->addFile($file->getPathname(), 'storage/private/'.ltrim($relativePath, '/'))) {
+                    throw new \RuntimeException('Unable to add a private storage file to the backup archive.');
                 }
             }
 
@@ -107,6 +127,7 @@ class BackupService
         }
 
         $publicStorage = $this->publicStoragePath();
+        $privateStorage = $this->privateStoragePath();
         if (is_link($publicStorage)) {
             throw new \RuntimeException('Cannot restore while storage/app/public is a symlink or junction. Replace it with a regular directory or restore its target separately.');
         }
@@ -114,6 +135,13 @@ class BackupService
             throw new \RuntimeException('storage/app/public is not writable — check folder permissions');
         }
         $this->checkPublicStorageWritable($publicStorage);
+        if (is_link($privateStorage)) {
+            throw new \RuntimeException('Cannot restore while storage/app/private is a symlink or junction. Replace it with a regular directory or restore its target separately.');
+        }
+        if (! is_dir($privateStorage) && ! mkdir($privateStorage, 0700, true) && ! is_dir($privateStorage)) {
+            throw new \RuntimeException('storage/app/private is not writable — check folder permissions');
+        }
+        $this->checkStorageWritable($privateStorage, 'storage/app/private');
 
         $workDirectory = dirname($publicStorage).DIRECTORY_SEPARATOR.'.restore-'.bin2hex(random_bytes(8));
         if (! mkdir($workDirectory, 0700, true) && ! is_dir($workDirectory)) {
@@ -123,8 +151,12 @@ class BackupService
         $publicParent = dirname($publicStorage);
         $oldPublicStorage = $publicParent.DIRECTORY_SEPARATOR.'.public-before-restore-'.bin2hex(random_bytes(8));
         $stagedPublicStorage = $publicParent.DIRECTORY_SEPARATOR.'.public-restored-'.bin2hex(random_bytes(8));
+        $oldPrivateStorage = $publicParent.DIRECTORY_SEPARATOR.'.private-before-restore-'.bin2hex(random_bytes(8));
+        $stagedPrivateStorage = $publicParent.DIRECTORY_SEPARATOR.'.private-restored-'.bin2hex(random_bytes(8));
         $previousPublicCopied = false;
         $targetFilesInstalled = false;
+        $previousPrivateCopied = false;
+        $targetPrivateFilesInstalled = false;
         $targetImportAttempted = false;
         $preRestore = null;
 
@@ -139,6 +171,11 @@ class BackupService
                 $targetExtract.DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'public',
                 $stagedPublicStorage
             );
+            $targetPrivatePath = $targetExtract.DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'private';
+            $replacePrivateStorage = is_dir($targetPrivatePath);
+            if ($replacePrivateStorage) {
+                $this->copyDirectoryForRestore($targetPrivatePath, $stagedPrivateStorage);
+            }
 
             $targetImportAttempted = true;
             $this->importDatabase($targetExtract.DIRECTORY_SEPARATOR.'database.sql');
@@ -150,7 +187,24 @@ class BackupService
             $this->copyDirectoryForRestore($stagedPublicStorage, $publicStorage);
             $targetFilesInstalled = true;
 
-            $this->deleteDirectoryForRestore($oldPublicStorage);
+            if ($replacePrivateStorage) {
+                $this->copyDirectoryForRestore($privateStorage, $oldPrivateStorage);
+                $previousPrivateCopied = true;
+                $this->deleteDirectoryForRestore($privateStorage);
+                $this->copyDirectoryForRestore($stagedPrivateStorage, $privateStorage);
+                $targetPrivateFilesInstalled = true;
+            }
+
+            foreach ([$oldPublicStorage, $oldPrivateStorage] as $oldStorage) {
+                try {
+                    $this->deleteDirectoryForRestore($oldStorage);
+                } catch (\Throwable $cleanupException) {
+                    Log::warning('Backup restore completed but could not remove a temporary storage copy.', [
+                        'path' => $oldStorage,
+                        'exception' => $cleanupException->getMessage(),
+                    ]);
+                }
+            }
 
             return true;
         } catch (\Throwable $exception) {
@@ -170,6 +224,20 @@ class BackupService
                         $previousPublicCopied = false;
                     } elseif ($targetFilesInstalled) {
                         $this->deleteDirectoryForRestore($publicStorage);
+                    }
+
+                    if ($previousPrivateCopied && is_dir($oldPrivateStorage)) {
+                        if (is_link($privateStorage)) {
+                            throw new \RuntimeException('Refusing to delete storage/app/private during rollback because it became a symlink or junction.');
+                        }
+                        if (is_dir($privateStorage)) {
+                            $this->deleteDirectoryForRestore($privateStorage);
+                        }
+                        $this->copyDirectoryForRestore($oldPrivateStorage, $privateStorage);
+                        $this->deleteDirectoryForRestore($oldPrivateStorage);
+                        $previousPrivateCopied = false;
+                    } elseif ($targetPrivateFilesInstalled) {
+                        $this->deleteDirectoryForRestore($privateStorage);
                     }
                 } catch (\Throwable $rollbackException) {
                     Log::critical('Backup restore rollback failed.', [
@@ -200,6 +268,9 @@ class BackupService
         } finally {
             if (is_dir($stagedPublicStorage) && ! is_link($stagedPublicStorage)) {
                 $this->deleteDirectoryForRestore($stagedPublicStorage);
+            }
+            if (is_dir($stagedPrivateStorage) && ! is_link($stagedPrivateStorage)) {
+                $this->deleteDirectoryForRestore($stagedPrivateStorage);
             }
             if (is_dir($workDirectory)) {
                 $this->deleteDirectory($workDirectory);
@@ -267,10 +338,11 @@ class BackupService
         }
 
         $hasDatabase = $zip->locateName('database.sql') !== false;
+        $hasPrivateDirectory = $zip->locateName('storage/private/') !== false;
         $zip->close();
-        if (! $hasDatabase) {
+        if (! $hasDatabase || ! $hasPrivateDirectory) {
             @unlink($path);
-            throw new \RuntimeException('Backup verification failed: database.sql is missing from the ZIP archive.');
+            throw new \RuntimeException('Backup verification failed: database.sql or storage/private is missing from the ZIP archive.');
         }
     }
 
@@ -283,6 +355,7 @@ class BackupService
 
         $hasDatabase = false;
         $hasPublicDirectory = false;
+        $hasPrivateDirectory = false;
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entry = str_replace('\\', '/', (string) $zip->getNameIndex($index));
             if ($entry === 'database.sql') {
@@ -295,11 +368,20 @@ class BackupService
 
                 continue;
             }
-            if (! str_starts_with($entry, 'storage/public/')) {
-                $zip->close();
-                throw new \RuntimeException('The archive contains an unexpected file outside storage/public.');
+            if ($entry === 'storage/private' || $entry === 'storage/private/') {
+                $hasPrivateDirectory = true;
+
+                continue;
             }
-            $hasPublicDirectory = true;
+            if (! str_starts_with($entry, 'storage/public/') && ! str_starts_with($entry, 'storage/private/')) {
+                $zip->close();
+                throw new \RuntimeException('The archive contains a file outside the supported storage directories.');
+            }
+            if (str_starts_with($entry, 'storage/public/')) {
+                $hasPublicDirectory = true;
+            } else {
+                $hasPrivateDirectory = true;
+            }
             if (str_starts_with($entry, '/') || preg_match('/^[A-Za-z]:/', $entry) || preg_match('#(^|/)\.\.(?:/|$)#', $entry)) {
                 $zip->close();
                 throw new \RuntimeException('The archive contains an unsafe file path.');
@@ -326,8 +408,10 @@ class BackupService
 
         $sqlPath = $destination.DIRECTORY_SEPARATOR.'database.sql';
         $publicPath = $destination.DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'public';
-        if (! is_file($sqlPath) || filesize($sqlPath) === 0 || ! is_dir($publicPath)) {
-            throw new \RuntimeException('The archive is missing a non-empty database.sql or valid storage/public folder.');
+        $privatePath = $destination.DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'private';
+        if (! is_file($sqlPath) || filesize($sqlPath) === 0 || ! is_dir($publicPath)
+            || ($hasPrivateDirectory && ! is_dir($privatePath))) {
+            throw new \RuntimeException('The archive is missing a non-empty database.sql or a valid storage folder.');
         }
     }
 
@@ -449,6 +533,11 @@ class BackupService
 
     protected function checkPublicStorageWritable(string $directory): void
     {
+        $this->checkStorageWritable($directory, 'storage/app/public');
+    }
+
+    protected function checkStorageWritable(string $directory, string $label): void
+    {
         $probePath = $directory.DIRECTORY_SEPARATOR.'.restore-permission-check-'.bin2hex(random_bytes(8));
         $handle = @fopen($probePath, 'xb');
 
@@ -470,7 +559,7 @@ class BackupService
             }
             @unlink($probePath);
 
-            throw new \RuntimeException('storage/app/public is not writable — check folder permissions', 0, $exception);
+            throw new \RuntimeException($label.' is not writable — check folder permissions', 0, $exception);
         }
     }
 
@@ -594,5 +683,10 @@ class BackupService
     protected function publicStoragePath(): string
     {
         return storage_path('app/public');
+    }
+
+    protected function privateStoragePath(): string
+    {
+        return storage_path('app/private');
     }
 }

@@ -3,53 +3,47 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gpoa;
-use App\Models\OrganizationWorkflow;
-use App\Services\OrganizationWorkflowService;
+use App\Models\GpoaActivity;
+use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class GpoaController extends Controller
 {
-    public function __construct(
-        private OrganizationWorkflowService $workflowService
-    ) {}
-
     public function index()
     {
         $gpoas = Gpoa::where('user_id', auth()->id())
-            ->withCount(['activities', 'activityRequests'])
+            ->withCount('activities')
             ->latest()
             ->paginate(10);
 
-        $user = auth()->user();
-        $term = $user->term ?? '1st Term';
-        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+        $monitoringCounts = [
+            'Not Started' => 0,
+            'Ongoing' => 0,
+            'Completed' => 0,
+        ];
 
-        $workflow = $this->workflowService->getOrCreateForUser($user, $term, $schoolYear);
-        $hasApprovedGpoa = $workflow->isGpoaApproved();
+        $activities = GpoaActivity::query()
+            ->whereHas('gpoa', fn ($query) => $query->where('user_id', auth()->id()))
+            ->withMonitoringData()
+            ->get();
 
-        return view('gpoa.index', compact('gpoas', 'hasApprovedGpoa', 'term', 'schoolYear', 'workflow'));
+        foreach ($activities as $activity) {
+            $monitoringCounts[$activity->monitoringStatus()['status']]++;
+        }
+
+        $completionPercent = $activities->isEmpty()
+            ? 0
+            : (int) round(($monitoringCounts['Completed'] / $activities->count()) * 100);
+
+        return view('gpoa.index', compact('gpoas', 'monitoringCounts', 'completionPercent'));
     }
 
     public function create()
     {
         $user = auth()->user();
-        $term = $user->term ?? '1st Term';
-        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
-
-        $workflow = $this->workflowService->getOrCreateForUser($user, $term, $schoolYear);
-
-        if ($workflow->is_locked) {
-            return redirect()->route('dashboard')
-                ->with('error', 'Your workflow is completed and locked. Contact OSDW to reopen.');
-        }
-
-        $current = $workflow->currentSubmission(OrganizationWorkflow::DOC_GPOA);
-        if ($current && in_array($current->status, ['submitted', 'under_review', 'approved'])) {
-            return redirect()->route('gpoa.index')
-                ->with('error', 'You already have a GPOA submitted or approved for this term and school year.');
-        }
 
         $detectedCollege = $this->detectCollegeFromOrganization($user);
 
@@ -138,6 +132,7 @@ class GpoaController extends Controller
     {
         $this->validatePlannedActivityEntries($request);
 
+        $user = $request->user();
         $validated = $request->validate([
             'colleges'            => 'required|string|max:100',
             'term'                => 'required|string|max:50',
@@ -155,16 +150,6 @@ class GpoaController extends Controller
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
-        $workflow = $this->workflowService->getOrCreateForUser(
-            auth()->user(),
-            $validated['term'],
-            $validated['school_year']
-        );
-
-        if (!$workflow->canSubmitGpoa()) {
-            return back()->withErrors(['term' => 'GPOA submission is not available at this stage.'])->withInput();
-        }
-
         $documentPath = $request->hasFile('document_path')
             ? $request->file('document_path')->store('uploads/gpoa', 'public')
             : null;
@@ -176,44 +161,36 @@ class GpoaController extends Controller
             'college'       => $validated['colleges'],
             'document_path' => $documentPath,
             'prepared_by'   => $validated['prepared_by'],
-            'status'        => 'pending',
+            'status'        => 'submitted',
         ]);
 
         $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
 
-        $this->workflowService->recordGpoaSubmission($workflow, $gpoa);
+        User::where('role', 'admin')->each(function (User $admin) use ($gpoa, $user) {
+            UserNotification::create([
+                'user_id' => $admin->id,
+                'type' => 'gpoa_submitted',
+                'title' => 'New GPOA Submission',
+                'message' => ($user->org_name ?? $user->name) . " submitted a GPOA for {$gpoa->term} / SY {$gpoa->school_year}.",
+            ]);
+        });
 
         return redirect()->route('dashboard')
-            ->with('success', 'GPOA submitted successfully. Status: Under Review. Await OSDW approval.');
+            ->with('success', 'GPOA submitted successfully.');
     }
 
     public function edit(Gpoa $gpoa)
     {
         $this->authorize('update', $gpoa);
 
-        $workflow = $this->workflowService->getOrCreateForUser(auth()->user(), $gpoa->term, $gpoa->school_year);
-        $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_GPOA);
-
-        if (!$submission || !in_array($submission->status, ['submitted', 'under_review'])) {
-            return redirect()->route('gpoa.show', $gpoa)
-                ->with('error', 'GPOA can only be edited while pending OSDW review.');
-        }
-
         $gpoa->load('activities');
 
-        return view('gpoa.edit', compact('gpoa', 'workflow'));
+        return view('gpoa.edit', compact('gpoa'));
     }
 
     public function update(Request $request, Gpoa $gpoa)
     {
         $this->authorize('update', $gpoa);
-
-        $workflow = $this->workflowService->getOrCreateForUser(auth()->user(), $gpoa->term, $gpoa->school_year);
-        $submission = $workflow->currentSubmission(OrganizationWorkflow::DOC_GPOA);
-
-        if (!$submission || !in_array($submission->status, ['submitted', 'under_review'])) {
-            return back()->with('error', 'GPOA can only be edited while pending OSDW review.');
-        }
 
         $this->validatePlannedActivityEntries($request);
 
@@ -222,6 +199,7 @@ class GpoaController extends Controller
             'prepared_by' => 'required|string|max:255',
             'document_path' => 'nullable|file|mimes:pdf|max:20480',
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
+            'planned_activities.*.id' => 'nullable|integer',
             'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
             'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
             'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
@@ -243,36 +221,27 @@ class GpoaController extends Controller
             'college' => $validated['colleges'],
             'prepared_by' => $validated['prepared_by'],
             'document_path' => $gpoa->document_path,
-            'status' => 'pending',
-            'reject_reason' => null,
         ]);
 
         $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
 
-        $submission->update([
-            'file_path' => $gpoa->document_path,
-            'submitted_at' => now(),
-            'status' => 'under_review',
-            'reject_reason' => null,
-        ]);
-
         return redirect()->route('dashboard')
-            ->with('success', 'GPOA updated successfully. Status: Under Review.');
+            ->with('success', 'GPOA updated successfully.');
     }
 
     public function show(Gpoa $gpoa)
     {
         $this->authorize('view', $gpoa);
 
-        $gpoa->load('activities');
-        $gpoa->loadCount('activityRequests');
+        $gpoa->load('activities.activityRequest.report');
 
         return view('gpoa.show', compact('gpoa'));
     }
 
     private function syncPlannedActivities(Gpoa $gpoa, array $plannedActivities): void
     {
-        $gpoa->activities()->delete();
+        $existingActivities = $gpoa->activities()->get()->keyBy('id');
+        $retainedIds = [];
 
         foreach ($plannedActivities as $activityData) {
             $normalizedActivity = $this->normalizePlannedActivityData($activityData);
@@ -281,8 +250,20 @@ class GpoaController extends Controller
                 continue;
             }
 
-            $gpoa->activities()->create($normalizedActivity);
+            $existingActivity = isset($activityData['id'])
+                ? $existingActivities->get((int) $activityData['id'])
+                : null;
+
+            if ($existingActivity) {
+                $existingActivity->update($normalizedActivity);
+                $retainedIds[] = $existingActivity->id;
+                continue;
+            }
+
+            $retainedIds[] = $gpoa->activities()->create($normalizedActivity)->id;
         }
+
+        $gpoa->activities()->whereNotIn('id', $retainedIds)->delete();
     }
 
     private function normalizePlannedActivityData(array $activityData): array

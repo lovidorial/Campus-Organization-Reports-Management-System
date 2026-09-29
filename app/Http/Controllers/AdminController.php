@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Activity;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
@@ -12,21 +11,36 @@ use App\Models\User;
 use App\Models\OrganizationWorkflow;
 use App\Models\WorkflowEvent;
 use App\Models\WorkflowSubmission;
-use App\Services\GpoaActivityLinker;
 use App\Services\OrganizationWorkflowService;
 use App\Services\VenueAvailabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Pagination\LengthAwarePaginator;
+use App\Services\AdminActivityMonitoringService;
 use Carbon\Carbon;
 
 class AdminController extends Controller
 {
+    public function monitoringDashboard(AdminActivityMonitoringService $monitoringService)
+    {
+        $activities = $monitoringService->all();
+        $stats = $monitoringService->counts($activities);
+        $dashboardData = $monitoringService->dashboardData($activities);
+        $recentActivities = $activities
+            ->sortByDesc(fn ($activity) => $activity->updated_at?->timestamp ?? 0)
+            ->take(8)
+            ->values();
+
+        return view('admin.monitoring-dashboard', compact('stats', 'recentActivities', 'dashboardData'));
+    }
+
     public function dashboard(Request $request, OrganizationWorkflowService $workflowService)
     {
         $admin = auth()->user();
 
         $currentTerm = OrganizationWorkflow::latest()->value('term')
-            ?? Activity::latest()->value('term')
+            ?? Gpoa::latest()->value('term')
             ?? '1st Term';
         $currentSY = OrganizationWorkflow::latest()->value('school_year')
             ?? (date('Y') . '-' . (date('Y') + 1));
@@ -179,186 +193,58 @@ class AdminController extends Controller
         ));
     }
 
-    public function monitor(Request $request)
+    public function monitor(Request $request, AdminActivityMonitoringService $monitoringService)
     {
-        $query = ActivityRequest::with([
-            'user',
-            'gpoa',
-            'report',
-            'monitoringResult',
-            'programFlows',
-            'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
-        ]);
+        $allActivities = $monitoringService->all();
+        $filteredActivities = $monitoringService->filtered($request, $allActivities);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $activities = new LengthAwarePaginator(
+            $filteredActivities->forPage($page, 15)->values(),
+            $filteredActivities->count(),
+            15,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+        $stats = $monitoringService->counts($allActivities);
+        $organizations = $allActivities->pluck('gpoa.user')->filter()->unique('id')->sortBy('org_name')->values();
+        $categories = $allActivities->pluck('category')->filter()->unique()->sort()->values();
+        $colleges = $allActivities->pluck('gpoa.college')->filter()->unique()->sort()->values();
+        $terms = $allActivities->pluck('gpoa.term')->filter()->unique()->sort()->values();
+        $schoolYears = $allActivities->pluck('gpoa.school_year')->filter()->unique()->sort()->values();
+        $progressActivities = $monitoringService->filtered($request, $allActivities, false);
+        $organizationProgress = $monitoringService->organizationProgress($progressActivities);
 
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(function ($q) use ($term) {
-                $q->where('venue', 'like', "%{$term}%")
-                  ->orWhere('title', 'like', "%{$term}%");
-                try {
-                    $date = Carbon::parse($term)->toDateString();
-                    $q->orWhereDate('date', $date);
-                } catch (\Exception $e) {}
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('organization')) {
-            $query->where('user_id', $request->organization);
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-
-        $activities = $query->latest()->paginate(10)->withQueryString();
-
-        foreach ($activities as $activity) {
-            $activity->refreshLifecycleStatus();
-        }
-
-        $stats = [
-            'total'         => ActivityRequest::count(),
-            'approved'      => ActivityRequest::whereIn('status', ['approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed'])->count(),
-            'pending'       => ActivityRequest::where('status', 'pending')->count(),
-            'rejected'      => ActivityRequest::where('status', 'rejected')->count(),
-            'organizations' => User::where('role', 'user')->count(),
-        ];
-
-        $organizations = User::whereHas('activityRequests')->select('id', 'org_name', 'name')->get();
-        $categories    = ActivityRequest::distinct()->pluck('category')->filter()->sort()->values();
-
-        return view('admin.monitoring', compact('activities', 'stats', 'organizations', 'categories'));
+        return view('admin.activity-monitoring', compact(
+            'activities', 'stats', 'organizations', 'categories', 'colleges', 'terms', 'schoolYears', 'organizationProgress'
+        ));
     }
 
-    public function activityStatuses(Request $request)
+    public function activityStatuses(Request $request, AdminActivityMonitoringService $monitoringService)
     {
-        $query = ActivityRequest::with(['report', 'monitoringResult']);
-
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(function ($q) use ($term) {
-                $q->where('venue', 'like', "%{$term}%")
-                    ->orWhere('title', 'like', "%{$term}%");
-
-                try {
-                    $date = Carbon::parse($term)->toDateString();
-                    $q->orWhereDate('date', $date);
-                } catch (\Exception $e) {
-                }
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('organization')) {
-            $query->where('user_id', $request->organization);
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-
-        $activities = $query->latest()->paginate(10);
-
-        foreach ($activities as $activity) {
-            $activity->refreshLifecycleStatus();
-        }
+        $activities = $monitoringService->filtered($request);
 
         return response()->json([
-            'requests' => $activities->getCollection()->map(fn ($activity) => [
+            'activities' => $activities->map(fn ($activity) => [
                 'id' => $activity->id,
-                'status' => $activity->status,
-                'report_status' => $activity->report?->status,
-                'report_id' => $activity->report?->id,
-                'monitoring_compliance_status' => $activity->monitoringResult?->compliance_status,
+                'status' => $activity->monitoring_status,
+                'late' => $activity->monitoring_late,
             ])->values(),
         ]);
     }
 
-    public function approve($id, VenueAvailabilityService $venueAvailability)
-    {
-        $activity = ActivityRequest::findOrFail($id);
-
-        if ($activity->status !== ActivityRequest::STATUS_PENDING) {
-            return back()->with('error', 'Only pending activity requests can be approved.');
-        }
-
-        $venue = $activity->venue_id
-            ? $activity->venueRecord
-            : $venueAvailability->resolveVenue($activity->venue);
-        $availabilityData = array_merge($activity->only([
-            'date', 'end_date', 'start_time', 'end_time', 'venue',
-        ]), ['venue_id' => $venue->id]);
-        $conflict = $venueAvailability->conflictingRequest($availabilityData, $activity->id);
-
-        if ($conflict) {
-            return back()->with('error', "Cannot approve: this venue and time conflict with '{$conflict->title}'. Resolve the scheduling conflict first.");
-        }
-
-        if (! $activity->venue_id) {
-            $activity->update(['venue_id' => $venue->id]);
-        }
-
-        // Use DB transaction to ensure both status update and GpoaActivity creation succeed or fail together
-        DB::transaction(function () use ($activity) {
-            // Update activity request status
-            $activity->update(['status' => ActivityRequest::STATUS_APPROVED, 'reject_reason' => null]);
-
-            // Get or create the parent GPOA
-            $gpoa = $activity->gpoa;
-            if (!$gpoa) {
-                return; // No parent GPOA, just update the activity status
-            }
-
-            if ($activity->gpoa_activity_id) {
-                $this->linkGpoaActivity($activity);
-            }
-        });
-
-        return back()->with('success', 'Activity request approved. Organization may now conduct the activity.');
-    }
-
-    public function reject(Request $request, $id)
-    {
-        $request->validate([
-            'reject_reason' => 'nullable|string|max:500',
-        ]);
-
-        ActivityRequest::findOrFail($id)->update([
-            'status'        => ActivityRequest::STATUS_REJECTED,
-            'reject_reason' => $request->reject_reason,
-        ]);
-
-        return back()->with('success', 'Activity request rejected.');
-    }
-
     public function recordMonitoring(Request $request, $id)
     {
-        $activity = ActivityRequest::with(['gpoa', 'gpoaActivity', 'report'])->findOrFail($id);
-
-        if ($activity->status !== ActivityRequest::STATUS_REPORT_SUBMITTED) {
-            return back()->with('error', 'Monitoring can only be recorded after the organization submits a final report.');
-        }
+        $activity = GpoaActivity::with('activityRequest')->findOrFail($id);
 
         $validated = $request->validate([
             'compliance_status' => 'required|in:aligned,partial,not_aligned',
             'compliance_notes'  => 'nullable|string|max:1000',
         ]);
 
-        if (! $activity->gpoa_activity_id) {
-            return back()->with('error', 'Monitoring requires an activity request linked to an approved planned GPOA activity.');
-        }
-
-        MonitoringResult::updateOrCreate(
-            ['activity_request_id' => $activity->id],
+        $result = MonitoringResult::updateOrCreate(
+            ['gpoa_activity_id' => $activity->id],
             [
-                'gpoa_activity_id'  => $activity->gpoa_activity_id,
+                'activity_request_id' => $activity->activityRequest?->id,
                 'admin_id'          => auth()->id(),
                 'compliance_status' => $validated['compliance_status'],
                 'compliance_notes'  => $validated['compliance_notes'],
@@ -366,40 +252,24 @@ class AdminController extends Controller
             ]
         );
 
-        $activity->update(['status' => ActivityRequest::STATUS_CLOSED]);
+        activity('monitoring')
+            ->performedOn($result)
+            ->causedBy(auth()->user())
+            ->withProperties(['gpoa_activity_id' => $activity->id])
+            ->log('monitoring.remark_recorded');
 
         return redirect()->route('admin.activities')
-            ->with('success', 'Monitoring results recorded against GPOA. Activity closed.');
+            ->with('success', 'Monitoring remark saved.');
     }
 
-    private function linkGpoaActivity(ActivityRequest $activity): GpoaActivity
+    public function exportActivities(Request $request, $format, AdminActivityMonitoringService $monitoringService)
     {
-        return (new GpoaActivityLinker())->link($activity);
-    }
-
-    public function exportActivities(Request $request, $format)
-    {
-        $query = ActivityRequest::with('user');
-
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(function ($q) use ($term) {
-                $q->where('venue', 'like', "%{$term}%")
-                  ->orWhere('title', 'like', "%{$term}%");
-                try {
-                    $date = Carbon::parse($term)->toDateString();
-                    $q->orWhereDate('date', $date);
-                } catch (\Exception $e) {}
-            });
-        }
-
-        $activities = $query->latest()->get();
-
         if ($format !== 'excel') {
             abort(400, 'Unsupported export format');
         }
 
-        $headers = ['ID', 'Title', 'Organization', 'Venue', 'Date', 'Status', 'GPOA'];
+        $activities = $monitoringService->filtered($request);
+        $headers = ['Activity ID', 'Title', 'Organization', 'Venue', 'Date', 'Monitoring Status', 'Late', 'Communication Letter', 'Narrative Report', 'Term', 'School Year'];
         $csvStream = fopen('php://temp', 'r+');
         $sanitizeForSpreadsheet = static function ($value): string {
             $value = (string) $value;
@@ -415,13 +285,15 @@ class AdminController extends Controller
             $row = [
                 $activity->id,
                 $activity->title,
-                $activity->user->org_name ?? $activity->user->name ?? 'N/A',
+                $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? 'N/A',
                 $activity->venue,
                 $activity->date?->toDateString() ?? '',
-                $activity->status,
-                $activity->gpoa
-                    ? $activity->gpoa->term . ' / SY ' . $activity->gpoa->school_year
-                    : 'N/A',
+                $activity->monitoring_status,
+                $activity->monitoring_late ? 'Yes' : 'No',
+                filled($activity->activityRequest?->communication_letter) ? 'Submitted' : 'Not Started',
+                filled($activity->activityRequest?->report?->narrative_report) || filled($activity->activityRequest?->report?->narrative_content) ? 'Submitted' : 'Not Started',
+                $activity->gpoa?->term ?? '',
+                $activity->gpoa?->school_year ?? '',
             ];
 
             fputcsv($csvStream, array_map($sanitizeForSpreadsheet, $row), ',', '"', '');
@@ -448,12 +320,16 @@ class AdminController extends Controller
             'narrative'     => $activity->report?->narrative_report,
             default         => null,
         };
+        abort_unless($filePath, 404, 'File not found');
 
-        if (!$filePath || !file_exists(storage_path('app/public/' . $filePath))) {
-            abort(404, 'File not found');
+        foreach (['private', 'public'] as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($filePath)) {
+                return $disk->response($filePath, null, ['Content-Type' => 'application/pdf']);
+            }
         }
 
-        return response()->file(storage_path('app/public/' . $filePath));
+        abort(404, 'File not found');
     }
 
     public function downloadFile($activityId, $fileType)
@@ -466,15 +342,20 @@ class AdminController extends Controller
             default         => null,
         };
 
-        if (!$filePath || !file_exists(storage_path('app/public/' . $filePath))) {
-            abort(404, 'File not found');
-        }
+        abort_unless($filePath, 404, 'File not found');
 
         $fileName = $fileType === 'communication'
             ? 'Communication-Letter-' . $activity->id . '.pdf'
             : 'Narrative-Report-' . $activity->id . '.pdf';
 
-        return response()->download(storage_path('app/public/' . $filePath), $fileName);
+        foreach (['private', 'public'] as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($filePath)) {
+                return $disk->download($filePath, $fileName);
+            }
+        }
+
+        abort(404, 'File not found');
     }
 
     public function viewGpoaDocument(Gpoa $gpoa)

@@ -30,7 +30,7 @@ class FaqPageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('href="' . route('faq') . '"', false);
-        $response->assertSee('How do I review and approve or reject a GPOA or Activity Request?');
+        $response->assertSee('How do I monitor GPOA submissions and planned activity progress?');
         $response->assertDontSee('What is a GPOA, and why must it be approved before I submit activities?');
     }
 

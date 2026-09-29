@@ -58,11 +58,6 @@ class User extends Authenticatable
         return asset('images/osdw.logo.jpg');
     }
 
-    public function activities()
-    {
-        return $this->hasMany(Activity::class);
-    }
-
     public function gpoas()
     {
         return $this->hasMany(Gpoa::class);
@@ -86,18 +81,6 @@ class User extends Authenticatable
     public function unreadNotificationsCount(): int
     {
         return $this->notifications()->whereNull('read_at')->count();
-    }
-
-    public function approvedGpoaForCurrentPeriod(): bool
-    {
-        $term = $this->term ?? '1st Term';
-        $schoolYear = $this->school_year ?? (date('Y') . '-' . (date('Y') + 1));
-
-        return Gpoa::where('user_id', $this->id)
-            ->where('term', $term)
-            ->where('school_year', $schoolYear)
-            ->whereIn('status', ['approved', 'stored'])
-            ->exists();
     }
 
     public function organization()

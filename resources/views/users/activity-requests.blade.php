@@ -3,6 +3,8 @@
     <div>
         <h2 class="text-2xl font-bold text-gray-800">Activity Requests</h2>
         <p class="text-sm text-gray-500">Submit detailed activity requests under your approved GPOA.</p>
+            <h2 class="text-2xl font-bold text-gray-800">Activity Records</h2>
+            <p class="text-sm text-gray-500">Review your submitted activity details and monitoring progress.</p>
     </div>
     <a href="{{ route('activity-requests.create') }}"
        class="min-h-10 md:min-h-0 px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700">+ Request Activity</a>
@@ -18,16 +20,25 @@
         <p class="text-[11px] text-orange-600 font-bold uppercase tracking-wide">Pending</p>
         <p class="text-2xl font-normal text-orange-600 leading-tight">{{ $grouped->sum(fn($group) => $group->where('status','pending')->count()) }}</p>
         <p class="text-[11px] text-orange-700 mt-0.5">Awaiting review</p>
+            <p class="text-[11px] text-orange-600 font-bold uppercase tracking-wide">Letters Uploaded</p>
+            <p class="text-2xl font-normal text-orange-600 leading-tight">{{ $grouped->flatten()->filter(fn($item) => filled($item->communication_letter))->count() }}</p>
+            <p class="text-[11px] text-orange-700 mt-0.5">Communication letters</p>
     </div>
     <div class="bg-white p-3 border border-gray-100 shadow-sm">
         <p class="text-[11px] text-green-700 font-bold uppercase tracking-wide">In Progress</p>
         <p class="text-2xl font-normal text-green-700 leading-tight">{{ $grouped->sum(fn($group) => $group->whereIn('status',['approved','in_progress','awaiting_report'])->count()) }}</p>
         <p class="text-[11px] text-green-700 mt-0.5">Approved activities</p>
+            <p class="text-[11px] text-green-700 font-bold uppercase tracking-wide">Narratives Saved</p>
+            <p class="text-2xl font-normal text-green-700 leading-tight">{{ $grouped->flatten()->filter(fn($item) => $item->report && ($item->report->narrative_report || $item->report->narrative_content))->count() }}</p>
+            <p class="text-[11px] text-green-700 mt-0.5">Narrative reports</p>
     </div>
     <div class="bg-white p-3 border border-gray-100 shadow-sm">
         <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wide">Closed</p>
         <p class="text-2xl font-normal text-slate-700 leading-tight">{{ $grouped->sum(fn($group) => $group->where('status','closed')->count()) }}</p>
         <p class="text-[11px] text-slate-600 mt-0.5">Completed activities</p>
+            <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wide">Completed</p>
+            <p class="text-2xl font-normal text-slate-700 leading-tight">{{ $grouped->flatten()->filter(fn($item) => ($item->gpoaActivity?->monitoringStatus()['status'] ?? 'Not Started') === 'Completed')->count() }}</p>
+            <p class="text-[11px] text-slate-600 mt-0.5">Both documents present</p>
     </div>
 </div>
 
@@ -35,6 +46,7 @@
     <div class="bg-white rounded-xl border p-8 text-center text-slate-500">
         <p class="text-lg font-semibold mb-2">No activity requests yet.</p>
         <p class="text-sm mb-4">Submit your first activity request under an approved GPOA.</p>
+            <p class="text-sm mb-4">Select a planned activity from the Activity Monitor to add activity details.</p>
         <a href="{{ route('activity-requests.create') }}" class="inline-flex min-h-10 items-center px-4 py-2 bg-sky-600 text-white rounded-lg text-sm">Request your first activity</a>
     </div>
 @else
@@ -42,16 +54,12 @@
         x-data="{
             statusInterval: null,
             statusColors: {
-                pending: 'bg-amber-100 text-amber-700',
-                approved: 'bg-green-100 text-green-700',
-                in_progress: 'bg-blue-100 text-blue-700',
-                awaiting_report: 'bg-orange-100 text-orange-700',
-                report_submitted: 'bg-indigo-100 text-indigo-700',
-                closed: 'bg-green-100 text-green-700',
-                rejected: 'bg-red-100 text-red-700',
+                'Not Started': 'bg-slate-100 text-slate-700',
+                'Ongoing': 'bg-amber-100 text-amber-700',
+                'Completed': 'bg-emerald-100 text-emerald-700',
             },
             formatStatus(status) {
-                return status.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+                return status;
             },
             escapeHtml(value) {
                 const element = document.createElement('div');
@@ -59,46 +67,7 @@
                 return element.innerHTML;
             },
             renderActions(request, cell) {
-                const reportUrl = cell.dataset.reportUrl;
-                const resubmitUrl = cell.dataset.resubmitUrl;
-                const feedback = this.escapeHtml(request.report_feedback);
-
-                if (['approved', 'in_progress', 'awaiting_report'].includes(request.status) && !request.report_status) {
-                    return `<a href='${reportUrl}' class='px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold hover:bg-green-200'>Submit Report</a>`;
-                }
-
-                if (request.report_status === 'needs_revision') {
-                    return `<div class='text-left'>
-                        <span class='text-xs text-amber-600 font-semibold'>Needs revision</span>
-                        <div class='mt-1 text-[11px] text-slate-600'>${feedback}</div>
-                        <a href='${reportUrl}' class='mt-2 inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold hover:bg-amber-200'>Fix & Resubmit</a>
-                    </div>`;
-                }
-
-                if (request.status === 'rejected') {
-                    return `<form method='POST' action='${resubmitUrl}'>
-                        <input type='hidden' name='_token' value='{{ csrf_token() }}'>
-                        <button type='submit' class='px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200'>Resubmit</button>
-                    </form>`;
-                }
-
-                if (request.status === 'report_submitted' && request.report_status === 'rejected') {
-                    return `<span class='text-xs text-red-600'>Report rejected: ${feedback}</span>`;
-                }
-
-                if (request.status === 'report_submitted' && request.report_status === 'approved') {
-                    return '<span class=\'text-xs text-green-600\'>Report approved</span>';
-                }
-
-                if (request.status === 'report_submitted') {
-                    return '<span class=\'text-xs text-slate-500\'>Awaiting report review</span>';
-                }
-
-                if (request.monitoring_compliance_status) {
-                    return `<span class='text-xs text-green-600'>${this.escapeHtml(this.formatStatus(request.monitoring_compliance_status))}</span>`;
-                }
-
-                return '<span class=\'text-xs text-slate-400\'>—</span>';
+                return `<a href='${cell.dataset.detailsUrl}' class='text-xs font-semibold text-sky-700 underline'>Open</a>`;
             },
             refreshStatuses() {
                 fetch('{{ route('activity-requests.statuses') }}', {
@@ -236,7 +205,7 @@
                                     class="px-3 py-2.5 text-center"
                                     data-actions-cell
                                     data-report-url="{{ route('activity-reports.create', $req) }}"
-                                    data-resubmit-url="{{ route('activity-requests.resubmit', $req) }}"
+                                    data-details-url="{{ route('activity-requests.show', $req) }}"
                                 >
                                     @if(in_array($req->status, ['approved','in_progress','awaiting_report']) && !$req->report)
                                         <a href="{{ route('activity-reports.create', $req) }}" class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold hover:bg-green-200">Submit Report</a>

@@ -5,8 +5,8 @@
         <div class="page-header">
             <div>
                 <p class="eyebrow">Edit General Plan of Activities</p>
-                <h1>Edit GPOA (Pending Review)</h1>
-                <p class="page-description">Update only the GPOA metadata and document while your submission is under review.</p>
+                <h1>Edit GPOA</h1>
+                <p class="page-description">Update your GPOA information and planned activities.</p>
             </div>
             <a href="{{ route('dashboard') }}" class="btn-secondary btn-close">Back to Dashboard</a>
         </div>
@@ -22,18 +22,18 @@
             </div>
         @endif
 
-        <script type="application/json" id="planned-activities-seed">
-            @json($gpoa->activities->map(function ($activity) {
-                return [
-                    '_key' => 'activity-' . $activity->id,
-                    'title' => $activity->title,
-                    'date' => $activity->date ? $activity->date->format('Y-m-d') : '',
-                    'venue' => $activity->venue ?? '',
-                    'category' => $activity->category ?? '',
-                    'sdgs' => is_array($activity->sdgs) ? array_values($activity->sdgs) : [],
-                ];
-            })->values()->all())
-        </script>
+        @php
+            $plannedActivitySeed = $gpoa->activities->map(fn ($activity) => [
+                'id' => $activity->id,
+                '_key' => 'activity-' . $activity->id,
+                'title' => $activity->title,
+                'date' => $activity->date ? $activity->date->format('Y-m-d') : '',
+                'venue' => $activity->venue ?? '',
+                'category' => $activity->category ?? '',
+                'sdgs' => is_array($activity->sdgs) ? array_values($activity->sdgs) : [],
+            ])->values()->all();
+        @endphp
+        <script type="application/json" id="planned-activities-seed">@json($plannedActivitySeed)</script>
 
         <form action="{{ route('gpoa.update', $gpoa) }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm">
             @csrf
@@ -92,6 +92,7 @@
 
                         <template x-for="(activity, index) in activities" :key="activity._key">
                             <div class="mt-4 rounded-xl border border-gray-300 bg-gray-50 p-4">
+                                <input type="hidden" :name="'planned_activities[' + index + '][id]'" x-model="activity.id">
                                 <div class="mb-3 flex items-center justify-between">
                                     <strong class="text-sm text-gray-700">Activity <span x-text="index + 1"></span></strong>
                                     <button type="button" @click="removeActivity(index)" class="btn-secondary btn-small">Remove</button>
@@ -159,6 +160,7 @@
             })(),
             addActivity() {
                 this.activities.push({
+                    id: null,
                     _key: `new-${Date.now()}-${Math.random()}`,
                     title: '',
                     date: '',

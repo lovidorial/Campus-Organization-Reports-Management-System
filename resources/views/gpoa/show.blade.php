@@ -3,13 +3,14 @@
     <a href="{{ route('gpoa.index') }}" class="text-sky-600 text-sm hover:underline">← Back to My GPOA</a>
     <h2 class="text-2xl font-bold text-gray-800 mt-2">GPOA Details</h2>
     <p class="text-sm text-gray-500">{{ $gpoa->term }} / SY {{ $gpoa->school_year }}</p>
+    <a href="{{ route('gpoa.edit', $gpoa) }}" class="mt-3 inline-flex rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Edit GPOA</a>
 </div>
 
 <!-- GPOA Status and Summary -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-xl border p-4">
         <p class="text-xs text-gray-500 uppercase">Status</p>
-        <p class="text-lg font-bold mt-1">{{ ucfirst($gpoa->status) }}</p>
+        <p class="text-lg font-bold mt-1">Submitted</p>
     </div>
     <div class="bg-white rounded-xl border p-4">
         <p class="text-xs text-gray-500 uppercase">College</p>
@@ -17,7 +18,7 @@
     </div>
     <div class="bg-white rounded-xl border p-4">
         <p class="text-xs text-gray-500 uppercase">Activities</p>
-        <p class="text-lg font-bold mt-1">{{ $gpoa->activities()->count() }}</p>
+        <p class="text-lg font-bold mt-1">{{ $gpoa->activities->count() }}</p>
     </div>
 </div>
 
@@ -26,37 +27,6 @@
     <a href="{{ asset('storage/'.$gpoa->document_path) }}" target="_blank"
        class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200">View GPOA Document</a>
 </div>
-@endif
-
-@if($gpoa->reject_reason)
-<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-    <strong>Rejection reason:</strong> {{ $gpoa->reject_reason }}
-</div>
-@if($gpoa->isApproved())
-<div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
-    <h3 class="font-bold text-gray-800">Request a GPOA Activity Modification</h3>
-    <p class="text-sm text-gray-500 mt-1">Approved planned activities are locked. Explain any requested add, edit, or removal for admin review.</p>
-    <form method="POST" action="{{ route('gpoa.modification-requests.store', $gpoa) }}" class="mt-4 grid gap-4 md:grid-cols-2">
-        @csrf
-        <select name="type" required class="rounded-lg border-gray-300">
-            <option value="add">Add planned activity</option>
-            <option value="edit">Edit planned activity</option>
-            <option value="remove">Remove planned activity</option>
-        </select>
-        <select name="gpoa_activity_id" class="rounded-lg border-gray-300">
-            <option value="">Select existing activity when editing/removing</option>
-            @foreach($gpoa->activities as $activity)
-                <option value="{{ $activity->id }}">{{ $activity->title }}</option>
-            @endforeach
-        </select>
-        <input name="payload[title]" placeholder="New or replacement title" class="rounded-lg border-gray-300">
-        <input name="payload[date]" type="date" class="rounded-lg border-gray-300">
-        <input name="payload[venue]" placeholder="New or replacement venue" class="rounded-lg border-gray-300">
-        <textarea name="remarks" required maxlength="2000" placeholder="Explain the reason for this request" class="rounded-lg border-gray-300 md:col-span-2"></textarea>
-        <button type="submit" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white md:col-span-2">Submit Modification Request</button>
-    </form>
-</div>
-@endif
 @endif
 
 <!-- GPOA Header Information Table -->
@@ -123,27 +93,20 @@
                 <td class="px-4 py-3">{{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</td>
                 <td class="px-4 py-3">
                     @php
-                        $activityStatus = $activity->activity_request_id
-                            ? ($activity->activityRequest?->status ?? 'pending')
-                            : 'not_requested';
-
-                        $statusConfig = [
-                            'not_requested' => ['label' => 'Not Yet Requested', 'class' => 'bg-gray-100 text-gray-600 border-gray-200'],
-                            'pending' => ['label' => 'Awaiting Approval', 'class' => 'bg-amber-100 text-amber-700 border-amber-200'],
-                            'approved' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
-                            'in_progress' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
-                            'awaiting_report' => ['label' => 'Ongoing', 'class' => 'bg-blue-100 text-blue-700 border-blue-200'],
-                            'report_submitted' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
-                            'closed' => ['label' => '✓ Finished', 'class' => 'bg-green-100 text-green-700 border-green-200'],
-                            'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-700 border-red-200'],
-                        ];
-
-                        $statusMeta = $statusConfig[$activityStatus] ?? $statusConfig['not_requested'];
+                        $monitoring = $activity->monitoringStatus();
+                        $statusClass = match ($monitoring['status']) {
+                            'Completed' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                            'Ongoing' => 'bg-amber-100 text-amber-700 border-amber-200',
+                            default => 'bg-gray-100 text-gray-600 border-gray-200',
+                        };
                     @endphp
 
-                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusMeta['class'] }}">
-                        {{ $statusMeta['label'] }}
+                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">
+                        {{ $monitoring['status'] }}
                     </span>
+                    @if($monitoring['late'])
+                        <span class="ml-1 inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">Late</span>
+                    @endif
                 </td>
                 <td class="px-4 py-3">
                     <button type="button" @click="expanded = !expanded" class="inline-flex items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition">
@@ -186,7 +149,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="px-4 py-6 text-center text-gray-500">No activities yet. Activities will appear here as they are approved.</td>
+                <td colspan="5" class="px-4 py-6 text-center text-gray-500">No activities are recorded in this GPOA yet.</td>
             </tr>
             @endforelse
         </tbody>

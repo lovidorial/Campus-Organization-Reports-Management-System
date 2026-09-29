@@ -1,9 +1,9 @@
 <x-app-layout>
     @php
         $statusClasses = [
-            'approved' => 'border-l-green-600 bg-green-50 text-green-900',
-            'in_progress' => 'border-l-blue-600 bg-blue-50 text-blue-900',
-            'closed' => 'border-l-slate-500 bg-slate-100 text-slate-700',
+            'Not Started' => 'border-l-slate-400 bg-slate-50 text-slate-800',
+            'Ongoing' => 'border-l-amber-500 bg-amber-50 text-amber-900',
+            'Completed' => 'border-l-emerald-500 bg-emerald-50 text-emerald-900',
         ];
         $selectedVenue = $selectedVenue ? (int) $selectedVenue : null;
     @endphp
@@ -12,7 +12,7 @@
         <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Activity Calendar</h1>
-                <p class="mt-1 text-sm text-slate-500">Approved, in-progress, and closed activity schedules.</p>
+                <p class="mt-1 text-sm text-slate-500">Planned activities and their current monitoring status.</p>
             </div>
             <form method="GET" action="{{ route('activities.calendar') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto">
                 <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
@@ -37,9 +37,9 @@
                     <a href="{{ route('activities.calendar', array_filter(['month' => now()->format('Y-m'), 'venue' => $selectedVenue])) }}" class="ml-1 shrink-0 rounded border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Today</a>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-600">
-                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-green-600"></span>Approved</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-blue-600"></span>In progress</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-slate-500"></span>Closed</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-slate-400"></span>Not Started</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-500"></span>Ongoing</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span>Completed</span>
                 </div>
             </div>
 
@@ -65,11 +65,11 @@
                                     @foreach($eventsByDay[$day] ?? [] as $activity)
                                         <span title="{{ $activity->title }}" aria-label="{{ $activity->status }} activity: {{ $activity->title }}" @class([
                                             'mx-auto block h-2 w-2 rounded-full sm:hidden',
-                                            'bg-green-600' => $activity->status === 'approved',
-                                            'bg-blue-600' => $activity->status === 'in_progress',
-                                            'bg-slate-500' => $activity->status === 'closed' || ! isset($statusClasses[$activity->status]),
+                                            'bg-slate-400' => $activity->status === 'Not Started',
+                                            'bg-amber-500' => $activity->status === 'Ongoing',
+                                            'bg-emerald-500' => $activity->status === 'Completed',
                                         ])></span>
-                                        <a href="{{ route('activity-requests.show', $activity) }}" title="{{ $activity->title }} · {{ $activity->venue }} · {{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) : 'Time not set' }}{{ $activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '' }}" class="hidden overflow-hidden rounded-sm border-l-2 px-1.5 py-1 text-[10px] leading-tight sm:block sm:text-[11px] {{ $statusClasses[$activity->status] ?? 'border-l-slate-400 bg-slate-50 text-slate-800' }}">
+                                        <a href="{{ route('activity-monitor.index') }}" title="{{ $activity->title }} · {{ $activity->venue }} · {{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) : 'Time not set' }}{{ $activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '' }}" class="hidden overflow-hidden rounded-sm border-l-2 px-1.5 py-1 text-[10px] leading-tight sm:block sm:text-[11px] {{ $statusClasses[$activity->status] ?? 'border-l-slate-400 bg-slate-50 text-slate-800' }}">
                                             <span class="block truncate font-semibold">{{ $activity->title }}</span>
                                             <span class="hidden truncate sm:block">{{ $activity->venue }}</span>
                                             <span class="block truncate">{{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) : 'Time not set' }}{{ $activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '' }}</span>
@@ -91,7 +91,7 @@
                         @foreach(collect($eventsByDay)->sortKeys() as $dayNumber => $dayActivities)
                             @php($dayDate = $month->copy()->day($dayNumber))
                             @foreach($dayActivities as $activity)
-                                <a href="{{ route('activity-requests.show', $activity) }}" class="block rounded border border-l-4 border-slate-200 p-3 {{ $statusClasses[$activity->status] ?? 'border-l-slate-400 bg-slate-50 text-slate-800' }}">
+                                <a href="{{ route('activity-monitor.index') }}" class="block rounded border border-l-4 border-slate-200 p-3 {{ $statusClasses[$activity->status] ?? 'border-l-slate-400 bg-slate-50 text-slate-800' }}">
                                     <div class="mb-1 flex items-baseline gap-2 text-xs font-semibold">
                                         <span>{{ $dayDate->format('j') }}</span>
                                         <span>{{ $dayDate->format('D') }}</span>

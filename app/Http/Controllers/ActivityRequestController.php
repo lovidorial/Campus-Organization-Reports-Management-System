@@ -5,11 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
-use App\Models\OrganizationWorkflow;
-use App\Models\WorkflowSubmission;
 use App\Models\User;
 use App\Models\UserNotification;
-use App\Services\GpoaMatchValidator;
 use App\Services\VenueAvailabilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -20,31 +17,12 @@ class ActivityRequestController extends Controller
 {
     public function index()
     {
-        $requests = ActivityRequest::where('user_id', auth()->id())
-            ->with([
-                'gpoa',
-                'gpoaActivity.gpoa',
-                'report',
-                'monitoringResult',
-                'programFlows',
-                'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
-            ])
-            ->latest()
-            ->get();
-
-        foreach ($requests as $req) {
-            $req->refreshLifecycleStatus();
-        }
-
-        $grouped = $requests->groupBy(fn ($request) => optional($request->gpoa ?? $request->gpoaActivity?->gpoa)->id ?: 'ungrouped');
-
-        return view('users.activity-requests', compact('grouped'));
+        return redirect()->route('activity-monitor.index');
     }
 
     public function show(ActivityRequest $activityRequest)
     {
         $this->authorize('view', $activityRequest);
-        $activityRequest->refreshLifecycleStatus();
         $activityRequest->load([
             'user',
             'gpoa',
@@ -61,14 +39,6 @@ class ActivityRequestController extends Controller
     public function downloadPdf(ActivityRequest $activityRequest)
     {
         $this->authorize('view', $activityRequest);
-
-        abort_unless(in_array($activityRequest->status, [
-            ActivityRequest::STATUS_APPROVED,
-            ActivityRequest::STATUS_IN_PROGRESS,
-            ActivityRequest::STATUS_AWAITING_REPORT,
-            ActivityRequest::STATUS_REPORT_SUBMITTED,
-            ActivityRequest::STATUS_CLOSED,
-        ], true), 403);
 
         $activityRequest->loadMissing(['user.organization', 'gpoa', 'programFlows']);
         $organization = $activityRequest->user?->organization;
@@ -95,44 +65,43 @@ class ActivityRequestController extends Controller
 
     public function monitor()
     {
-        $gpoas = Gpoa::approved()
-            ->where('user_id', auth()->id())
-            ->with(['activities.activityRequests' => fn ($query) => $query->latest()])
-            ->latest()
+        $user = auth()->user();
+        $term = $user->term ?? '1st Term';
+        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+
+        $gpoas = Gpoa::where('user_id', $user->id)
+            ->where('term', $term)
+            ->where('school_year', $schoolYear)
+            ->with([
+                'activities' => fn ($query) => $query->orderBy('date')->withMonitoringData(),
+            ])
             ->get();
 
         $activities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->map(function ($activity) use ($gpoa) {
-            $request = $activity->activityRequests->first();
-            $activity->monitor_status = match ($request?->status) {
-                null => 'not yet requested',
-                'pending' => 'pending',
-                'closed', 'report_submitted' => 'done',
-                default => 'approved',
-            };
+            $status = $activity->monitoringStatus();
+            $activity->monitor_status = $status['status'];
+            $activity->monitor_late = $status['late'];
             $activity->monitor_gpoa = $gpoa;
             return $activity;
         }));
 
-        return view('users.activity-monitor', compact('activities'));
+        $completedCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Completed')->count();
+        $progressPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
+
+        return view('users.activity-monitor', compact('activities', 'completedCount', 'progressPercent', 'term', 'schoolYear'));
     }
 
     public function statuses()
     {
         $requests = ActivityRequest::where('user_id', auth()->id())
-            ->with(['report', 'monitoringResult'])
+            ->with(['gpoaActivity' => fn ($query) => $query->withMonitoringData(), 'report', 'monitoringResult'])
             ->latest()
             ->get();
-
-        foreach ($requests as $request) {
-            $request->refreshLifecycleStatus();
-        }
 
         return response()->json([
             'requests' => $requests->map(fn ($request) => [
                 'id' => $request->id,
-                'status' => $request->status,
-                'report_status' => $request->report?->status,
-                'report_feedback' => $request->report?->feedback,
+                'status' => $request->gpoaActivity?->monitoringStatus()['status'] ?? 'Not Started',
                 'monitoring_compliance_status' => $request->monitoringResult?->compliance_status,
             ])->values(),
         ]);
@@ -140,47 +109,22 @@ class ActivityRequestController extends Controller
 
     public function create(Request $request)
     {
+        $user = auth()->user();
+        $term = $user->term ?? '1st Term';
+        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+
         $availableGpoas = Gpoa::where('user_id', auth()->id())
+            ->where('term', $term)
+            ->where('school_year', $schoolYear)
             ->with('activities')
-            ->whereIn('status', ['approved', 'stored'])
-            ->whereNotIn('id', WorkflowSubmission::where('document_type', OrganizationWorkflow::DOC_GPOA)
-                ->where('is_current', true)
-                ->whereHas('workflow', function ($q) {
-                    $q->where(function ($workflowQuery) {
-                        $workflowQuery->where('is_completed', true)
-                            ->orWhere('current_stage', OrganizationWorkflow::STAGE_COMPLETED);
-                    });
-                })
-                ->select('gpoa_id'))
             ->orderBy('school_year', 'desc')
             ->orderByRaw("CASE WHEN term = '1st Term' THEN 0 ELSE 1 END")
             ->get();
 
         if ($availableGpoas->isEmpty()) {
-            $hasApprovedGpoas = Gpoa::where('user_id', auth()->id())
-                ->whereIn('status', ['approved', 'stored'])
-                ->exists();
-            $hasCompletedGpoa = $hasApprovedGpoas && $this->gpoaWorkflowCompleted(
-                Gpoa::where('user_id', auth()->id())
-                    ->whereIn('status', ['approved', 'stored'])
-                    ->value('id')
-            );
-
-            return redirect()->route('gpoa.index')
-                ->with('error', $hasCompletedGpoa
-                    ? 'This organization has completed its current GPOA cycle after the Summary Report was approved. Please submit a new GPOA before requesting new activities.'
-                    : 'No approved GPOAs available for activity requests.');
+            return redirect()->route('gpoa.create')
+                ->with('error', 'Create your GPOA first, then add planned activities to begin monitoring.');
         }
-
-            if ($this->hasPendingActivityRequest()) {
-                return redirect()->route('activity-requests.index')
-                    ->with('error', "You can't request another activity right now. Please wait for the OSDW admin to review your request.");
-            }
-
-            if ($this->hasOutstandingActivityReport()) {
-                return redirect()->route('activity-requests.index')
-                    ->with('error', "You can't request another activity right now. Please submit the narrative report for your previous approved activity first.");
-            }
 
         $selectedGpoaId = $request->query('gpoa') ?: $availableGpoas->first()->id;
         $gpoa = $availableGpoas->firstWhere('id', $selectedGpoaId) ?: $availableGpoas->first();
@@ -214,38 +158,6 @@ class ActivityRequestController extends Controller
         ));
     }
 
-    public function resubmit(ActivityRequest $activityRequest, VenueAvailabilityService $venueAvailability)
-    {
-        $this->authorize('update', $activityRequest);
-
-        if ($activityRequest->status !== ActivityRequest::STATUS_REJECTED) {
-            return back()->with('error', 'Only rejected activity requests can be resubmitted.');
-        }
-
-        $venue = $activityRequest->venue_id
-            ? $activityRequest->venueRecord
-            : $venueAvailability->resolveVenue($activityRequest->venue);
-        $availabilityData = array_merge($activityRequest->only([
-            'date', 'end_date', 'start_time', 'end_time', 'venue',
-        ]), ['venue_id' => $venue->id]);
-        $conflict = $venueAvailability->conflictingRequest($availabilityData, $activityRequest->id);
-
-        if ($conflict) {
-            return back()->withErrors([
-                'venue' => "Another activity is already scheduled at this venue and time ({$conflict->title}). Choose a different time or venue before resubmitting.",
-            ]);
-        }
-
-        $activityRequest->update([
-            'venue_id' => $venue->id,
-            'status' => ActivityRequest::STATUS_PENDING,
-            'reject_reason' => null,
-        ]);
-
-        return redirect()->route('activity-requests.index')
-            ->with('success', 'Activity request resubmitted for review.');
-    }
-
     public function store(Request $request, VenueAvailabilityService $venueAvailability)
     {
         $programFlows = collect($request->input('program_flows', []))
@@ -262,8 +174,7 @@ class ActivityRequestController extends Controller
             'gpoa_id' => [
                 'required',
                 Rule::exists('gpoas', 'id')->where(function ($q) {
-                    $q->where('user_id', auth()->id())
-                        ->whereIn('status', ['approved', 'stored']);
+                    $q->where('user_id', auth()->id());
                 }),
             ],
             'gpoa_activity_id' => [
@@ -289,7 +200,6 @@ class ActivityRequestController extends Controller
             'facilities_materials' => 'required|string|max:255',
             'estimated_budget' => 'required|numeric|min:0',
             'source_of_funds' => 'required|string|max:100',
-            'communication_letter' => 'required|file|mimes:pdf|max:20480',
             'program_flows' => 'nullable|array',
             'program_flows.*.time' => 'required|string|max:50',
             'program_flows.*.flow' => 'required|string|max:255',
@@ -308,26 +218,6 @@ class ActivityRequestController extends Controller
             return back()->withErrors(['gpoa_activity_id' => 'The selected planned GPOA activity could not be found.'])->withInput();
         }
 
-        if ($message = GpoaMatchValidator::validate($linkedActivity, $validated)) {
-            return back()->withErrors(['title' => $message])->withInput();
-        }
-
-        if ($this->gpoaWorkflowCompleted($gpoa->id)) {
-            return back()->withErrors(['gpoa_id' => "This GPOA's cycle is already completed since its Summary Report was approved. Please submit a new GPOA before requesting new activities."])->withInput();
-        }
-
-            if ($this->hasPendingActivityRequest()) {
-                return back()
-                    ->withErrors(['gpoa_id' => "You can't request another activity right now. Please wait for the OSDW admin to review your request."])
-                    ->withInput();
-            }
-
-            if ($this->hasOutstandingActivityReport()) {
-                return back()
-                    ->withErrors(['gpoa_id' => "You can't request another activity right now. Please submit the narrative report for your previous approved activity first."])
-                    ->withInput();
-            }
-
         $categoryLimit = config('gpoa_activity_limits.' . $validated['category']);
         if ($categoryLimit !== null) {
             $existingCount = ActivityRequest::where('user_id', auth()->id())
@@ -344,7 +234,7 @@ class ActivityRequestController extends Controller
             ->where('title', $validated['title'])
             ->where('date', $validated['date'])
             ->where('venue', $validated['venue'])
-            ->whereNotIn('status', ['rejected'])
+            ->whereNotIn('status', ['cancelled', 'deleted'])
             ->exists();
 
         if ($existing) {
@@ -360,8 +250,6 @@ class ActivityRequestController extends Controller
                 'venue' => "Another activity is already scheduled at this venue and time ({$conflict->title}). Choose a different time or venue.",
             ])->withInput();
         }
-
-        $commPath = $request->file('communication_letter')->store('uploads/comm', 'public');
 
         $activityRequest = ActivityRequest::create([
             'user_id' => auth()->id(),
@@ -386,8 +274,6 @@ class ActivityRequestController extends Controller
             'source_of_funds' => $validated['source_of_funds'],
             'preceding_activity' => $linkedActivity->preceding_activity,
             'participants_count' => $linkedActivity->participants_count,
-            'communication_letter' => $commPath,
-            'status' => ActivityRequest::STATUS_PENDING,
         ]);
 
         $activityRequest->replaceProgramFlows($validated['program_flows'] ?? []);
@@ -415,40 +301,8 @@ class ActivityRequestController extends Controller
             ]);
         });
 
-        return redirect()->route('activity-requests.index')
-            ->with('success', 'Activity request submitted. Awaiting admin approval.');
+        return redirect()->route('activity-requests.show', $activityRequest)
+            ->with('success', 'Activity request added.');
     }
 
-    private function gpoaWorkflowCompleted(int $gpoaId): bool
-    {
-        return WorkflowSubmission::where('document_type', OrganizationWorkflow::DOC_GPOA)
-            ->where('gpoa_id', $gpoaId)
-            ->where('is_current', true)
-            ->whereHas('workflow', function ($q) {
-                $q->where(function ($workflowQuery) {
-                    $workflowQuery->where('is_completed', true)
-                        ->orWhere('current_stage', OrganizationWorkflow::STAGE_COMPLETED);
-                });
-            })
-            ->exists();
-    }
-
-    private function hasPendingActivityRequest(): bool
-    {
-        return ActivityRequest::where('user_id', auth()->id())
-            ->where('status', ActivityRequest::STATUS_PENDING)
-            ->exists();
-    }
-
-    private function hasOutstandingActivityReport(): bool
-    {
-        return ActivityRequest::where('user_id', auth()->id())
-            ->whereIn('status', [
-                ActivityRequest::STATUS_APPROVED,
-                ActivityRequest::STATUS_IN_PROGRESS,
-                ActivityRequest::STATUS_AWAITING_REPORT,
-            ])
-            ->whereDoesntHave('report')
-            ->exists();
-    }
 }

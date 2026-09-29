@@ -75,8 +75,7 @@ class ActivityRequestAvailabilityTest extends TestCase
         ]);
 
         $requestsResponse = $this->actingAs($user)->get(route('activity-requests.index'));
-        $requestsResponse->assertOk();
-        $requestsResponse->assertSee('Leadership Seminar');
+        $requestsResponse->assertRedirect(route('activity-monitor.index'));
 
         $createResponse = $this->actingAs($user)->get(route('activity-requests.create'));
         $createResponse->assertOk();
@@ -116,7 +115,7 @@ class ActivityRequestAvailabilityTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
 
-        $response->assertRedirect(route('activity-requests.index'));
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
         $this->assertDatabaseHas('activity_requests', ['title' => 'Tomorrow Event']);
     }
 
@@ -145,143 +144,13 @@ class ActivityRequestAvailabilityTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
 
-        $response->assertRedirect(route('activity-requests.index'));
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
         $request = ActivityRequest::firstOrFail();
         $this->assertNotNull($request->venue_id);
         $this->assertSame('Main Hall', Venue::findOrFail($request->venue_id)->name);
     }
 
-    public function test_admin_cannot_approve_a_request_with_an_overlapping_venue_booking(): void
-    {
-        $this->createApprovedActivity('Existing Event', '2026-10-10', 'Main Hall', '08:00', '14:30');
-        $requester = User::factory()->create();
-        $gpoa = Gpoa::create([
-            'user_id' => $requester->id,
-            'term' => '1st Term',
-            'school_year' => '2026-2027',
-            'college' => 'CICS',
-            'status' => 'approved',
-        ]);
-        $pendingRequest = ActivityRequest::create([
-            'user_id' => $requester->id,
-            'gpoa_id' => $gpoa->id,
-            'title' => 'Conflicting Event',
-            'date' => '2026-10-10',
-            'venue' => 'Main Hall',
-            'start_time' => '14:00',
-            'end_time' => '16:00',
-            'category' => 'Symposium',
-            'sdgs' => [4],
-            'objectives' => 'Coordinate a campus event.',
-            'expected_outcome' => 'Successful event.',
-            'plan_key_strategy' => 'Coordinate resources.',
-            'target_participants' => 'Students',
-            'person_in_charge' => 'Organization officers',
-            'facilities_materials' => 'Main Hall',
-            'estimated_budget' => 1000,
-            'source_of_funds' => 'Organization Funds',
-            'communication_letter' => 'uploads/comm/pending.pdf',
-            'status' => ActivityRequest::STATUS_PENDING,
-        ]);
-        $admin = User::factory()->create(['role' => 'admin']);
-
-        $response = $this->actingAs($admin)->get(route('admin.approve', $pendingRequest->id));
-
-        $response->assertSessionHas('error');
-        $this->assertDatabaseHas('activity_requests', [
-            'id' => $pendingRequest->id,
-            'status' => ActivityRequest::STATUS_PENDING,
-        ]);
-    }
-
-    public function test_rejected_activity_request_can_be_resubmitted(): void
-    {
-        $user = User::factory()->create([
-            'term' => '1st Term',
-            'school_year' => '2026-2027',
-        ]);
-
-        $gpoa = Gpoa::create([
-            'user_id' => $user->id,
-            'term' => '1st Term',
-            'school_year' => '2026-2027',
-            'college' => 'CICS',
-            'status' => 'approved',
-        ]);
-
-        $request = ActivityRequest::create([
-            'user_id' => $user->id,
-            'gpoa_id' => $gpoa->id,
-            'title' => 'Rejected Event',
-            'date' => '2026-09-10',
-            'venue' => 'Main Hall',
-            'category' => 'Symposium',
-            'sdgs' => [4, 8],
-            'objectives' => 'Improve skills.',
-            'expected_outcome' => 'Better engagement.',
-            'plan_key_strategy' => 'Hold workshops.',
-            'target_participants' => 'Students',
-            'person_in_charge' => 'Org officer',
-            'facilities_materials' => 'Projector',
-            'estimated_budget' => 5000.00,
-            'source_of_funds' => 'Organization Funds',
-            'communication_letter' => 'uploads/comm/sample.pdf',
-            'status' => ActivityRequest::STATUS_REJECTED,
-            'reject_reason' => 'Missing details',
-        ]);
-
-        $response = $this->actingAs($user)->post(route('activity-requests.resubmit', $request));
-
-        $response->assertRedirect(route('activity-requests.index'));
-        $this->assertDatabaseHas('activity_requests', [
-            'id' => $request->id,
-            'status' => ActivityRequest::STATUS_PENDING,
-            'reject_reason' => null,
-        ]);
-    }
-
-    public function test_rejected_activity_request_with_a_venue_conflict_cannot_be_resubmitted(): void
-    {
-        $this->createApprovedActivity('Existing Event', '2026-10-10', 'Main Hall');
-        $user = User::factory()->create();
-        $gpoa = Gpoa::create([
-            'user_id' => $user->id,
-            'term' => '1st Term',
-            'school_year' => '2026-2027',
-            'college' => 'CICS',
-            'status' => 'approved',
-        ]);
-        $request = ActivityRequest::create([
-            'user_id' => $user->id,
-            'gpoa_id' => $gpoa->id,
-            'title' => 'Rejected Event',
-            'date' => '2026-10-10',
-            'venue' => 'Main Hall',
-            'category' => 'Symposium',
-            'sdgs' => [4],
-            'objectives' => 'Improve skills.',
-            'expected_outcome' => 'Better engagement.',
-            'plan_key_strategy' => 'Hold workshops.',
-            'target_participants' => 'Students',
-            'person_in_charge' => 'Org officer',
-            'facilities_materials' => 'Projector',
-            'estimated_budget' => 5000.00,
-            'source_of_funds' => 'Organization Funds',
-            'communication_letter' => 'uploads/comm/sample.pdf',
-            'status' => ActivityRequest::STATUS_REJECTED,
-            'reject_reason' => 'Update the schedule.',
-        ]);
-
-        $response = $this->actingAs($user)->post(route('activity-requests.resubmit', $request));
-
-        $response->assertSessionHasErrors('venue');
-        $this->assertDatabaseHas('activity_requests', [
-            'id' => $request->id,
-            'status' => ActivityRequest::STATUS_REJECTED,
-        ]);
-    }
-
-    public function test_activity_request_rejects_a_title_that_does_not_match_the_planned_activity(): void
+    public function test_activity_request_allows_a_title_that_differs_from_the_planned_activity(): void
     {
         $user = User::factory()->create();
         $gpoa = Gpoa::create([
@@ -304,8 +173,11 @@ class ActivityRequestAvailabilityTest extends TestCase
             'title' => 'Different title',
         ]));
 
-        $response->assertSessionHasErrors('title');
-        $this->assertDatabaseCount('activity_requests', 0);
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
+        $this->assertDatabaseHas('activity_requests', [
+            'title' => 'Different title',
+            'gpoa_id' => $gpoa->id,
+        ]);
     }
 
     public function test_activity_request_syncs_detail_fields_to_the_linked_planned_activity(): void
@@ -338,7 +210,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             'preceding_activity' => 'Removed form override',
         ]));
 
-        $response->assertRedirect(route('activity-requests.index'));
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
         $this->assertDatabaseHas('gpoa_activities', [
             'id' => $plannedActivity->id,
             'objectives' => 'Build student connections.',
@@ -374,17 +246,14 @@ class ActivityRequestAvailabilityTest extends TestCase
             ],
         ]));
 
-        $response->assertRedirect(route('activity-requests.index'));
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
         $activityRequest = ActivityRequest::with('programFlows')->firstOrFail();
         $this->assertSame(['Opening Prayer', 'Opening Remarks'], $activityRequest->programFlows->pluck('flow')->all());
         $this->assertSame([0, 1], $activityRequest->programFlows->pluck('sort_order')->all());
 
         $this->actingAs($user)
             ->get(route('activity-requests.index'))
-            ->assertOk()
-            ->assertSee('Opening Prayer')
-            ->assertSee('Opening Remarks')
-            ->assertSee('Person in Charge');
+            ->assertRedirect(route('activity-monitor.index'));
 
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin)
@@ -405,7 +274,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             ['start_time' => '14:00', 'end_time' => '16:00']
         ));
 
-        $response->assertRedirect(route('activity-requests.index'));
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
     }
 
     public function test_same_venue_overlapping_times_conflict(): void
@@ -451,12 +320,12 @@ class ActivityRequestAvailabilityTest extends TestCase
         $response->assertSessionHasErrors('venue');
     }
 
-    public function test_closed_and_rejected_requests_do_not_block_venue_reuse(): void
+    public function test_cancelled_and_deleted_requests_do_not_block_venue_reuse(): void
     {
-        $this->createApprovedActivity('Closed Event', '2026-10-10', 'Main Hall');
-        ActivityRequest::where('title', 'Closed Event')->update(['status' => ActivityRequest::STATUS_CLOSED]);
-        $this->createApprovedActivity('Rejected Event', '2026-10-10', 'Main Hall');
-        ActivityRequest::where('title', 'Rejected Event')->update(['status' => ActivityRequest::STATUS_REJECTED]);
+        $this->createApprovedActivity('Cancelled Event', '2026-10-10', 'Main Hall');
+        ActivityRequest::where('title', 'Cancelled Event')->update(['status' => 'cancelled']);
+        $this->createApprovedActivity('Deleted Event', '2026-10-10', 'Main Hall');
+        ActivityRequest::where('title', 'Deleted Event')->update(['status' => 'deleted']);
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('New Event', '2026-10-10', 'Main Hall');
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
@@ -464,7 +333,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             'end_time' => '11:00',
         ]));
 
-        $response->assertRedirect(route('activity-requests.index'));
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
     }
 
     private function makeRequestContext(string $title, string $date, string $venue): array

@@ -1,28 +1,10 @@
 <x-app-layout>
     @php
         $request = $activityRequest;
-        $statusClasses = [
-            'pending' => 'bg-amber-100 text-amber-800',
-            'approved' => 'bg-green-100 text-green-800',
-            'in_progress' => 'bg-blue-100 text-blue-800',
-            'awaiting_report' => 'bg-orange-100 text-orange-800',
-            'report_submitted' => 'bg-indigo-100 text-indigo-800',
-            'closed' => 'bg-slate-100 text-slate-700',
-            'rejected' => 'bg-red-100 text-red-800',
-        ];
         $fieldClass = 'min-w-0 rounded border border-slate-200 bg-white px-2 py-1.5';
         $labelClass = 'block text-[10px] font-semibold uppercase text-slate-500';
         $valueClass = 'mt-0.5 break-words whitespace-pre-wrap text-xs text-slate-800';
-        $fileLink = fn (?string $path) => $path
-            ? '<a href="' . e(asset('storage/' . $path)) . '" target="_blank" rel="noopener" class="text-sky-700 underline">Open file</a>'
-            : '—';
-        $canDownloadPdf = in_array($request->status, [
-            \App\Models\ActivityRequest::STATUS_APPROVED,
-            \App\Models\ActivityRequest::STATUS_IN_PROGRESS,
-            \App\Models\ActivityRequest::STATUS_AWAITING_REPORT,
-            \App\Models\ActivityRequest::STATUS_REPORT_SUBMITTED,
-            \App\Models\ActivityRequest::STATUS_CLOSED,
-        ], true);
+        $monitoring = $request->gpoaActivity?->monitoringStatus();
     @endphp
 
     <main class="mx-auto max-w-6xl space-y-3 p-0 sm:p-4">
@@ -32,16 +14,14 @@
                 <h1 class="truncate text-lg font-bold text-slate-900">{{ $request->title }}</h1>
             </div>
             <div class="flex items-center gap-2">
-                @if($canDownloadPdf)
-                    <a href="{{ route('activity-requests.pdf', $request) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Download PDF</a>
-                @endif
+                <a href="{{ route('activity-requests.pdf', $request) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Download Activity Details PDF</a>
                 <a href="{{ route('activity-requests.index') }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Back to requests</a>
             </div>
         </header>
 
         <section class="rounded border border-slate-200 bg-slate-50 p-2.5">
             <div class="mb-2 flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $statusClasses[$request->status] ?? 'bg-slate-100 text-slate-700' }}">{{ str_replace('_', ' ', ucfirst($request->status)) }}</span>
+                <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800">Monitoring: {{ $monitoring['status'] ?? 'Not Started' }}</span>
             </div>
 
             <dl class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -66,9 +46,46 @@
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Preceding Activity</dt><dd class="{{ $valueClass }}">{{ $request->preceding_activity ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Remarks</dt><dd class="{{ $valueClass }}">{{ $request->remarks ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Rejection Reason</dt><dd class="{{ $valueClass }}">{{ $request->reject_reason ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Communication Letter</dt><dd class="{{ $valueClass }}">{!! $fileLink($request->communication_letter) !!}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Created / Updated</dt><dd class="{{ $valueClass }}">{{ $request->created_at?->format('M d, Y H:i') ?? '—' }} / {{ $request->updated_at?->format('M d, Y H:i') ?? '—' }}</dd></div>
             </dl>
+        </section>
+
+        <section class="grid gap-3 md:grid-cols-2">
+            <div class="rounded border border-slate-200 bg-white p-3">
+                <h2 class="mb-2 text-sm font-bold text-slate-800">Communication Letter</h2>
+                @if($request->communication_letter)
+                    <a href="{{ route('activity-requests.documents.show', [$request, 'communication-letter']) }}" class="text-xs font-semibold text-sky-700 underline">{{ basename($request->communication_letter) }}</a>
+                @else
+                    <p class="mb-2 text-xs text-slate-500">No letter uploaded.</p>
+                @endif
+                <form method="POST" action="{{ route('activity-requests.communication-letter.store', $request) }}" enctype="multipart/form-data" class="mt-3 space-y-2">
+                    @csrf
+                    <input type="file" name="communication_letter" accept=".pdf,application/pdf" required class="block w-full text-xs">
+                    @error('communication_letter')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                    <label class="flex items-start gap-2 text-xs text-slate-600">
+                        <input type="checkbox" name="signed_confirmation" value="1" required class="mt-0.5 rounded border-slate-300">
+                        <span>I confirm this letter is signed by the required signatories.</span>
+                    </label>
+                    @error('signed_confirmation')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                    <button type="submit" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Upload Letter</button>
+                </form>
+            </div>
+
+            <div class="rounded border border-slate-200 bg-white p-3">
+                <h2 class="mb-2 text-sm font-bold text-slate-800">Narrative Report</h2>
+                @if($request->report)
+                    <p class="mb-2 text-xs text-slate-600">{{ ucfirst($request->report->narrative_source ?? 'uploaded') }} report saved.</p>
+                    @if($request->report->narrative_report)
+                        <a href="{{ route('activity-requests.documents.show', [$request, 'narrative-report']) }}" class="text-xs font-semibold text-sky-700 underline">View report PDF</a>
+                    @endif
+                    @if(data_get($request->report->narrative_content, 'body'))
+                        <div class="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-700">{{ data_get($request->report->narrative_content, 'body') }}</div>
+                    @endif
+                @else
+                    <p class="mb-2 text-xs text-slate-500">No narrative report saved.</p>
+                @endif
+                <a href="{{ route('activity-reports.create', $request) }}" class="mt-3 inline-flex rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800">{{ $request->report ? 'Update Narrative Report' : 'Add Narrative Report' }}</a>
+            </div>
         </section>
 
         <section class="rounded border border-slate-200 bg-white p-2.5">

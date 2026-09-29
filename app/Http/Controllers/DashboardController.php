@@ -2,16 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActivityRequest;
-use App\Services\OrganizationWorkflowService;
+use App\Models\Gpoa;
+use App\Models\GpoaActivity;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function __construct(
-        private OrganizationWorkflowService $workflowService
-    ) {}
-
     public function index()
     {
         if (Auth::user()->isAdmin()) {
@@ -22,44 +18,52 @@ class DashboardController extends Controller
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
 
-        $workflow = $this->workflowService->getOrCreateForUser($user, $term, $schoolYear);
-        $workflow->load(['submissions.reviewer', 'events']);
-
-        $progressStages = $workflow->progressStages();
-        $recentEvents = $workflow->events()->with('user')->take(10)->get();
-        $unreadCount = $user->unreadNotificationsCount();
-        $notifications = $user->notifications()->latest()->take(5)->get();
-
-        $gpoa = \App\Models\Gpoa::where('user_id', auth()->id())
+        $gpoa = Gpoa::where('user_id', $user->id)
             ->where('term', $term)
             ->where('school_year', $schoolYear)
-            ->with('activities')
+            ->with([
+                'activities' => fn ($query) => $query->withMonitoringData()->orderBy('date'),
+            ])
             ->latest()
             ->first();
 
-        $activities = ActivityRequest::where('user_id', auth()->id())
-            ->with([
-                'gpoaActivity',
-                'report',
-                'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
-            ])
-            ->latest()
-            ->paginate(5);
+        $activities = $gpoa?->activities ?? collect();
 
-        $stats = [
-            'total'    => ActivityRequest::where('user_id', auth()->id())->count(),
-            'pending'  => ActivityRequest::where('user_id', auth()->id())->where('status', 'pending')->count(),
-            'approved' => ActivityRequest::where('user_id', auth()->id())
-                ->whereIn('status', ['approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed'])->count(),
-            'rejected' => ActivityRequest::where('user_id', auth()->id())->where('status', 'rejected')->count(),
+        $counts = [
+            'Not Started' => 0,
+            'Ongoing' => 0,
+            'Completed' => 0,
+            'Late' => 0,
         ];
 
-        $hasApprovedGpoa = $workflow->isGpoaApproved();
+        foreach ($activities as $activity) {
+            $status = $activity->monitoringStatus();
+            $label = $status['status'];
+
+            if (! isset($counts[$label])) {
+                $counts[$label] = 0;
+            }
+
+            $counts[$label]++;
+
+            if ($status['late']) {
+                $counts['Late']++;
+            }
+        }
+
+        $completedCount = $counts['Completed'];
+        $overallPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
+        $unreadCount = $user->unreadNotificationsCount();
 
         return view('dashboard', compact(
-            'activities', 'stats', 'gpoa', 'hasApprovedGpoa', 'term', 'schoolYear',
-            'workflow', 'progressStages', 'recentEvents',
-            'unreadCount', 'notifications'
+            'gpoa',
+            'activities',
+            'counts',
+            'completedCount',
+            'overallPercent',
+            'term',
+            'schoolYear',
+            'unreadCount'
         ));
     }
 }

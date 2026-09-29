@@ -7,7 +7,7 @@
                 <div>
                     <p class="eyebrow">Submit General Plan of Activities</p>
                     <h1>Submit General Plan of Activities (GPOA)</h1>
-                    <p class="page-description">Complete the GPOA form. Activity requests are created separately after your GPOA is approved.</p>
+                    <p class="page-description">Record your planned activities to begin monitoring their progress.</p>
                 </div>
                 <a href="{{ route('gpoa.index') }}" class="icon-close">×</a>
             </div>
@@ -32,7 +32,7 @@
                     <div class="section-heading">
                         <div>
                             <h2 class="section-title">GPOA Information</h2>
-                            <p class="section-description">Complete the following fields to submit your General Plan of Activities for OSDW review and approval.</p>
+                            <p class="section-description">Complete the following fields to record your General Plan of Activities for the term.</p>
                         </div>
                     </div>
 

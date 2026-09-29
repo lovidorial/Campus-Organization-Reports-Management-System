@@ -1,9 +1,14 @@
 <x-app-layout>
 <div class="mb-6">
-    <a href="{{ route('activity-requests.index') }}" class="text-sky-600 text-sm hover:underline">← Back to Activity Requests</a>
-    <h2 class="text-2xl font-bold text-gray-800 mt-2">Submit Final Report</h2>
+    <a href="{{ route('activity-requests.show', $activityRequest) }}" class="text-sky-600 text-sm hover:underline">← Back to Activity</a>
+    <h2 class="text-2xl font-bold text-gray-800 mt-2">Narrative Report</h2>
     <p class="text-sm text-gray-500">{{ $activityRequest->title }} — {{ $activityRequest->date->format('M d, Y') }}</p>
 </div>
+
+@php
+    $selectedSource = old('narrative_source', $existingReport?->narrative_source ?? ($existingReport?->narrative_report ? 'uploaded' : 'generated'));
+    $hasExistingUpload = $existingReport?->narrative_source === 'uploaded' && filled($existingReport?->narrative_report);
+@endphp
 
 <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-8 max-w-xl">
     <form action="{{ route('activity-reports.store', $activityRequest) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
@@ -15,12 +20,35 @@
             <p><strong>Venue:</strong> {{ $activityRequest->venue }} <x-venue-status-badge :venue="$activityRequest->venueRecord" /></p>
         </div>
 
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Narrative Report (PDF) *</label>
-            <input type="file" name="narrative_report" accept=".pdf" required
-                   class="w-full border border-gray-300 rounded-lg px-3 py-2">
-            <p class="text-xs text-gray-500 mt-1">Upload your final narrative report after conducting the activity.</p>
-            @error('narrative_report')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        <fieldset>
+            <legend class="mb-2 text-sm font-semibold text-gray-700">Narrative source</legend>
+            <div class="flex flex-wrap gap-4">
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="radio" name="narrative_source" value="uploaded" {{ $selectedSource === 'uploaded' ? 'checked' : '' }}>
+                    Upload PDF
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="radio" name="narrative_source" value="generated" {{ $selectedSource === 'generated' ? 'checked' : '' }}>
+                    Create in System
+                </label>
+            </div>
+            @error('narrative_source')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+        </fieldset>
+
+        <div id="narrativeUploadSection">
+            <label class="mb-2 block text-sm font-semibold text-gray-700">Narrative Report PDF {{ $hasExistingUpload ? '(optional replacement)' : '*' }}</label>
+            @if($hasExistingUpload)
+                <p class="mb-2 text-xs text-gray-500">Current file: <a class="text-sky-700 underline" href="{{ route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) }}">View narrative report</a></p>
+            @endif
+            <input id="narrativeReportFile" type="file" name="narrative_report" accept=".pdf" {{ $hasExistingUpload ? '' : 'required' }} class="w-full rounded-lg border border-gray-300 px-3 py-2">
+            <p class="mt-1 text-xs text-gray-500">PDF, up to 20 MB.</p>
+            @error('narrative_report')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
+        </div>
+
+        <div id="narrativeEditorSection">
+            <label for="narrative_content" class="mb-2 block text-sm font-semibold text-gray-700">Narrative text *</label>
+            <textarea id="narrative_content" name="narrative_content" rows="12" maxlength="30000" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Write the activity narrative">{{ old('narrative_content', data_get($existingReport?->narrative_content, 'body')) }}</textarea>
+            @error('narrative_content')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
         </div>
 
         <div>
@@ -63,12 +91,30 @@
         </div>
 
         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg">
-            Submit Final Report
+            Save Narrative Report
         </button>
     </form>
 </div>
 
 <script>
+    const narrativeSourceInputs = document.querySelectorAll('input[name="narrative_source"]');
+    const narrativeUploadSection = document.getElementById('narrativeUploadSection');
+    const narrativeEditorSection = document.getElementById('narrativeEditorSection');
+    const narrativeReportFile = document.getElementById('narrativeReportFile');
+    const narrativeContent = document.getElementById('narrative_content');
+    const hasExistingUpload = @json($hasExistingUpload);
+
+    function updateNarrativeSourceFields() {
+        const source = document.querySelector('input[name="narrative_source"]:checked')?.value;
+        narrativeUploadSection.hidden = source !== 'uploaded';
+        narrativeEditorSection.hidden = source !== 'generated';
+        narrativeReportFile.required = source === 'uploaded' && !hasExistingUpload;
+        narrativeContent.required = source === 'generated';
+    }
+
+    narrativeSourceInputs.forEach(input => input.addEventListener('change', updateNarrativeSourceFields));
+    updateNarrativeSourceFields();
+
     document.querySelector('input[name="photos[]"]').addEventListener('change', function(event) {
         const preview = document.getElementById('photoPreview');
         preview.innerHTML = '';

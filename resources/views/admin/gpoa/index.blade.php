@@ -1,24 +1,15 @@
 <x-app-layout>
 <div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-800">GPOA Review</h2>
-    <p class="text-sm text-gray-500">Verify, approve, and store organization GPOA submissions</p>
+    <h2 class="text-2xl font-bold text-gray-800">GPOA Monitoring</h2>
+    <p class="text-sm text-gray-500">Browse organizational plans and planned activities</p>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white p-4 rounded-lg border"><p class="text-xs text-gray-500 uppercase">Total</p><p class="text-2xl font-bold text-blue-600">{{ $stats['total'] }}</p></div>
-    <div class="bg-white p-4 rounded-lg border"><p class="text-xs text-gray-500 uppercase">Pending</p><p class="text-2xl font-bold text-yellow-500">{{ $stats['pending'] }}</p></div>
-    <div class="bg-white p-4 rounded-lg border"><p class="text-xs text-gray-500 uppercase">Approved/Stored</p><p class="text-2xl font-bold text-green-500">{{ $stats['approved'] }}</p></div>
-    <div class="bg-white p-4 rounded-lg border"><p class="text-xs text-gray-500 uppercase">Rejected</p><p class="text-2xl font-bold text-red-500">{{ $stats['rejected'] }}</p></div>
+<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div class="rounded-lg border bg-white p-4"><p class="text-xs uppercase text-gray-500">GPOAs</p><p class="text-2xl font-bold text-slate-800">{{ $stats['total'] }}</p></div>
 </div>
 
 <form method="GET" class="bg-white rounded-xl border p-4 mb-6 flex flex-wrap gap-3">
     <input type="text" name="search" placeholder="Search org, term, SY..." value="{{ request('search') }}" class="border rounded px-3 py-2 text-sm flex-1 min-w-[200px]">
-    <select name="status" class="border rounded px-3 py-2 text-sm">
-        <option value="">All Status</option>
-        @foreach(['pending','stored','approved','rejected'] as $s)
-        <option value="{{ $s }}" {{ request('status')==$s?'selected':'' }}>{{ ucfirst($s) }}</option>
-        @endforeach
-    </select>
     <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded text-sm">Filter</button>
 </form>
 
@@ -29,45 +20,19 @@
                 <th class="p-3 text-left">Organization</th>
                 <th class="p-3 text-left">Term / SY</th>
                 <th class="p-3 text-left">College</th>
-                <th class="p-3 text-left">Activities</th>
-                <th class="p-3 text-left">Activity Levels</th>
-                <th class="p-3 text-left">Status</th>
+                <th class="p-3 text-left">Planned Activities</th>
             </tr>
         </thead>
         <tbody>
             @forelse($gpoas as $gpoa)
-            @php
-                $levelSummary = $gpoa->activityRequests->groupBy('activity_level')->map(fn ($items) => $items->count());
-            @endphp
             <tr class="border-b hover:bg-gray-50">
                 <td class="p-3">{{ $gpoa->user->org_name ?? $gpoa->user->name }}</td>
                 <td class="p-3">{{ $gpoa->term }}<br><span class="text-xs text-gray-500">{{ $gpoa->school_year }}</span></td>
                 <td class="p-3">{{ $gpoa->college ?? '—' }}</td>
-                <td class="p-3">{{ $gpoa->activity_requests_count }}</td>
-                <td class="p-3">
-                    @if($levelSummary->isNotEmpty())
-                        <div class="flex flex-wrap gap-1">
-                            @foreach($levelSummary as $level => $count)
-                            <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
-                                {{ $level ?: 'Unspecified' }}: {{ $count }}
-                            </span>
-                            @endforeach
-                        </div>
-                    @else
-                        <span class="text-xs text-gray-400">—</span>
-                    @endif
-                </td>
-                <td class="p-3">
-                    <span class="px-2 py-1 rounded-full text-xs font-bold
-                        {{ $gpoa->status=='pending'?'bg-yellow-100 text-yellow-700':'' }}
-                        {{ in_array($gpoa->status,['approved','stored'])?'bg-green-100 text-green-700':'' }}
-                        {{ $gpoa->status=='rejected'?'bg-red-100 text-red-700':'' }}">
-                        {{ ucfirst($gpoa->status) }}
-                    </span>
-                </td>
+                <td class="p-3">{{ $gpoa->activities_count }}</td>
             </tr>
             @empty
-            <tr><td colspan="6" class="p-8 text-center text-gray-400">No GPOA submissions yet.</td></tr>
+            <tr><td colspan="4" class="p-8 text-center text-gray-400">No GPOAs found.</td></tr>
             @endforelse
         </tbody>
     </table>

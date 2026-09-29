@@ -28,6 +28,7 @@ class BackupServiceTest extends TestCase
         $this->assertTrue($zip->open($result['path']) === true);
         $this->assertNotFalse($zip->locateName('database.sql'));
         $this->assertNotFalse($zip->locateName('storage/public/'));
+        $this->assertNotFalse($zip->locateName('storage/private/'));
         $zip->close();
     }
 
@@ -37,6 +38,9 @@ class BackupServiceTest extends TestCase
         $publicPath = $root.DIRECTORY_SEPARATOR.'public';
         mkdir($publicPath, 0777, true);
         file_put_contents($publicPath.DIRECTORY_SEPARATOR.'keep.txt', 'before restore');
+        $privatePath = $root.DIRECTORY_SEPARATOR.'private';
+        mkdir($privatePath, 0700, true);
+        file_put_contents($privatePath.DIRECTORY_SEPARATOR.'keep-private.txt', 'before restore private');
 
         $targetArchive = $root.DIRECTORY_SEPARATOR.'target.zip';
         $this->createArchive($targetArchive, 'target-state', 'replacement.txt', 'target files');
@@ -53,7 +57,29 @@ class BackupServiceTest extends TestCase
         $this->assertFileExists($publicPath.DIRECTORY_SEPARATOR.'keep.txt');
         $this->assertSame('before restore', file_get_contents($publicPath.DIRECTORY_SEPARATOR.'keep.txt'));
         $this->assertFileDoesNotExist($publicPath.DIRECTORY_SEPARATOR.'replacement.txt');
+        $this->assertFileExists($privatePath.DIRECTORY_SEPARATOR.'keep-private.txt');
+        $this->assertSame('before restore private', file_get_contents($privatePath.DIRECTORY_SEPARATOR.'keep-private.txt'));
         $this->assertCount(1, glob($root.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'pre_restore_*.zip'));
+    }
+
+    public function test_successful_restore_replaces_private_files_from_the_archive(): void
+    {
+        $root = $this->tempRoot();
+        $publicPath = $root.DIRECTORY_SEPARATOR.'public';
+        $privatePath = $root.DIRECTORY_SEPARATOR.'private';
+        mkdir($publicPath, 0777, true);
+        mkdir($privatePath, 0700, true);
+        file_put_contents($publicPath.DIRECTORY_SEPARATOR.'old.txt', 'old public');
+        file_put_contents($privatePath.DIRECTORY_SEPARATOR.'old.txt', 'old private');
+
+        $targetArchive = $root.DIRECTORY_SEPARATOR.'target-with-private.zip';
+        $this->createArchive($targetArchive, 'target-state', 'new.txt', 'new public', 'private.txt', 'new private');
+
+        $this->assertTrue((new TestableBackupService($root, false))->restoreBackup($targetArchive));
+        $this->assertFileDoesNotExist($publicPath.DIRECTORY_SEPARATOR.'old.txt');
+        $this->assertSame('new public', file_get_contents($publicPath.DIRECTORY_SEPARATOR.'new.txt'));
+        $this->assertFileDoesNotExist($privatePath.DIRECTORY_SEPARATOR.'old.txt');
+        $this->assertSame('new private', file_get_contents($privatePath.DIRECTORY_SEPARATOR.'private.txt'));
     }
 
     public function test_retention_prunes_regular_backups_but_keeps_pre_restore_archives(): void
@@ -112,13 +138,24 @@ class BackupServiceTest extends TestCase
         @rmdir($directory);
     }
 
-    private function createArchive(string $path, string $sql, string $filename, string $contents): void
+    private function createArchive(
+        string $path,
+        string $sql,
+        string $filename,
+        string $contents,
+        ?string $privateFilename = null,
+        string $privateContents = ''
+    ): void
     {
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
         $zip->addFromString('database.sql', $sql);
         $zip->addEmptyDir('storage/public');
         $zip->addFromString('storage/public/'.$filename, $contents);
+        $zip->addEmptyDir('storage/private');
+        if ($privateFilename) {
+            $zip->addFromString('storage/private/'.$privateFilename, $privateContents);
+        }
         $zip->close();
     }
 }
@@ -127,7 +164,7 @@ class TestableBackupService extends BackupService
 {
     public array $importedDumps = [];
 
-    public function __construct(private readonly string $root)
+    public function __construct(private readonly string $root, private readonly bool $failTargetImport = true)
     {
         $this->backupDirectory = 'backups';
     }
@@ -142,6 +179,11 @@ class TestableBackupService extends BackupService
         return $this->root.DIRECTORY_SEPARATOR.'public';
     }
 
+    protected function privateStoragePath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'private';
+    }
+
     protected function dumpDatabase(string $destination): void
     {
         file_put_contents($destination, 'pre-restore-state');
@@ -151,7 +193,7 @@ class TestableBackupService extends BackupService
     {
         $dump = file_get_contents($sqlFile);
         $this->importedDumps[] = $dump;
-        if ($dump === 'target-state') {
+        if ($dump === 'target-state' && $this->failTargetImport) {
             throw new \RuntimeException('simulated target import failure');
         }
     }

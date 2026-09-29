@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\EnsureApprovedGpoa;
 use App\Http\Middleware\EnsureTermsAccepted;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -18,7 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // REGISTER YOUR MIDDLEWARE ALIAS HERE
         $middleware->alias([
-            'approved.gpoa' => EnsureApprovedGpoa::class,
             'terms.accepted' => EnsureTermsAccepted::class,
         ]);
     })

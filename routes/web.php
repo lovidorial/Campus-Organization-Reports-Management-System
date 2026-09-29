@@ -12,11 +12,9 @@ use App\Http\Controllers\AdminWorkflowController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GpoaController;
-use App\Http\Controllers\GpoaModificationRequestController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicOrgChartController;
 use App\Http\Controllers\WorkflowDocumentController;
-use App\Http\Controllers\WorkflowSubmissionHistoryController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -64,15 +62,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
         Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');
         Route::put('/gpoa/{gpoa}', [GpoaController::class, 'update'])->name('gpoa.update');
-        Route::post('/gpoa/{gpoa}/modification-requests', [GpoaModificationRequestController::class, 'store'])->name('gpoa.modification-requests.store');
-
-        // Workflow Documents
-        Route::get('/workflow/communication-letter', [WorkflowDocumentController::class, 'communicationLetter'])->name('workflow.communication-letter');
-        Route::post('/workflow/communication-letter', [WorkflowDocumentController::class, 'storeCommunicationLetter'])->name('workflow.communication-letter.store');
-        Route::get('/workflow/summary-report', [WorkflowDocumentController::class, 'summaryReport'])->name('workflow.summary-report');
-        Route::post('/workflow/summary-report', [WorkflowDocumentController::class, 'storeSummaryReport'])->name('workflow.summary-report.store');
-        Route::get('/workflow/submission-history', [WorkflowSubmissionHistoryController::class, 'index'])->name('workflow.submission-history');
-        Route::get('/submission-history', [WorkflowSubmissionHistoryController::class, 'index'])->name('submission-history');
+        // Notifications remain available; organization-level workflow documents/history are retired.
         Route::get('/notifications', [WorkflowDocumentController::class, 'notifications'])->name('notifications.index');
         Route::get('/notifications/unread-count', [WorkflowDocumentController::class, 'unreadNotificationCount'])->name('notifications.unread-count');
         Route::patch('/notifications/{notification}/read', [WorkflowDocumentController::class, 'markNotificationRead'])->name('notifications.read');
@@ -84,10 +74,13 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/activity-requests/statuses', [ActivityRequestController::class, 'statuses'])->name('activity-requests.statuses');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
-        Route::post('/activity-requests/{activityRequest}/resubmit', [ActivityRequestController::class, 'resubmit'])->name('activity-requests.resubmit');
         Route::get('/activity-requests/{activityRequest}', [ActivityRequestController::class, 'show'])->name('activity-requests.show');
         Route::get('/activity-requests/{activityRequest}/pdf', [ActivityRequestController::class, 'downloadPdf'])->name('activity-requests.pdf');
         Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
+        Route::post('/activity-requests/{activityRequest}/communication-letter', [\App\Http\Controllers\ActivityDocumentController::class, 'storeCommunicationLetter'])->name('activity-requests.communication-letter.store');
+        Route::get('/activity-requests/{activityRequest}/documents/{documentType}', [\App\Http\Controllers\ActivityDocumentController::class, 'show'])
+            ->whereIn('documentType', ['communication-letter', 'narrative-report'])
+            ->name('activity-requests.documents.show');
         Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
         Route::get('/organization/officers', [\App\Http\Controllers\OfficerController::class, 'userIndex'])->name('organization.officers.index');
@@ -111,17 +104,12 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
 
     Route::middleware([\App\Http\Middleware\AdminMiddlerware::class])->prefix('admin')->name('admin.')->group(function () {
 
-        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard', [AdminController::class, 'monitoringDashboard'])->name('dashboard');
         Route::get('/activities', [AdminController::class, 'monitor'])->name('activities');
         Route::get('/activities/statuses', [AdminController::class, 'activityStatuses'])->name('activities.statuses');
-        Route::post('/reports/{report}/approve', [ActivityReportController::class, 'approve'])->name('reports.approve');
-        Route::post('/reports/{report}/reject', [ActivityReportController::class, 'reject'])->name('reports.reject');
-        Route::post('/reports/{report}/return-for-correction', [ActivityReportController::class, 'returnForCorrection'])->name('reports.return-for-correction');
         Route::get('/summary-report', [AdminSummaryReportController::class, 'index'])->name('summary-report');
         Route::get('/summary-report/pdf', [AdminSummaryReportController::class, 'downloadPdf'])->name('summary-report.pdf');
         Route::get('/summary-report/download', [AdminSummaryReportController::class, 'download'])->name('summary-report.download');
-        Route::get('/approve/{id}', [AdminController::class, 'approve'])->name('approve');
-        Route::post('/reject/{id}', [AdminController::class, 'reject'])->name('reject');
         Route::post('/monitoring/{id}/record', [AdminController::class, 'recordMonitoring'])->name('monitoring.record');
         Route::get('/activities/export/{format}', [AdminController::class, 'exportActivities'])->name('activities.export');
         Route::get('/file/view/{activityId}/{fileType}', [AdminController::class, 'viewFile'])->name('file.view');
@@ -129,18 +117,11 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
 
         Route::get('/gpoa', [AdminGpoaController::class, 'index'])->name('gpoa.index');
         Route::get('/gpoa/{gpoa}', [AdminGpoaController::class, 'show'])->name('gpoa.show');
-        Route::post('/gpoa/{gpoa}/approve', [AdminGpoaController::class, 'approve'])->name('gpoa.approve');
-        Route::post('/gpoa/{gpoa}/reject', [AdminGpoaController::class, 'reject'])->name('gpoa.reject');
-        Route::post('/gpoa-modification-requests/{modificationRequest}/approve', [GpoaModificationRequestController::class, 'approve'])->name('gpoa-modification-requests.approve');
-        Route::post('/gpoa-modification-requests/{modificationRequest}/reject', [GpoaModificationRequestController::class, 'reject'])->name('gpoa-modification-requests.reject');
         Route::get('/gpoa/{gpoa}/document', [AdminController::class, 'viewGpoaDocument'])->name('gpoa.document');
 
         Route::get('/workflows', [AdminWorkflowController::class, 'index'])->name('workflows.index');
         Route::get('/workflows/export', [AdminWorkflowController::class, 'export'])->name('workflows.export');
         Route::get('/workflows/{workflow}', [AdminWorkflowController::class, 'show'])->name('workflows.show');
-        Route::post('/workflows/{workflow}/reopen', [AdminWorkflowController::class, 'reopen'])->name('workflows.reopen');
-        Route::post('/workflow-submissions/{submission}/approve', [AdminWorkflowController::class, 'approveSubmission'])->name('workflows.submissions.approve');
-        Route::post('/workflow-submissions/{submission}/reject', [AdminWorkflowController::class, 'rejectSubmission'])->name('workflows.submissions.reject');
         Route::get('/workflow-submissions/{submission}/document', [AdminWorkflowController::class, 'viewDocument'])->name('workflows.submissions.document');
 
         Route::get('/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('users.index');

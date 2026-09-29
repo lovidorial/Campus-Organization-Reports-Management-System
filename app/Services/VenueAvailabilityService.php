@@ -40,7 +40,7 @@ class VenueAvailabilityService
                     });
                 }
             })
-            ->whereNotIn('status', [ActivityRequest::STATUS_REJECTED, ActivityRequest::STATUS_CLOSED])
+            ->whereNotIn('status', ['cancelled', 'deleted'])
             ->whereDate('date', '<=', $endDate)
             ->where(function ($query) use ($startDate) {
                 $query->whereNull('end_date')->orWhereDate('end_date', '>=', $startDate);

@@ -99,9 +99,18 @@ class UserBackupService
             return;
         }
 
-        $publicRoot = realpath(storage_path('app/public'));
-        $filePath = realpath(storage_path('app/public/' . $normalizedPath));
-        if (! $publicRoot || ! $filePath || ! is_file($filePath) || ! str_starts_with($filePath, $publicRoot . DIRECTORY_SEPARATOR)) {
+        $filePath = null;
+        foreach ([storage_path('app/private'), storage_path('app/public')] as $storageRoot) {
+            $resolvedRoot = realpath($storageRoot);
+            $resolvedFile = realpath($storageRoot . DIRECTORY_SEPARATOR . $normalizedPath);
+            if ($resolvedRoot && $resolvedFile && is_file($resolvedFile)
+                && str_starts_with($resolvedFile, $resolvedRoot . DIRECTORY_SEPARATOR)) {
+                $filePath = $resolvedFile;
+                break;
+            }
+        }
+
+        if (! $filePath) {
             return;
         }
 

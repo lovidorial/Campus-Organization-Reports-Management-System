@@ -3,9 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Gpoa;
-use App\Models\OrganizationWorkflow;
 use App\Models\User;
-use App\Models\WorkflowSubmission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -100,27 +98,6 @@ class GpoaDocumentRequiredTest extends TestCase
             'document_path' => 'uploads/gpoa/original.pdf',
             'prepared_by' => 'Jane Doe',
             'status' => 'pending',
-        ]);
-
-        $workflow = OrganizationWorkflow::create([
-            'user_id' => $user->id,
-            'term' => '1st Term',
-            'school_year' => '2026-2027',
-            'current_stage' => OrganizationWorkflow::STAGE_GPOA_SUBMITTED,
-            'completion_percentage' => 0,
-            'is_completed' => false,
-            'is_locked' => false,
-        ]);
-
-        WorkflowSubmission::create([
-            'organization_workflow_id' => $workflow->id,
-            'document_type' => OrganizationWorkflow::DOC_GPOA,
-            'version' => 1,
-            'gpoa_id' => $gpoa->id,
-            'file_path' => $gpoa->document_path,
-            'status' => WorkflowSubmission::STATUS_UNDER_REVIEW,
-            'submitted_at' => now(),
-            'is_current' => true,
         ]);
 
         $response = $this->actingAs($user)->put(route('gpoa.update', $gpoa), [

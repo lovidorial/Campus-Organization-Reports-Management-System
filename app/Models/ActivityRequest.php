@@ -17,6 +17,7 @@ class ActivityRequest extends Model
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
         'preceding_activity', 'description', 'participants_count',
         'communication_letter', 'status', 'reject_reason',
+        'communication_letter_signed_at',
     ];
 
     protected $casts = [
@@ -24,6 +25,7 @@ class ActivityRequest extends Model
         'end_date' => 'date',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
+        'communication_letter_signed_at' => 'datetime',
     ];
 
     public const STATUS_PENDING = 'pending';
@@ -118,26 +120,4 @@ class ActivityRequest extends Model
         return $this->date->format('M d, Y') . ' – ' . $this->end_date->format('M d, Y');
     }
 
-    public function refreshLifecycleStatus(): void
-    {
-        if ($this->status === self::STATUS_APPROVED && $this->date->lte(now()->startOfDay())) {
-            $this->update(['status' => self::STATUS_IN_PROGRESS]);
-        }
-
-        if ($this->status === self::STATUS_IN_PROGRESS && $this->date->lt(now()->startOfDay())) {
-            $this->update(['status' => self::STATUS_AWAITING_REPORT]);
-        }
-    }
-
-    public function matchesGpoaLineItem(): bool
-    {
-        $line = $this->gpoaActivity;
-        if (!$line) {
-            return false;
-        }
-
-        return $line->title === $this->title
-            && $line->date->toDateString() === $this->date->toDateString()
-            && $line->venue === $this->venue;
-    }
 }

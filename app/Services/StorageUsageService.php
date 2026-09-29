@@ -207,7 +207,11 @@ class StorageUsageService
             return 0;
         }
 
-        foreach ([storage_path('app/public/' . $relativePath), storage_path('app/' . $relativePath)] as $candidate) {
+        foreach ([
+            storage_path('app/private/' . $relativePath),
+            storage_path('app/public/' . $relativePath),
+            storage_path('app/' . $relativePath),
+        ] as $candidate) {
             $resolved = realpath($candidate);
             if ($resolved !== false && is_file($resolved)) {
                 return (int) filesize($resolved);

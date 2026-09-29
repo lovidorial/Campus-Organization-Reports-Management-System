@@ -42,7 +42,7 @@ class ActivityRequestPdfTest extends TestCase
         $detailPage->assertSee(route('activity-requests.pdf', $request));
     }
 
-    public function test_pdf_is_not_available_before_approval_or_after_rejection(): void
+    public function test_activity_details_pdf_is_available_without_an_approval_state(): void
     {
         $owner = User::factory()->create(['terms_accepted_at' => now()]);
 
@@ -52,11 +52,12 @@ class ActivityRequestPdfTest extends TestCase
             $this->actingAs($owner)
                 ->get(route('activity-requests.show', $request))
                 ->assertOk()
-                ->assertDontSee(route('activity-requests.pdf', $request));
+                ->assertSee(route('activity-requests.pdf', $request));
 
             $this->actingAs($owner)
                 ->get(route('activity-requests.pdf', $request))
-                ->assertForbidden();
+                ->assertOk()
+                ->assertHeader('content-type', 'application/pdf');
         }
     }
 
@@ -71,7 +72,7 @@ class ActivityRequestPdfTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_activity_monitoring_shows_pdf_action_only_for_approved_or_later_requests(): void
+    public function test_admin_activity_monitoring_is_scoped_to_planned_gpoa_activities(): void
     {
         $admin = User::factory()->create([
             'role' => 'admin',
@@ -84,8 +85,9 @@ class ActivityRequestPdfTest extends TestCase
         $monitoring = $this->actingAs($admin)->get(route('admin.activities'));
 
         $monitoring->assertOk()
-            ->assertSee('href="' . route('activity-requests.pdf', $approved) . '"', false)
-            ->assertDontSee('href="' . route('activity-requests.pdf', $pending) . '"', false);
+            ->assertSee('No planned activities match these filters.')
+            ->assertDontSee('Approve</button>')
+            ->assertDontSee('Review Report');
     }
 
     private function createRequest(User $owner, string $status): ActivityRequest

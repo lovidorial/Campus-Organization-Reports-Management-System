@@ -35,12 +35,12 @@
                          Dashboard
                     </a>
                 </li>
-                <li x-data="{ open: {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') ? 'true' : 'false' }} }">
+                <li x-data="{ open: {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? 'true' : 'false' }} }">
                     <button type="button"
                             @click="open = !open"
                             :aria-expanded="open.toString()"
                             class="flex items-center justify-between gap-3 w-full px-4 py-2.5 rounded-lg transition font-bold text-white"
-                            :class="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-requests.*') || request()->routeIs('workflow.summary-report*') ? 'true' : 'false' }} ? 'bg-[#e89600]' : 'bg-transparent'">
+                            :class="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? 'true' : 'false' }} ? 'bg-[#e89600]' : 'bg-transparent'">
                         <span>Documents & Activities</span>
                         <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" :class="open ? 'rotate-90' : ''">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -60,20 +60,15 @@
                            style="background-color: {{ request()->routeIs('gpoa.*') ? '#e89600' : 'transparent' }};">
                             My GPOA
                         </a>
-                        <a href="{{ route('activity-requests.index') }}"
+                        <a href="{{ route('activity-monitor.index') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('activity-requests.*') ? '#e89600' : 'transparent' }};">
-                            Activity Requests
+                           style="background-color: {{ request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? '#e89600' : 'transparent' }};">
+                            Activity Monitor
                         </a>
                         <a href="{{ route('activities.calendar') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white"
                            style="background-color: {{ request()->routeIs('activities.calendar') ? '#e89600' : 'transparent' }};">
                             Activity Calendar
-                        </a>
-                        <a href="{{ route('workflow.summary-report') }}"
-                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('workflow.summary-report*') ? '#e89600' : 'transparent' }};">
-                            Summary Report
                         </a>
                     </div>
                 </li>
@@ -115,13 +110,13 @@
                          Admin Dashboard
                     </a>
                 </li>
-                <li>
-                    <a href="{{ route('admin.workflows.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('admin.workflows.*') ? '#e89600' : 'transparent' }};">
-                         GPOA Review
-                    </a>
-                </li>
+                                <li>
+                                        <a href="{{ route('admin.gpoa.index') }}"
+                                             class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
+                                             style="background-color: {{ request()->routeIs('admin.gpoa.*') ? '#e89600' : 'transparent' }};">
+                                                 GPOA Monitoring
+                                        </a>
+                                </li>
                 <li>
                     <a href="{{ route('admin.activities') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
@@ -210,7 +205,7 @@
         <div class="bg-white rounded-t-lg px-6 py-5 border-b border-gray-200 flex items-center justify-between">
             <div>
                 <h2 class="text-xl font-bold text-gray-900">Notifications</h2>
-                <p class="text-sm text-gray-500">Recent updates on your workflow and submissions.</p>
+                <p class="text-sm text-gray-500">Recent updates on your activities and submissions.</p>
             </div>
             <button type="button" @click="notificationsOpen = false" class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close notifications">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

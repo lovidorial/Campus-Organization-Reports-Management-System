@@ -445,11 +445,6 @@
                         </div>
                     </div>
 
-                    <div class="form-group mt-6">
-                        <label for="communication_letter">Communication Letter (PDF) *</label>
-                        <input id="communication_letter" type="file" name="communication_letter" accept=".pdf" required>
-                        @error('communication_letter')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                    </div>
                 </section>
 
                 <div class="flex flex-col items-stretch gap-3 md:flex-row md:items-center">

@@ -12,7 +12,7 @@ class WorkflowSubmissionHistoryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_history_shows_the_users_submissions_and_excludes_other_organizations(): void
+    public function test_workflow_submissions_keep_audit_metadata_and_stay_scoped_to_their_organization(): void
     {
         $user = User::factory()->create(['role' => 'user']);
         $reviewer = User::factory()->create(['role' => 'admin', 'name' => 'Review Officer']);
@@ -21,13 +21,14 @@ class WorkflowSubmissionHistoryTest extends TestCase
         $workflow = $this->createWorkflow($user);
         $otherWorkflow = $this->createWorkflow($otherUser);
 
-        WorkflowSubmission::create([
+        $reviewedSubmission = WorkflowSubmission::create([
             'organization_workflow_id' => $workflow->id,
             'document_type' => OrganizationWorkflow::DOC_GPOA,
             'version' => 2,
             'status' => WorkflowSubmission::STATUS_APPROVED,
             'submitted_at' => '2026-01-15 13:45:00',
             'reviewed_by' => $reviewer->id,
+            'approval_remarks' => 'Updated schedule approved.',
             'is_current' => true,
         ]);
 
@@ -40,18 +41,12 @@ class WorkflowSubmissionHistoryTest extends TestCase
             'is_current' => true,
         ]);
 
-        $response = $this->actingAs($user)->get(route('workflow.submission-history'));
-
-        $response->assertOk();
-        $response->assertSee('Review Officer');
-        $response->assertSee('Jan 15, 2026');
-        $response->assertSee('v2');
-        $response->assertDontSee('Jan 10, 2026');
-
-        $this->get(route('submission-history'))
-            ->assertOk()
-            ->assertSee('Requests')
-            ->assertSee('Approved');
+        $this->assertSame(2, $workflow->fresh()->currentSubmission(OrganizationWorkflow::DOC_GPOA)?->version);
+        $this->assertSame('Review Officer', $reviewedSubmission->fresh()->reviewer->name);
+        $this->assertSame('Updated schedule approved.', $reviewedSubmission->fresh()->approval_remarks);
+        $this->assertEquals(1, $workflow->fresh()->submissions()->count());
+        $this->assertEquals(1, $otherWorkflow->fresh()->submissions()->count());
+        $this->assertNotSame($workflow->id, $otherWorkflow->id);
     }
 
     private function createWorkflow(User $user): OrganizationWorkflow

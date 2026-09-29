@@ -14,8 +14,8 @@
                 </div>
                 <div class="mt-3 divide-y divide-gray-100">
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How do I review and approve or reject a GPOA or Activity Request?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Review GPOA submissions from <a class="text-amber-700 hover:underline" href="{{ route('admin.workflows.index') }}">GPOA Review</a>. Review activity requests in <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, where pending requests have approve and reject actions. Rejections should include clear feedback so the organization knows what to correct.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I monitor GPOA submissions and planned activity progress?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Review GPOA submissions from <a class="text-amber-700 hover:underline" href="{{ route('admin.gpoa.index') }}">GPOA Monitoring</a>. Review individual activity progress in <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, where document and narrative status are tracked without the removed approval flow.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How does Activity Monitoring work, and what do its status filters mean?</summary>
@@ -78,10 +78,6 @@
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">What is the Summary Report, and why is it locked?</summary>
                         <p class="mt-2 text-sm text-gray-600">The Summary Report summarizes your organization’s completed activities for the term. It becomes available after the GPOA is approved, at least one activity request exists, and every request under that GPOA has a submitted report or is closed.</p>
-                    </details>
-                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How do I check my Submission History?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('submission-history') }}">Submission History</a> to see document versions, statuses, submission and approval dates, reviewers, and activity request totals.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I back up my organization’s data?</summary>

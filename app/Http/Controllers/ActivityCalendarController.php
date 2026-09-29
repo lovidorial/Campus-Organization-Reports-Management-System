@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
+use App\Models\GpoaActivity;
 use App\Models\Venue;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,38 +25,68 @@ class ActivityCalendarController extends Controller
         $startOfMonth = $month->copy()->startOfMonth();
         $endOfMonth = $month->copy()->endOfMonth();
 
-        $query = ActivityRequest::query()
-            ->whereIn('status', [
-                ActivityRequest::STATUS_APPROVED,
-                ActivityRequest::STATUS_IN_PROGRESS,
-                ActivityRequest::STATUS_CLOSED,
-            ])
+        $gpoaActivities = GpoaActivity::query()
             ->whereDate('date', '<=', $endOfMonth->toDateString())
-            ->where(function ($query) use ($startOfMonth) {
-                $query->whereNull('end_date')
-                    ->orWhereDate('end_date', '>=', $startOfMonth->toDateString());
-            })
-            ->with('venueRecord:id,name')
+            ->whereDate('date', '>=', $startOfMonth->toDateString())
+            ->with(['gpoa.user', 'activityRequest.venueRecord:id,name'])
             ->orderBy('date')
-            ->orderBy('start_time');
+            ->orderBy('title')
+            ->get([
+                'id', 'gpoa_id', 'activity_request_id', 'title', 'category', 'date', 'venue',
+            ]);
 
         if (! $request->user()->isAdmin()) {
-            $query->where('user_id', $request->user()->id);
+            $gpoaActivities = $gpoaActivities->filter(fn ($activity) => $activity->gpoa && $activity->gpoa->user_id === $request->user()->id);
         }
+
+        $directRequests = ActivityRequest::query()
+            ->whereDate('date', '<=', $endOfMonth->toDateString())
+            ->whereDate('date', '>=', $startOfMonth->toDateString())
+            ->with(['user', 'venueRecord:id,name'])
+            ->when(! $request->user()->isAdmin(), fn ($query) => $query->where('user_id', $request->user()->id))
+            ->whereNull('gpoa_activity_id')
+            ->orderBy('date')
+            ->orderBy('title')
+            ->get();
+
+        $activities = $gpoaActivities->merge($directRequests)->filter(function ($activity) {
+            $request = $activity instanceof ActivityRequest ? $activity : $activity->activityRequest;
+            if ($activity instanceof ActivityRequest) {
+                $normalizedStatus = match ($activity->status) {
+                    'approved', 'in_progress', 'awaiting_report', 'report_submitted' => 'Ongoing',
+                    'closed' => 'Completed',
+                    default => null,
+                };
+
+                if ($normalizedStatus === null) {
+                    return false;
+                }
+
+                $activity->setAttribute('monitoring_status', $normalizedStatus);
+                $activity->setAttribute('status', $normalizedStatus);
+                $activity->setAttribute('start_time', $request?->start_time);
+                $activity->setAttribute('end_time', $request?->end_time);
+                $activity->setRelation('venueRecord', $request?->venueRecord);
+                return true;
+            }
+
+            $activity->setAttribute('monitoring_status', $activity->monitoringStatus()['status']);
+            $activity->setAttribute('status', $activity->monitoring_status);
+            $activity->setAttribute('start_time', $request?->start_time);
+            $activity->setAttribute('end_time', $request?->end_time);
+            $activity->setRelation('venueRecord', $request?->venueRecord);
+            return in_array($activity->monitoring_status, ['Not Started', 'Ongoing', 'Completed'], true);
+        })->values();
 
         if (! empty($validated['venue'])) {
-            $query->where('venue_id', $validated['venue']);
+            $venue = Venue::findOrFail($validated['venue']);
+            $activities = $activities->filter(fn ($activity) => mb_strtolower(trim((string) ($activity->venue ?? $activity->venueRecord?->name))) === mb_strtolower(trim($venue->name)))->values();
         }
-
-        $activities = $query->get([
-            'id', 'user_id', 'venue_id', 'title', 'category', 'date', 'end_date',
-            'start_time', 'end_time', 'venue', 'status',
-        ]);
 
         $eventsByDay = [];
         foreach ($activities as $activity) {
             $activityStart = $activity->date->copy()->max($startOfMonth);
-            $activityEnd = ($activity->end_date ?? $activity->date)->copy()->min($endOfMonth);
+            $activityEnd = $activity->date->copy()->min($endOfMonth);
 
             for ($day = $activityStart->copy(); $day->lte($activityEnd); $day->addDay()) {
                 $eventsByDay[$day->day][] = $activity;
@@ -70,26 +101,10 @@ class ActivityCalendarController extends Controller
             ->values()
             ->chunk(7);
 
-        $venuesQuery = Venue::query()
-            ->whereHas('activityRequests', function ($query) use ($request, $startOfMonth, $endOfMonth) {
-                $query->whereIn('status', [
-                    ActivityRequest::STATUS_APPROVED,
-                    ActivityRequest::STATUS_IN_PROGRESS,
-                    ActivityRequest::STATUS_CLOSED,
-                ])
-                    ->whereDate('date', '<=', $endOfMonth->toDateString())
-                    ->where(function ($query) use ($startOfMonth) {
-                        $query->whereNull('end_date')
-                            ->orWhereDate('end_date', '>=', $startOfMonth->toDateString());
-                    });
-
-                if (! $request->user()->isAdmin()) {
-                    $query->where('user_id', $request->user()->id);
-                }
-            })
-            ->orderBy('name');
-
-        $venues = $venuesQuery->get(['id', 'name']);
+        $venueNames = $activities->pluck('venue')->filter()->map(fn ($name) => mb_strtolower(trim($name)))->unique()->values();
+        $venues = Venue::query()->orderBy('name')->get(['id', 'name'])
+            ->filter(fn (Venue $venue) => $venueNames->contains(mb_strtolower(trim($venue->name))))
+            ->values();
 
         return view('activities.calendar', [
             'month' => $month,

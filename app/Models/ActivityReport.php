@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ActivityReport extends Model
 {
     protected $fillable = [
-        'activity_request_id', 'narrative_report', 'submitted_at', 'description',
+        'activity_request_id', 'narrative_report', 'narrative_source', 'narrative_content', 'submitted_at', 'description',
         'signed_by_secretary', 'signed_by_governor', 'signed_by_advisor', 'signed_by_dean_president',
         'status', 'feedback', 'reviewed_at', 'reviewed_by',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'narrative_content' => 'array',
         'signed_by_secretary' => 'boolean',
         'signed_by_governor' => 'boolean',
         'signed_by_advisor' => 'boolean',

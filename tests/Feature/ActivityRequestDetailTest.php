@@ -82,15 +82,14 @@ class ActivityRequestDetailTest extends TestCase
 
         $this->actingAs($owner)
             ->get(route('activity-requests.index'))
-            ->assertOk()
-            ->assertSee('Reserved');
+            ->assertRedirect(route('activity-monitor.index'));
 
         $admin = User::factory()->create(['role' => 'admin', 'terms_accepted_at' => now()]);
         $this->actingAs($admin)->get(route('activity-requests.show', $request))->assertOk();
         $this->actingAs($admin)
             ->get(route('admin.activities'))
             ->assertOk()
-            ->assertSee('Reserved');
+            ->assertSee('No planned activities match these filters.');
     }
 
     public function test_users_cannot_view_another_users_request(): void
