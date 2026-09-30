@@ -26,6 +26,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'prepared_by' => 'Jane Doe',
             'planned_activities' => [[
                 'title' => 'Student Leadership Summit',
+                'time_frame' => 'exact_date',
                 'date' => '2026-10-01',
                 'venue' => 'Main Hall',
                 'category' => 'Symposium',
@@ -52,6 +53,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
             'planned_activities' => [[
                 'title' => 'Student Leadership Summit',
+                'time_frame' => 'exact_date',
                 'date' => '2026-10-01',
                 'venue' => 'Main Hall',
                 'category' => 'Symposium',
@@ -77,6 +79,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
             'planned_activities' => [[
                 'title' => 'Student Leadership Summit',
+                'time_frame' => 'exact_date',
                 'date' => '2026-10-01',
                 'venue' => 'Main Hall',
                 'category' => 'Symposium',
@@ -130,6 +133,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'planned_activities' => [
                 [
                     'title' => 'Student Leadership Summit',
+                    'time_frame' => 'exact_date',
                     'date' => '2026-10-01',
                     'venue' => 'Main Hall',
                     'category' => 'Symposium',
@@ -142,11 +146,12 @@ class GpoaDocumentRequiredTest extends TestCase
             'verify' => '1',
         ]);
 
-        $response->assertSessionHasErrors('planned_activities.1');
-        $this->assertStringContainsString(
-            'Activity 2 is incomplete',
-            $response->getSession()->get('errors')->get('planned_activities.1')[0]
-        );
+        $response->assertSessionHasErrors([
+            'planned_activities.1.title',
+            'planned_activities.1.time_frame',
+        ]);
+        $this->assertStringContainsString('Activity 2 title is required', $response->getSession()->get('errors')->get('planned_activities.1.title')[0]);
+        $this->assertStringContainsString('Activity 2 time frame is required', $response->getSession()->get('errors')->get('planned_activities.1.time_frame')[0]);
         $this->assertDatabaseCount('gpoas', 0);
     }
 
@@ -182,12 +187,12 @@ class GpoaDocumentRequiredTest extends TestCase
             'prepared_by' => 'Jane Doe',
             'planned_activities' => [[
                 'title' => 'Student Leadership Summit',
+                'time_frame' => 'exact_date',
                 'date' => '2026-10-01',
                 'venue' => 'Main Hall',
                 'category' => 'Symposium',
                 'sdgs' => [4],
             ]],
-            'verify' => '1',
         ]);
 
         $response->assertRedirect(route('dashboard', absolute: false));

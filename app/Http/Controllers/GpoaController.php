@@ -6,9 +6,11 @@ use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Services\GpoaImportParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class GpoaController extends Controller
 {
@@ -48,6 +50,27 @@ class GpoaController extends Controller
         $detectedCollege = $this->detectCollegeFromOrganization($user);
 
         return view('gpoa.create', compact('detectedCollege'));
+    }
+
+    public function importPreview(Request $request, GpoaImportParser $parser)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:docx,xlsx|max:10240',
+            'school_year' => 'required|string|max:20',
+        ], [
+            'file.required' => 'Choose a Word (.docx) or Excel (.xlsx) file to import.',
+            'file.mimes' => 'Only Word (.docx) and Excel (.xlsx) files can be imported.',
+            'file.max' => 'The import file must be 10 MB or smaller.',
+            'school_year.required' => 'A school year is required to infer dates without a year.',
+        ]);
+
+        try {
+            return response()->json($parser->parse($validated['file'], $validated['school_year']));
+        } catch (Throwable $exception) {
+            return response()->json([
+                'message' => $exception->getMessage() ?: 'This file could not be read. Choose a valid DOCX or XLSX file.',
+            ], 422);
+        }
     }
 
     private function detectCollegeFromOrganization($user): ?string
@@ -140,11 +163,6 @@ class GpoaController extends Controller
             'prepared_by'         => 'required|string|max:255',
             'document_path'       => 'required|file|mimes:pdf|max:20480',
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
-            'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
-            'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
-            'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
-            'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
-            'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
             'approved_confirmation' => 'required|accepted',
             'verify'              => 'required|accepted',
         ], [
@@ -199,13 +217,6 @@ class GpoaController extends Controller
             'prepared_by' => 'required|string|max:255',
             'document_path' => ($gpoa->document_path ? 'nullable' : 'required') . '|file|mimes:pdf|max:20480',
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
-            'planned_activities.*.id' => 'nullable|integer',
-            'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
-            'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
-            'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
-            'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
-            'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
-            'verify' => 'required|accepted',
         ], [
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
@@ -276,10 +287,27 @@ class GpoaController extends Controller
 
         $sdgs = array_values(array_unique(array_map('intval', array_filter((array) $sdgs, 'is_numeric'))));
 
+        $timeFrame = trim((string) ($activityData['time_frame'] ?? ''));
+        $dateValue = trim((string) ($activityData['date'] ?? ''));
+        $endDateValue = trim((string) ($activityData['end_date'] ?? ''));
+
+        if ($timeFrame === 'month_only' && $dateValue !== '' && preg_match('/^\d{4}-\d{2}$/', $dateValue)) {
+            $dateValue = date('Y-m-01', strtotime($dateValue));
+        }
+
+        if ($timeFrame !== 'date_range') {
+            $endDateValue = '';
+        }
+
         return [
             'title' => trim((string) ($activityData['title'] ?? '')),
-            'date' => isset($activityData['date']) && trim((string) $activityData['date']) !== '' ? $activityData['date'] : null,
-            'venue' => trim((string) ($activityData['venue'] ?? '')),
+            'time_frame' => $timeFrame,
+            'date' => $dateValue !== '' ? $dateValue : null,
+            'end_date' => $endDateValue !== '' ? $endDateValue : null,
+            'start_time' => trim((string) ($activityData['start_time'] ?? '')) !== '' ? $activityData['start_time'] : null,
+            'end_time' => trim((string) ($activityData['end_time'] ?? '')) !== '' ? $activityData['end_time'] : null,
+            'date_is_month_only' => $timeFrame === 'month_only' || ! empty($activityData['date_is_month_only']),
+            'venue' => trim((string) ($activityData['venue'] ?? '')) !== '' ? trim((string) $activityData['venue']) : null,
             'category' => trim((string) ($activityData['category'] ?? '')),
             'sdgs' => $sdgs,
         ];
@@ -288,7 +316,9 @@ class GpoaController extends Controller
     private function isBlankPlannedActivity(array $activityData): bool
     {
         return empty($activityData['title'])
+            && empty($activityData['time_frame'])
             && empty($activityData['date'])
+            && empty($activityData['end_date'])
             && empty($activityData['venue'])
             && empty($activityData['category'])
             && empty($activityData['sdgs']);
@@ -298,34 +328,62 @@ class GpoaController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'planned_activities' => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
-            'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
-            'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
-            'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
-            'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
-            'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
         ], [
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
         $validator->after(function ($validator) use ($request) {
             foreach ((array) $request->input('planned_activities', []) as $index => $activity) {
-                $hasAnyValue = collect(['title', 'date', 'venue', 'category'])
-                    ->contains(fn ($field) => trim((string) ($activity[$field] ?? '')) !== '')
-                    || !empty($activity['sdgs'] ?? []);
+                $title = trim((string) ($activity['title'] ?? ''));
+                $timeFrame = trim((string) ($activity['time_frame'] ?? ''));
+                $date = trim((string) ($activity['date'] ?? ''));
+                $endDate = trim((string) ($activity['end_date'] ?? ''));
+                $venue = trim((string) ($activity['venue'] ?? ''));
+                $category = trim((string) ($activity['category'] ?? ''));
+                $hasAnyValue = $title !== ''
+                    || $timeFrame !== ''
+                    || $date !== ''
+                    || $endDate !== ''
+                    || $venue !== ''
+                    || $category !== ''
+                    || ! empty($activity['sdgs'] ?? []);
 
-                if (!$hasAnyValue) {
+                if (! $hasAnyValue) {
                     continue;
                 }
 
-                $isComplete = collect(['title', 'date', 'venue', 'category'])
-                    ->every(fn ($field) => trim((string) ($activity[$field] ?? '')) !== '')
-                    && !empty($activity['sdgs'] ?? []);
+                if ($title === '') {
+                    $validator->errors()->add("planned_activities.{$index}.title", 'Activity ' . ($index + 1) . ' title is required.');
+                }
 
-                if (!$isComplete) {
-                    $validator->errors()->add(
-                        "planned_activities.{$index}",
-                        'Activity ' . ($index + 1) . ' is incomplete - title, date, venue, category, and at least one SDG are all required.'
-                    );
+                if ($timeFrame === '') {
+                    $validator->errors()->add("planned_activities.{$index}.time_frame", 'Activity ' . ($index + 1) . ' time frame is required.');
+                }
+
+                if (! in_array($timeFrame, ['exact_date', 'date_range', 'month_only'], true)) {
+                    continue;
+                }
+
+                if ($timeFrame === 'exact_date' && $date === '') {
+                    $validator->errors()->add("planned_activities.{$index}.date", 'Activity ' . ($index + 1) . ' exact date is required.');
+                }
+
+                if ($timeFrame === 'date_range') {
+                    if ($date === '') {
+                        $validator->errors()->add("planned_activities.{$index}.date", 'Activity ' . ($index + 1) . ' start date is required for a date range.');
+                    }
+
+                    if ($endDate === '') {
+                        $validator->errors()->add("planned_activities.{$index}.end_date", 'Activity ' . ($index + 1) . ' end date is required for a date range.');
+                    }
+
+                    if ($date !== '' && $endDate !== '' && $endDate < $date) {
+                        $validator->errors()->add("planned_activities.{$index}.end_date", 'Activity ' . ($index + 1) . ' end date cannot be before the start date.');
+                    }
+                }
+
+                if ($timeFrame === 'month_only' && $date === '') {
+                    $validator->errors()->add("planned_activities.{$index}.date", 'Activity ' . ($index + 1) . ' month is required for a month-only activity.');
                 }
             }
         });

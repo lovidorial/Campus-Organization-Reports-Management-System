@@ -16,7 +16,12 @@ class GpoaActivity extends Model
         'gpoa_id',
         'activity_request_id',
         'title',
+        'time_frame',
         'date',
+        'end_date',
+        'start_time',
+        'end_time',
+        'date_is_month_only',
         'venue',
         'category',
         'objectives',
@@ -35,6 +40,10 @@ class GpoaActivity extends Model
 
     protected $casts = [
         'date' => 'date',
+        'end_date' => 'date',
+        'start_time' => 'string',
+        'end_time' => 'string',
+        'date_is_month_only' => 'boolean',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
     ];
@@ -122,9 +131,38 @@ class GpoaActivity extends Model
         return 'Pending';
     }
 
+    public function getDisplayDateAttribute(): string
+    {
+        if (! $this->date) {
+            return '—';
+        }
+
+        if ($this->date_is_month_only) {
+            return $this->date->format('F Y');
+        }
+
+        if ($this->time_frame === 'date_range' && $this->end_date && $this->end_date->ne($this->date)) {
+            if ($this->date->format('M Y') === $this->end_date->format('M Y')) {
+                return $this->date->format('M j') . '-' . $this->end_date->format('j, Y');
+            }
+
+            return $this->date->format('M j, Y') . ' - ' . $this->end_date->format('M j, Y');
+        }
+
+        return $this->date->format('M d, Y');
+    }
+
     protected function isLateForMonitoring(): bool
     {
         $today = now()->startOfDay();
+
+        if ($this->date_is_month_only && $this->date) {
+            return $this->date->copy()->endOfMonth()->lt($today);
+        }
+
+        if ($this->time_frame === 'date_range' && $this->end_date) {
+            return $this->end_date->lt($today);
+        }
 
         if ($this->date && $this->date->lt($today)) {
             return true;

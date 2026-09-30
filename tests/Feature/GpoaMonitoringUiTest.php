@@ -149,6 +149,7 @@ class GpoaMonitoringUiTest extends TestCase
             'planned_activities' => [[
                 'id' => $activity->id,
                 'title' => 'Updated Community Outreach',
+                'time_frame' => 'exact_date',
                 'date' => '2027-03-10',
                 'venue' => 'Community Center',
                 'category' => 'Outreach',
@@ -167,6 +168,10 @@ class GpoaMonitoringUiTest extends TestCase
             'activity_request_id' => $activityRequest->id,
             'narrative_report' => 'reports/community.pdf',
         ]);
+
+        $activity->refresh()->load('activityRequest.report');
+        $this->assertSame($activityRequest->id, $activity->activity_request_id);
+        $this->assertSame('Completed', $activity->monitoringStatus()['status']);
     }
 
     private function createOrganizationUser(): User

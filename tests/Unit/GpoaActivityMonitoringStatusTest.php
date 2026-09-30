@@ -81,6 +81,29 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         $this->assertTrue($status['late']);
     }
 
+    public function test_it_keeps_month_only_activity_from_being_late_until_the_last_day_of_its_month(): void
+    {
+        $activity = GpoaActivity::create([
+            'gpoa_id' => Gpoa::create([
+                'user_id' => User::factory()->create()->id,
+                'term' => '1st Semester',
+                'school_year' => '2025-2026',
+                'college' => 'College of Arts and Sciences',
+            ])->id,
+            'title' => 'Month Activity',
+            'date' => '2024-11-01',
+            'date_is_month_only' => true,
+            'venue' => 'Main Hall',
+            'category' => 'Education',
+        ]);
+
+        $this->travelTo('2024-11-20');
+        $this->assertFalse($activity->monitoringStatus()['late']);
+
+        $this->travelTo('2024-12-01');
+        $this->assertTrue($activity->monitoringStatus()['late']);
+    }
+
     private function createActivity(
         string $date = '2026-09-29',
         ?string $letterPath = null,

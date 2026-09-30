@@ -69,9 +69,9 @@
                                             'bg-amber-500' => $activity->status === 'Ongoing',
                                             'bg-emerald-500' => $activity->status === 'Completed',
                                         ])></span>
-                                        <a href="{{ route('activity-monitor.index') }}" title="{{ $activity->title }} · {{ $activity->venue }} · {{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) : 'Time not set' }}{{ $activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '' }}" class="hidden overflow-hidden rounded-sm border-l-2 px-1.5 py-1 text-[10px] leading-tight sm:block sm:text-[11px] {{ $statusClasses[$activity->status] ?? 'border-l-slate-400 bg-slate-50 text-slate-800' }}">
+                                        <a href="{{ route('activity-monitor.index') }}" title="{{ $activity->title }} · {{ $activity->venue ?: 'Venue not set' }} · {{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) : 'Time not set' }}{{ $activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '' }}" class="hidden overflow-hidden rounded-sm border-l-2 px-1.5 py-1 text-[10px] leading-tight sm:block sm:text-[11px] {{ $statusClasses[$activity->status] ?? 'border-l-slate-400 bg-slate-50 text-slate-800' }}">
                                             <span class="block truncate font-semibold">{{ $activity->title }}</span>
-                                            <span class="hidden truncate sm:block">{{ $activity->venue }}</span>
+                                            <span class="hidden truncate sm:block">{{ $activity->venue ?: 'Venue not set' }}</span>
                                             <span class="block truncate">{{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) : 'Time not set' }}{{ $activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '' }}</span>
                                         </a>
                                     @endforeach
@@ -97,7 +97,7 @@
                                         <span>{{ $dayDate->format('D') }}</span>
                                     </div>
                                     <p class="break-words text-sm font-bold">{{ $activity->title }}</p>
-                                    <p class="mt-1 break-words text-xs">{{ $activity->venue ?? 'Venue not set' }}</p>
+                                    <p class="mt-1 break-words text-xs">{{ $activity->venue ?: 'Venue not set' }}</p>
                                     <p class="mt-1 text-xs">{{ $activity->start_time ? substr((string) $activity->start_time, 0, 5) . ($activity->end_time ? '–' . substr((string) $activity->end_time, 0, 5) : '') : 'Time not set' }}</p>
                                 </a>
                             @endforeach

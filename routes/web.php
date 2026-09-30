@@ -58,6 +58,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         // GPOA Management
         Route::get('/gpoa', [GpoaController::class, 'index'])->name('gpoa.index');
         Route::get('/gpoa/create', [GpoaController::class, 'create'])->name('gpoa.create');
+        Route::post('/gpoa/import-preview', [GpoaController::class, 'importPreview'])->middleware('throttle:10,1')->name('gpoa.import-preview');
         Route::post('/gpoa/store', [GpoaController::class, 'store'])->name('gpoa.store');
         Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
         Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');

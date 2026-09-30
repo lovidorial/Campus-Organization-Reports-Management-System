@@ -27,8 +27,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('gpoa_id')->constrained()->cascadeOnDelete();
             $table->string('title');
+            $table->string('time_frame')->nullable();
             $table->date('date');
-            $table->string('venue');
+            $table->date('end_date')->nullable();
+            $table->time('start_time')->nullable();
+            $table->time('end_time')->nullable();
+            $table->boolean('date_is_month_only')->default(false);
+            $table->string('venue')->nullable();
             $table->string('category')->nullable();
             $table->text('description')->nullable();
             $table->integer('participants_count')->nullable();

@@ -3,8 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -25,9 +26,18 @@ class PasswordResetTest extends TestCase
 
         $user = User::factory()->create();
 
-        $this->post('/forgot-password', ['email' => $user->email]);
+        $response = $this->post('/forgot-password', ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        $response->assertSessionHas('status', __('passwords.sent'));
+        Notification::assertSentTo($user, ResetPasswordNotification::class, function ($notification) use ($user) {
+            $mail = $notification->toMail($user);
+
+            $this->assertSame('Reset your Orgtrack password', $mail->subject);
+            $this->assertSame('Reset Password', $mail->actionText);
+            $this->assertStringContainsString('60 minutes', implode(' ', array_merge($mail->introLines, $mail->outroLines)));
+
+            return true;
+        });
     }
 
     public function test_reset_password_screen_can_be_rendered(): void
@@ -38,7 +48,7 @@ class PasswordResetTest extends TestCase
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
+        Notification::assertSentTo($user, ResetPasswordNotification::class, function ($notification) {
             $response = $this->get('/reset-password/'.$notification->token);
 
             $response->assertStatus(200);
@@ -55,7 +65,7 @@ class PasswordResetTest extends TestCase
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+        Notification::assertSentTo($user, ResetPasswordNotification::class, function ($notification) use ($user) {
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
@@ -65,9 +75,74 @@ class PasswordResetTest extends TestCase
 
             $response
                 ->assertSessionHasNoErrors()
-                ->assertRedirect(route('login'));
+                ->assertRedirect(route('login'))
+                ->assertSessionHas('status', __('passwords.reset'));
 
             return true;
         });
+    }
+
+    public function test_login_page_displays_session_status(): void
+    {
+        $this->withSession(['status' => 'Your password has been reset.'])
+            ->get('/login')
+            ->assertOk()
+            ->assertSee('Your password has been reset.');
+    }
+
+    public function test_unknown_email_receives_the_same_generic_success_message(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+
+        $knownResponse = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
+        $unknownResponse = $this->from('/forgot-password')->post('/forgot-password', ['email' => 'unknown@example.test']);
+
+        $this->assertSame(
+            $knownResponse->getSession()->get('status'),
+            $unknownResponse->getSession()->get('status')
+        );
+        $this->assertSame(__('passwords.sent'), $unknownResponse->getSession()->get('status'));
+        Notification::assertSentTo($user, ResetPasswordNotification::class);
+    }
+
+    public function test_archived_officer_gets_generic_success_without_a_notification(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create(['officer_status' => 'archived']);
+
+        $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
+
+        $response->assertSessionHas('status', __('passwords.sent'));
+        Notification::assertNotSentTo($user, ResetPasswordNotification::class);
+    }
+
+    public function test_invalid_reset_token_is_rejected(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+
+        $this->from('/reset-password/invalid')->post('/reset-password', [
+            'token' => 'invalid-token',
+            'email' => $user->email,
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ])->assertSessionHasErrors('email');
+    }
+
+    public function test_expired_reset_token_is_rejected(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+        $token = Password::broker()->createToken($user);
+
+        $this->travelTo(now()->addMinutes(61));
+
+        $this->from('/reset-password/'.$token)->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ])->assertSessionHasErrors('email');
     }
 }

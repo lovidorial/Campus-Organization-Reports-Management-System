@@ -287,7 +287,7 @@ class AdminController extends Controller
                 $activity->id,
                 $activity->title,
                 $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? 'N/A',
-                $activity->venue,
+                $activity->venue ?: '—',
                 $activity->date?->toDateString() ?? '',
                 $activity->monitoring_status,
                 $activity->monitoring_late ? 'Yes' : 'No',
