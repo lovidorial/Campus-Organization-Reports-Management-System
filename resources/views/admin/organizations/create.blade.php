@@ -36,8 +36,8 @@
                     </div>
 
                     <div>
-                        <label for="college" class="block text-sm font-semibold text-slate-700 mb-2">College / Unit</label>
-                        <select id="college" name="college"
+                        <label for="college" class="block text-sm font-semibold text-slate-700 mb-2">College / Unit <span class="text-rose-500">*</span></label>
+                        <select id="college" name="college" required
                                 class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100">
                             <option value="">Select college</option>
                             <option value="CTED" {{ old('college')=='CTED' ? 'selected' : '' }}>CTED</option>
@@ -49,6 +49,7 @@
                             <option value="CICS" {{ old('college')=='CICS' ? 'selected' : '' }}>CICS</option>
                             <option value="University-Wide" {{ old('college')=='University-Wide' ? 'selected' : '' }}>University-Wide</option>
                         </select>
+                        @error('college')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                         @error('college')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
 
@@ -76,19 +77,22 @@
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label for="term" class="block text-sm font-semibold text-slate-700 mb-2">Term</label>
-                            <select id="term" name="term"
+                            <label for="term" class="block text-sm font-semibold text-slate-700 mb-2">Term <span class="text-rose-500">*</span></label>
+                            <select id="term" name="term" required
                                     class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100">
                                 <option value="">Select term</option>
                                 <option value="1st Term" {{ old('term')=='1st Term' ? 'selected' : '' }}>1st Term</option>
                                 <option value="2nd Term" {{ old('term')=='2nd Term' ? 'selected' : '' }}>2nd Term</option>
                             </select>
+                            @error('term')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
-                            <label for="school_year" class="block text-sm font-semibold text-slate-700 mb-2">School Year</label>
-                            <input id="school_year" name="school_year" value="{{ old('school_year') }}"
+                            <label for="school_year" class="block text-sm font-semibold text-slate-700 mb-2">School Year <span class="text-rose-500">*</span></label>
+                            <input id="school_year" name="school_year" required value="{{ old('school_year', now()->year . '-' . (now()->year + 1)) }}"
                                    class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
-                                   placeholder="e.g. 2025-2026" />
+                                placeholder="e.g. 2026-2027" />
+                            <p class="mt-1 text-xs text-slate-500">Monitoring only shows GPOAs that match this term and school year.</p>
+                            @error('school_year')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
 

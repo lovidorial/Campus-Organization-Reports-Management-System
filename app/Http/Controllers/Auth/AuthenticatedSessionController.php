@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -16,7 +17,18 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        $captcha = $this->generateCaptcha();
+        request()->session()->put('login_captcha', $captcha);
+
+        return view('auth.login', compact('captcha'));
+    }
+
+    public function refreshCaptcha(Request $request)
+    {
+        $captcha = $this->generateCaptcha();
+        $request->session()->put('login_captcha', $captcha);
+
+        return response()->json(['captcha' => $captcha]);
     }
 
     /**
@@ -24,6 +36,23 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $captchaValidator = Validator::make($request->only('captcha'), [
+            'captcha' => 'required|string',
+        ]);
+        $expectedCaptcha = $request->session()->pull('login_captcha');
+        $providedCaptcha = trim((string) $request->input('captcha'));
+        $captchaIsValid = ! $captchaValidator->fails()
+            && is_string($expectedCaptcha)
+            && hash_equals(strtoupper($expectedCaptcha), strtoupper($providedCaptcha));
+
+        if (! $captchaIsValid) {
+            $request->session()->put('login_captcha', $this->generateCaptcha());
+
+            return back()
+                ->withErrors(['captcha' => 'The captcha code is incorrect.'])
+                ->withInput($request->only('email'));
+        }
+
         $request->authenticate();
 
         $user = Auth::user();
@@ -77,5 +106,17 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    private function generateCaptcha(): string
+    {
+        $characters = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        $captcha = '';
+
+        for ($position = 0; $position < 5; $position++) {
+            $captcha .= $characters[random_int(0, strlen($characters) - 1)];
+        }
+
+        return $captcha;
     }
 }

@@ -125,7 +125,7 @@
                     Manage Student<br>Organization Activities<br>with Ease
                 </h1>
                 <p class="hero-sub">
-                    A comprehensive platform designed to streamline the planning, request, and approval of student organization activities under an approved GPOA. Simplify narrative and summary reporting, enhance transparency between organizations and OSDW, and monitor progress every step of the way.
+                    A comprehensive platform designed to streamline the planning, monitoring and reporting of student organization activities under your approved GPOA. Simplify narrative and summary reporting, enhance transparency between organizations and OSDW, and monitor progress every step of the way.
                 </p>
                 <div class="hero-btns">
                     @auth
@@ -185,7 +185,7 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
                         <h5 class="benefit-title">Real-Time Tracking</h5>
-                        <p class="benefit-text">Monitor approval status instantly. Stay updated on every submission with transparent feedback.</p>
+                        <p class="benefit-text">Monitor activity progress instantly. Stay updated on every submission with transparent feedback.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-4">
@@ -231,7 +231,7 @@
                     <div class="feat-card">
                         <h5 class="feat-title">Track Status</h5>
                         <p class="feat-desc">
-                            Monitor the approval status of your submitted activities in real-time.
+                            Monitor activity progress for your submitted activities in real-time.
                         </p>
                         @guest
                             <a href="{{ route('login') }}" class="btn-feat btn-feat-amber">Sign In</a>
@@ -297,7 +297,7 @@
                         <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Key Features</h6>
                         <ul style="color: #555; line-height: 1.8;">
                             <li><strong>Easy Submission:</strong> Easy Submission: User-friendly forms for submitting signed PDF narrative reports and supporting documentation</li>
-                            <li><strong>Real-Time Tracking:</strong> Monitor approval status instantly with transparent feedback</li>
+                            <li><strong>Real-Time Tracking:</strong> Monitor activity progress instantly with transparent feedback</li>
                             <li><strong>Secure Storage:</strong> Reports are stored as verified PDF files with signatory tracking - keeping the database light and organized</li>
                             <li><strong>Organization Management:</strong> Browse and discover various activities organized by student groups</li>
                             <li><strong>Workflow Automation:</strong> Streamlined approval processes for efficient management</li>

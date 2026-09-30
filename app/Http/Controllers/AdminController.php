@@ -27,12 +27,13 @@ class AdminController extends Controller
         $activities = $monitoringService->all();
         $stats = $monitoringService->counts($activities);
         $dashboardData = $monitoringService->dashboardData($activities);
+        $organizationProgress = $monitoringService->organizationProgress($activities);
         $recentActivities = $activities
             ->sortByDesc(fn ($activity) => $activity->updated_at?->timestamp ?? 0)
             ->take(8)
             ->values();
 
-        return view('admin.monitoring-dashboard', compact('stats', 'recentActivities', 'dashboardData'));
+        return view('admin.monitoring-dashboard', compact('stats', 'recentActivities', 'dashboardData', 'organizationProgress'));
     }
 
     public function dashboard(Request $request, OrganizationWorkflowService $workflowService)

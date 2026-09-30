@@ -14,12 +14,20 @@
                 </div>
                 <div class="mt-3 divide-y divide-gray-100">
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How do I monitor GPOA submissions and planned activity progress?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Review GPOA submissions from <a class="text-amber-700 hover:underline" href="{{ route('admin.gpoa.index') }}">GPOA Monitoring</a>. Review individual activity progress in <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, where document and narrative status are tracked without the removed approval flow.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I monitor GPOA progress per organization?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Use the <a class="text-amber-700 hover:underline" href="{{ route('admin.dashboard') }}">Monitoring Dashboard</a> to compare planned activities and completion progress by organization. Open <a class="text-amber-700 hover:underline" href="{{ route('admin.gpoa.index') }}">GPOA Monitoring</a> to find an organization’s submitted plans and their activities.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How does Activity Monitoring work, and what do its status filters mean?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Use the organization, category, search, and status filters to narrow activity requests. “All Status” includes every state; Pending means awaiting review; Approved, In Progress, Awaiting Report, and Report Submitted show the activity lifecycle; Closed means completed; Rejected means declined and awaiting resubmission where applicable.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How does Activity Monitoring work, and what do the status filters mean?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Each planned activity is tracked by its signed communication letter and narrative report. Pending means the letter is missing or its request was rejected; Ongoing means the letter is present but the report is missing or needs revision; Completed means both are submitted. Late is a separate flag for a past activity date or a passed document deadline before completion. Filter by organization, category, college, term, school year, search text, or status (including Late).</p>
+                    </details>
+                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I review a communication letter or narrative report?</summary>
+                        <p class="mt-2 text-sm text-gray-600">In <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, use the View links to open the uploaded communication letter or uploaded/generated narrative PDF. The current admin screen does not provide an action to mark a narrative report Needs Revision or enter feedback.</p>
+                    </details>
+                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I record a monitoring result?</summary>
+                        <p class="mt-2 text-sm text-gray-600">In the activity row in <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, choose Add remark or Edit remark, select Aligned, Partially Aligned, or Not Aligned, and optionally add notes. Saving creates or updates one monitoring record for that planned activity; it does not change the activity status.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I check an organization’s storage usage?</summary>
@@ -31,11 +39,11 @@
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I generate Summary Reports across organizations?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('admin.summary-report') }}">Activity Overview Report</a> to review and export activity summary data across organizations.</p>
+                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('admin.summary-report') }}">Activity Overview Report</a> to review cross-organization activity summaries. Filter by term, organization, category, or date range, then export a PDF or spreadsheet.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I restore from a backup?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('admin.backups.index') }}">Backup &amp; Restore</a>, choose an available backup, and use its restore action. Confirm the selected backup and follow the page’s prompts before restoring.</p>
+                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('admin.backups.index') }}">Backup &amp; Restore</a>, choose an existing archive or upload a ZIP, and type RESTORE to confirm. The system creates a pre-restore backup before applying it.</p>
                     </details>
                 </div>
             </section>
@@ -48,44 +56,56 @@
                 </div>
                 <div class="mt-3 divide-y divide-gray-100">
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">What is a GPOA, and why must it be approved before I submit activities?</summary>
-                        <p class="mt-2 text-sm text-gray-600">A General Plan of Activities (GPOA) records your organization’s planned activities for the term. It must be approved first so activity requests can be tied to the organization’s approved plan.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How does GPOA monitoring work?</summary>
+                        <p class="mt-2 text-sm text-gray-600">The system tracks every planned activity under your approved GPOA as Activity #1, #2, #3, and so on, ordered by date. Each activity has two requirements: a signed communication letter and a narrative report. The <a class="text-amber-700 hover:underline" href="{{ route('activity-monitor.index') }}">Activity Monitor</a> shows each activity’s status and an overall progress bar.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How do I submit an Activity Request, and what is a Communication Letter?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('activity-requests.index') }}">Activity Requests</a>, create a request under an approved GPOA, and provide the venue, date, start and end time, category, description, objectives, expected outcome, target participants, person in charge, facilities/materials, and estimated budget. A Communication Letter is the supporting document submitted with the request for review.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">What do Pending, Ongoing and Completed mean?</summary>
+                        <p class="mt-2 text-sm text-gray-600"><strong class="text-amber-700">Pending</strong> means the signed communication letter has not been uploaded, or the activity request was rejected and the letter must be submitted again. <strong class="text-sky-700">Ongoing</strong> means the letter is uploaded but the narrative report is missing or was returned for revision. <strong class="text-green-700">Completed</strong> means both requirements are submitted. The <strong class="text-red-700">Late</strong> flag appears when the activity date has passed or a document deadline has passed while the activity is not Completed.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">What does each activity status mean?</summary>
-                        <p class="mt-2 text-sm text-gray-600"><strong class="text-amber-700">Pending</strong> means awaiting review. <strong class="text-green-700">Approved</strong> means the request was approved. <strong class="text-blue-700">In Progress</strong> means the activity has reached its scheduled date. <strong class="text-orange-700">Awaiting Report</strong> means the activity has taken place and its report is due. <strong class="text-indigo-700">Report Submitted</strong> means the report is awaiting review. <strong class="text-green-700">Closed</strong> means the activity workflow is complete. <strong class="text-red-700">Rejected</strong> means the request was declined; review its feedback for next steps.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How is my overall GPOA progress calculated?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Progress is Completed activities divided by total planned activities. The <a class="text-amber-700 hover:underline" href="{{ route('activity-monitor.index') }}">Activity Monitor</a> shows the percentage and counts of Completed, Ongoing, and Pending activities.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">What is the Program Flow, and do I need to add one?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Program Flow is an optional schedule table attached to an Activity Request with columns for Time, Program, and Person in Charge. It is useful for events with a structured agenda. On the request form, you can freely add or remove rows.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I submit a communication letter?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Open the activity and upload the signed letter as a PDF, then tick the confirmation that it is signed. Creating the letter inside the system is not available.</p>
+                    </details>
+                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I submit the narrative report?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Open the activity and either upload a PDF or write the report in the system to generate a PDF. Supporting photos are optional. If a Needs Revision notice and feedback appear, read the feedback, update the report, and save it again.</p>
+                    </details>
+                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
+                        <summary class="cursor-pointer font-semibold text-gray-800">What is a GPOA, and how do I submit or update it?</summary>
+                        <p class="mt-2 text-sm text-gray-600">A General Plan of Activities (GPOA) records your organization’s planned activities for a term and school year. Use <a class="text-amber-700 hover:underline" href="{{ route('gpoa.index') }}">My GPOA</a> to submit a plan or edit its planned activities.</p>
+                    </details>
+                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I submit an Activity Request?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('activity-requests.create') }}">Request Activity</a>, choose a planned activity in your GPOA, and enter its details, date, times, venue, and required planning information. Upload the communication letter separately from the activity details.</p>
+                    </details>
+                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
+                        <summary class="cursor-pointer font-semibold text-gray-800">What is Program Flow, and does it use a time picker?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Program Flow is an optional schedule with a time, program item, and person in charge for each row. Enter row times in its Time field; the separate activity start and end time fields use your browser’s time picker. You can add or remove rows.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">Does the system check if my chosen venue is available?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Yes. Venue availability is checked automatically against other approved or pending requests with overlapping dates and times. <strong>Available</strong> means there are no upcoming reservations, <strong>Scheduled</strong> means an approved activity is scheduled there, and <strong>Reserved</strong> means another pending or future request has reserved the venue.</p>
+                        <p class="mt-2 text-sm text-gray-600">Yes. The system checks other non-cancelled requests for overlapping dates and times at that venue and blocks a conflict. Venue labels are <strong>Available</strong> when there is no reservation, <strong>Reserved</strong> for a future reservation, and <strong>Scheduled</strong> for an activity happening now.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How do I see all scheduled activities?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open the <a class="text-amber-700 hover:underline" href="{{ route('activities.calendar') }}">Activity Calendar</a> to view a month-by-month schedule of approved and upcoming activities.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">How do I see activities on the calendar?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Open the <a class="text-amber-700 hover:underline" href="{{ route('activities.calendar') }}">Activity Calendar</a> to browse activities by month and optionally filter by venue. Calendar events show their current monitoring status.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">How do I submit an Activity Report or Narrative Report?</summary>
-                        <p class="mt-2 text-sm text-gray-600">After the activity is approved and conducted, open its Activity Request and choose the report submission action. Submit the required Narrative Report PDF, required acknowledgements, and any supporting photos.</p>
-                    </details>
-                    <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">What is the Summary Report, and why is it locked?</summary>
-                        <p class="mt-2 text-sm text-gray-600">The Summary Report summarizes your organization’s completed activities for the term. It becomes available after the GPOA is approved, at least one activity request exists, and every request under that GPOA has a submitted report or is closed.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">Can I submit a Summary Report?</summary>
+                        <p class="mt-2 text-sm text-gray-600">There is no user Summary Report page in the current system. The Activity Overview Report is an admin report; use Activity Monitor to check your own planned-activity progress.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I back up my organization’s data?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('my-backup.index') }}">My Data Backup</a> and follow the export options on the page.</p>
+                        <p class="mt-2 text-sm text-gray-600">Open <a class="text-amber-700 hover:underline" href="{{ route('my-backup.index') }}">My Data Backup</a> and generate an export. When it is ready, download it from your backup list.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
-                        <summary class="cursor-pointer font-semibold text-gray-800">Who should I contact if my GPOA or Activity Request is rejected?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Read the reviewer’s feedback in the submission or request details and correct the listed issues before resubmitting. Contact your organization adviser or the campus office responsible for reviewing the submission if you need clarification.</p>
+                        <summary class="cursor-pointer font-semibold text-gray-800">What should I do if my GPOA or Activity Request is rejected?</summary>
+                        <p class="mt-2 text-sm text-gray-600">Read the rejection reason shown in the GPOA or request details and contact your adviser or the reviewing campus office if you need clarification. For an activity request, upload a corrected signed letter or resubmit the narrative report as needed.</p>
                     </details>
                 </div>
             </section>

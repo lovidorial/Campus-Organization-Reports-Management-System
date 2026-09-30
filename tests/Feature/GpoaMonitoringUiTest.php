@@ -9,13 +9,15 @@ use App\Models\GpoaActivity;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class GpoaMonitoringUiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_my_gpoa_shows_monitoring_summary_and_submitted_status(): void
+    public function test_my_gpoa_shows_monitoring_summary_and_approved_status(): void
     {
         $user = $this->createOrganizationUser();
         $gpoa = Gpoa::create([
@@ -67,23 +69,48 @@ class GpoaMonitoringUiTest extends TestCase
         $response->assertSee('>1</span>', false);
         $response->assertSee('33% complete');
         $response->assertSee('3 activities');
-        $response->assertSee('Submitted');
+        $response->assertSee('Approved');
         $response->assertDontSee('Step 1 of your document workflow');
         $response->assertDontSee('Workflow Progress');
-        $response->assertDontSee('Approved');
         $response->assertDontSee('Rejected');
 
         $detailsResponse = $this->get(route('gpoa.show', $gpoa));
         $detailsResponse->assertOk();
-        $detailsResponse->assertSee('Submitted');
+        $detailsResponse->assertSee('Approved');
         $detailsResponse->assertSee('Edit GPOA');
         $detailsResponse->assertSee('Pending');
         $detailsResponse->assertDontSee('Awaiting Approval');
         $detailsResponse->assertDontSee('Request a GPOA Activity Modification');
     }
 
+    public function test_admin_gpoa_pages_show_approved_status_and_document_link(): void
+    {
+        $user = $this->createOrganizationUser();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'document_path' => 'uploads/gpoa/approved.pdf',
+            'status' => 'approved',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.gpoa.index'))
+            ->assertOk()
+            ->assertSee('Approved')
+            ->assertSee(route('admin.gpoa.document', $gpoa));
+
+        $this->get(route('admin.gpoa.show', $gpoa))
+            ->assertOk()
+            ->assertSee('Approved')
+            ->assertSee(route('admin.gpoa.document', $gpoa));
+    }
+
     public function test_user_can_edit_legacy_approved_gpoa_without_losing_linked_monitoring_data(): void
     {
+        Storage::fake('public');
         $user = $this->createOrganizationUser();
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
@@ -118,6 +145,7 @@ class GpoaMonitoringUiTest extends TestCase
         $response = $this->put(route('gpoa.update', $gpoa), [
             'colleges' => 'CICS',
             'prepared_by' => 'Updated Officer',
+            'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
             'planned_activities' => [[
                 'id' => $activity->id,
                 'title' => 'Updated Community Outreach',

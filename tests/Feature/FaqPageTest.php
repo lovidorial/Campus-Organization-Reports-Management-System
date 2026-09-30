@@ -18,7 +18,13 @@ class FaqPageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('href="' . route('faq') . '"', false);
-        $response->assertSee('What is a GPOA, and why must it be approved before I submit activities?');
+        $response->assertSee('How does GPOA monitoring work?');
+        $response->assertSee('What do Pending, Ongoing and Completed mean?');
+        $response->assertSee('How is my overall GPOA progress calculated?');
+        $response->assertSee('How do I submit a communication letter?');
+        $response->assertSee('How do I submit the narrative report?');
+        $response->assertDontSee('Awaiting Report');
+        $response->assertDontSee('Report Submitted');
         $response->assertDontSee('How do I review and approve or reject a GPOA or Activity Request?');
     }
 
@@ -30,8 +36,13 @@ class FaqPageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('href="' . route('faq') . '"', false);
-        $response->assertSee('How do I monitor GPOA submissions and planned activity progress?');
-        $response->assertDontSee('What is a GPOA, and why must it be approved before I submit activities?');
+        $response->assertSee('How do I monitor GPOA progress per organization?');
+        $response->assertSee('How does Activity Monitoring work, and what do the status filters mean?');
+        $response->assertSee('How do I review a communication letter or narrative report?');
+        $response->assertSee('How do I record a monitoring result?');
+        $response->assertDontSee('Awaiting Report');
+        $response->assertDontSee('Report Submitted');
+        $response->assertDontSee('What do Pending, Ongoing and Completed mean?');
     }
 
     public function test_user_dashboard_sidebar_links_to_the_faq(): void

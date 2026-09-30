@@ -28,16 +28,16 @@ class ActivityCalendarController extends Controller
         $gpoaActivities = GpoaActivity::query()
             ->whereDate('date', '<=', $endOfMonth->toDateString())
             ->whereDate('date', '>=', $startOfMonth->toDateString())
+            ->when(! $request->user()->isAdmin(), fn ($query) => $query->whereHas(
+                'gpoa',
+                fn ($gpoaQuery) => $gpoaQuery->where('user_id', $request->user()->id)
+            ))
             ->with(['gpoa.user', 'activityRequest.venueRecord:id,name'])
             ->orderBy('date')
             ->orderBy('title')
             ->get([
                 'id', 'gpoa_id', 'activity_request_id', 'title', 'category', 'date', 'venue',
             ]);
-
-        if (! $request->user()->isAdmin()) {
-            $gpoaActivities = $gpoaActivities->filter(fn ($activity) => $activity->gpoa && $activity->gpoa->user_id === $request->user()->id);
-        }
 
         $directRequests = ActivityRequest::query()
             ->whereDate('date', '<=', $endOfMonth->toDateString())
@@ -55,6 +55,7 @@ class ActivityCalendarController extends Controller
                 $normalizedStatus = match ($activity->status) {
                     'approved', 'in_progress', 'awaiting_report', 'report_submitted' => 'Ongoing',
                     'closed' => 'Completed',
+                    'rejected' => 'Pending',
                     default => null,
                 };
 

@@ -106,13 +106,13 @@
 
                     <!-- Document Attachment -->
                     <div class="form-group">
-                        <label for="document_path">GPOA Document (PDF, optional)</label>
-                        <input type="file" id="document_path" name="document_path" accept=".pdf"
+                        <label for="document_path">Approved GPOA Document (PDF) *</label>
+                        <input type="file" id="document_path" name="document_path" accept=".pdf,application/pdf" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @error('document_path')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
-                        <p class="help-text">Upload your official GPOA document as a supplementary attachment (Max 20MB).</p>
+                        <p class="help-text">Upload your approved GPOA document as a PDF (Max 20MB).</p>
                     </div>
 
                     <div class="form-group mt-6">
@@ -164,6 +164,16 @@
                     </div>
 
                     <!-- Verification -->
+                    <div class="form-group checkbox mt-6">
+                        <label class="flex items-start gap-2 text-xs text-slate-600">
+                            <input type="checkbox" id="approved_confirmation" name="approved_confirmation" value="1" required class="mt-0.5 rounded border-slate-300">
+                            <span>I confirm this GPOA has already been approved by the adviser/OSDW.</span>
+                        </label>
+                        @error('approved_confirmation')
+                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <div class="form-group checkbox mt-6">
                         <input type="checkbox" id="verify" name="verify" required>
                         <label for="verify">I verify that the GPOA information provided is accurate and complete.</label>

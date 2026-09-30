@@ -17,15 +17,18 @@ class AuthenticationTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertStatus(200);
+        $this->assertMatchesRegularExpression('/^[A-HJ-KM-NP-Z2-9]{5}$/', session('login_captcha'));
+        $response->assertSee('Refresh code');
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
         $user = User::factory()->create();
 
-        $response = $this->post('/login', [
+        $response = $this->withSession(['login_captcha' => 'ABCDE'])->post('/login', [
             'email' => $user->email,
             'password' => 'password',
+            'captcha' => ' abcde ',
         ]);
 
         $this->assertAuthenticated();
@@ -36,12 +39,63 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $this->withSession(['login_captcha' => 'ABCDE'])->post('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
+            'captcha' => 'ABCDE',
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_login_rejects_an_incorrect_captcha_and_rotates_the_code(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+                'captcha' => 'ZZZZZ',
+            ]);
+
+        $response->assertRedirect('/login');
+        $response->assertSessionHasErrors(['captcha' => 'The captcha code is incorrect.']);
+        $response->assertSessionHasInput('email', $user->email);
+        $this->assertFalse(session()->has('_old_input.password'));
+        $this->assertMatchesRegularExpression('/^[A-HJ-KM-NP-Z2-9]{5}$/', session('login_captcha'));
+        $this->assertNotSame('ABCDE', session('login_captcha'));
+        $this->assertGuest();
+    }
+
+    public function test_login_rejects_a_missing_captcha(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+            ]);
+
+        $response->assertRedirect('/login');
+        $response->assertSessionHasErrors(['captcha' => 'The captcha code is incorrect.']);
+        $this->assertFalse(session()->has('_old_input.password'));
+        $this->assertNotSame('ABCDE', session('login_captcha'));
+        $this->assertGuest();
+    }
+
+    public function test_captcha_refresh_returns_and_stores_a_new_code(): void
+    {
+        $response = $this->withSession(['login_captcha' => 'ABCDE'])
+            ->getJson(route('login.captcha.refresh'));
+
+        $response->assertOk();
+        $response->assertJsonPath('captcha', session('login_captcha'));
+        $this->assertNotSame('ABCDE', session('login_captcha'));
+        $this->assertMatchesRegularExpression('/^[A-HJ-KM-NP-Z2-9]{5}$/', session('login_captcha'));
     }
 
     public function test_users_without_terms_acceptance_are_redirected_to_the_terms_page(): void
@@ -105,10 +159,11 @@ class AuthenticationTest extends TestCase
         $this->post('/logout');
         $this->assertGuest();
 
-        $this->post('/login', [
+        $this->withSession(['login_captcha' => 'ABCDE'])->post('/login', [
             'email' => $secretary->email,
             'password' => 'password',
             'role' => 'student',
+            'captcha' => 'ABCDE',
         ]);
 
         $this->assertGuest();

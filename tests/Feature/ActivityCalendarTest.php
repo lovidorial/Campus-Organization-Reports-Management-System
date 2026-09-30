@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityRequest;
+use App\Models\Gpoa;
+use App\Models\GpoaActivity;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,8 +35,9 @@ class ActivityCalendarTest extends TestCase
             ->assertSee('Approved Meeting')
             ->assertSee('In Progress Event')
             ->assertSee('Closed Workshop')
+            ->assertSee('Rejected Request')
+            ->assertSee('aria-label="Pending activity: Rejected Request"', false)
             ->assertDontSee('Pending Request')
-            ->assertDontSee('Rejected Request')
             ->assertDontSee('November Event');
     }
 
@@ -62,12 +65,45 @@ class ActivityCalendarTest extends TestCase
         $venue = Venue::create(['name' => 'Main Hall']);
         $this->createActivity($user, $venue, 'My Activity', '2026-10-20', 'approved');
         $this->createActivity($otherUser, $venue, 'Other Organization Activity', '2026-10-21', 'approved');
+        $myGpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'college' => 'CICS',
+        ]);
+        $otherGpoa = Gpoa::create([
+            'user_id' => $otherUser->id,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'college' => 'CICS',
+        ]);
+        GpoaActivity::create([
+            'id' => 1001,
+            'gpoa_id' => $myGpoa->id,
+            'title' => 'My Planned Activity',
+            'date' => '2026-10-22',
+            'venue' => $venue->name,
+            'category' => 'Other',
+        ]);
+        GpoaActivity::create([
+            'id' => 1002,
+            'gpoa_id' => $otherGpoa->id,
+            'title' => 'Other Planned Activity',
+            'date' => '2026-10-23',
+            'venue' => $venue->name,
+            'category' => 'Other',
+        ]);
+        $this->assertSame(1, GpoaActivity::query()
+            ->whereDate('date', '2026-10-22')
+            ->whereHas('gpoa', fn ($query) => $query->where('user_id', $user->id))
+            ->count());
 
         $this->actingAs($user)
             ->get(route('activities.calendar', ['month' => '2026-10']))
             ->assertOk()
             ->assertSee('My Activity')
-            ->assertDontSee('Other Organization Activity');
+            ->assertDontSee('Other Organization Activity')
+            ->assertDontSee('Other Planned Activity');
     }
 
     public function test_admin_calendar_sidebar_links_to_calendar(): void

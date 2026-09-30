@@ -7,7 +7,7 @@
                 <div>
                     <p class="eyebrow">Activity Request</p>
                     <h1>Request an Activity</h1>
-                    <p class="page-description">Submit a detailed activity request under your approved GPOA submission.</p>
+                    <p class="page-description">Submit a detailed activity request under your approved GPOA.</p>
                 </div>
             </div>
             <form action="{{ route('activity-requests.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="requestForm">
@@ -196,8 +196,6 @@
                                     align-items: center;
                                 }
                                 .sdg-badge {
-                                    background: #3B82F6;
-                                    color: white;
                                     padding: 2px 8px;
                                     border-radius: 999px;
                                     font-size: 0.75rem;
@@ -232,7 +230,6 @@
                                 }
                                 .sdg-checkbox-item input[type="checkbox"] {
                                     cursor: pointer;
-                                    accent-color: #3B82F6;
                                 }
                                 .sdg-checkbox-item input[type="checkbox"]:disabled {
                                     cursor: not-allowed;
@@ -276,8 +273,9 @@
                             <div class="sdg-checkbox-list" id="sdgCheckboxes">
                                 @foreach($sdgList as $num => $label)
                                     <div class="sdg-checkbox-item">
-                                        <input type="checkbox" id="sdg{{ $num }}" name="sdgs[]" value="{{ $num }}" 
+                                             <input type="checkbox" id="sdg{{ $num }}" name="sdgs[]" value="{{ $num }}" style="accent-color: {{ config('sdg.' . $num . '.color') }}"
                                                {{ in_array((string)$num, $oldNums) ? 'checked' : '' }}>
+                                             <span class="sdg-number" style="background-color: {{ config('sdg.' . $num . '.color') }}; color: {{ config('sdg.' . $num . '.text') }}" aria-hidden="true">{{ $num }}</span>
                                         <label for="sdg{{ $num }}">SDG {{ $num }} - {{ $label }}</label>
                                     </div>
                                 @endforeach
@@ -463,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const plannedActivitySelect = document.getElementById('gpoa_activity_id');
     const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
     const sdgSummary = document.getElementById('sdgSummary');
+    const sdgColors = @json(config('sdg'));
     const sdgValidationError = document.getElementById('sdgValidationError');
     const requestForm = document.getElementById('requestForm');
     const dateInput = document.getElementById('date');
@@ -514,6 +513,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 const badge = document.createElement('span');
                 badge.className = 'sdg-badge';
                 badge.textContent = `SDG ${checkbox.value}`;
+                badge.style.backgroundColor = sdgColors[checkbox.value].color;
+                badge.style.color = sdgColors[checkbox.value].text;
                 sdgSummary.appendChild(badge);
             });
         }

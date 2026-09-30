@@ -48,7 +48,10 @@
                 <td class="px-4 py-4">{{ $gpoa->college ?? '—' }}</td>
                 <td class="px-4 py-4">{{ $gpoa->activities_count }} activities</td>
                 <td class="px-4 py-4">
-                    <span class="px-2 py-1 rounded-full bg-sky-100 text-sky-700 text-xs font-bold">Submitted</span>
+                    <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Approved</span>
+                    @if($gpoa->document_path)
+                        <a href="{{ asset('storage/'.$gpoa->document_path) }}" target="_blank" class="ml-2 text-xs font-semibold text-emerald-700 hover:underline">View approved document</a>
+                    @endif
                 </td>
                 <td class="px-4 py-4 text-xs text-gray-500">{{ $gpoa->created_at->format('M d, Y') }}</td>
                 <td class="px-4 py-4 text-center">

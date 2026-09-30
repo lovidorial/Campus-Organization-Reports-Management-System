@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityRequest;
+use App\Models\Gpoa;
+use App\Models\GpoaActivity;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -74,7 +76,8 @@ class ActivityRequestDetailTest extends TestCase
             ->assertSee('Student funds')
             ->assertSee('Leadership Orientation')
             ->assertSee('Institutional')
-            ->assertSee('4, 16')
+            ->assertSee('>4</span>', false)
+            ->assertSee('>16</span>', false)
             ->assertSee('Bring printed materials.')
             ->assertSee('Prior rejection notes.')
             ->assertSee('Opening Remarks')
@@ -101,6 +104,27 @@ class ActivityRequestDetailTest extends TestCase
         $this->actingAs($otherUser)
             ->get(route('activity-requests.show', $request))
             ->assertForbidden();
+    }
+
+    public function test_activity_number_uses_date_and_id_order_and_is_null_without_a_date(): void
+    {
+        $owner = User::factory()->create(['terms_accepted_at' => now()]);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'college' => 'CICS',
+        ]);
+        $firstActivity = $this->createPlannedActivity($gpoa, '2026-10-15');
+        $secondActivity = $this->createPlannedActivity($gpoa, '2026-10-15');
+        $secondRequest = $this->createPlannedRequest($owner, $gpoa, $secondActivity);
+
+        $this->actingAs($owner)
+            ->get(route('activity-requests.show', $secondRequest))
+            ->assertOk()
+            ->assertSee('Activity #2');
+
+        $this->assertNotSame($firstActivity->id, $secondActivity->id);
     }
 
     public function test_venue_status_is_available_reserved_or_scheduled_from_related_requests(): void
@@ -138,6 +162,31 @@ class ActivityRequestDetailTest extends TestCase
             'date' => $date,
             'venue' => $venue->name,
             'status' => $status,
+        ]);
+    }
+
+    private function createPlannedActivity(Gpoa $gpoa, string $date): GpoaActivity
+    {
+        return GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Planned Activity',
+            'date' => $date,
+            'venue' => 'Main Hall',
+            'category' => 'Other',
+        ]);
+    }
+
+    private function createPlannedRequest(User $owner, Gpoa $gpoa, GpoaActivity $activity): ActivityRequest
+    {
+        return ActivityRequest::create([
+            'user_id' => $owner->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $activity->id,
+            'title' => $activity->title,
+            'category' => 'Other',
+            'date' => $activity->date,
+            'venue' => $activity->venue,
+            'status' => ActivityRequest::STATUS_PENDING,
         ]);
     }
 }

@@ -8,20 +8,42 @@
             <a href="{{ route('admin.activities') }}" class="inline-flex items-center rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Open Activity Monitoring</a>
         </header>
 
-        <section class="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6" aria-label="Activity monitoring totals">
+        @php
+            $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed'], 'values' => [$stats['Pending'], $stats['Ongoing'], $stats['Completed']]];
+            $topProgress = $organizationProgress->sortByDesc('percent')->take(10)->values();
+            $organizationChart = ['labels' => $topProgress->pluck('organization')->all(), 'values' => $topProgress->pluck('percent')->all()];
+        @endphp
+
+        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Activity monitoring totals">
             @foreach([
             ['Active Organizations', $dashboardData['activeOrganizations'], 'text-sky-800'],
-                ['Total Activities', $stats['Total'], 'text-slate-900'],
-                ['Pending', $stats['Pending'], 'text-slate-700'],
-                ['Ongoing', $stats['Ongoing'], 'text-amber-700'],
+                ['Total', $stats['Total'], 'text-slate-900'],
                 ['Completed', $stats['Completed'], 'text-emerald-700'],
+                ['Ongoing', $stats['Ongoing'], 'text-sky-700'],
+                ['Pending', $stats['Pending'], 'text-slate-700'],
                 ['Late', $stats['Late'], 'text-rose-700'],
             ] as [$label, $count, $color])
-                <div class="rounded-lg border border-slate-200 bg-white p-4">
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <p class="text-xs font-semibold uppercase text-slate-500">{{ $label }}</p>
                     <p class="mt-1 text-2xl font-semibold {{ $color }}">{{ $count }}</p>
                 </div>
             @endforeach
+        </section>
+
+        <section class="grid gap-5 lg:grid-cols-2" aria-label="Monitoring charts">
+            <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="text-sm font-semibold text-slate-900">Activities by status</h2>
+                <div class="relative mt-3 h-64">
+                    <canvas data-chart-type="doughnut" data-chart-data='@json($statusChart)' role="img" aria-label="Activity status chart"></canvas>
+                </div>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 class="text-sm font-semibold text-slate-900">Completion by organization</h2>
+                <p class="mt-1 text-xs text-slate-500">Top 10 organizations by completion percentage</p>
+                <div class="relative mt-3 h-64">
+                    <canvas data-chart-type="organization-progress" data-chart-data='@json($organizationChart)' role="img" aria-label="Completion percentage by organization"></canvas>
+                </div>
+            </article>
         </section>
 
         <div class="grid gap-5 lg:grid-cols-2">
@@ -57,7 +79,7 @@
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <div class="border-b border-slate-200 px-4 py-3"><h2 class="font-semibold text-slate-900">Recent Document Submissions</h2></div>
             <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
+                <table class="min-w-[720px] w-full text-sm">
                     <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-4 py-2">Document</th><th class="px-4 py-2">Activity</th><th class="px-4 py-2">Organization</th><th class="px-4 py-2">Submitted</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($dashboardData['recentSubmissions'] as $submission)
@@ -79,7 +101,7 @@
                 <a href="{{ route('admin.activities.export', ['format' => 'excel']) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Export CSV</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
+                <table class="min-w-[760px] w-full text-sm">
                     <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
                         <tr>
                             <th class="px-4 py-3">Activity</th>
@@ -96,8 +118,8 @@
                                 <td class="px-4 py-3 text-slate-600">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $activity->date?->format('M d, Y') ?? '—' }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $activity->monitoring_status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : ($activity->monitoring_status === 'Ongoing' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700') }}">{{ $activity->monitoring_status }}</span>
-                                    @if($activity->monitoring_late)<span class="ml-1 inline-flex rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700">Late</span>@endif
+                                    <x-status-pill :status="$activity->monitoring_status" />
+                                    @if($activity->monitoring_late)<div class="mt-1"><x-status-pill status="Late" /></div>@endif
                                 </td>
                                 <td class="px-4 py-3 text-xs text-slate-600">Letter: {{ $activity->letterStatusLabel() }} · Narrative: {{ $activity->narrativeStatusLabel() }}</td>
                             </tr>

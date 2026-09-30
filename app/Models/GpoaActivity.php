@@ -78,8 +78,9 @@ class GpoaActivity extends Model
         $report = $this->activityRequest?->report;
         $reportPresent = filled($report?->narrative_report) || filled($report?->narrative_content);
         $needsRevision = $report?->status === 'needs_revision';
+        $requestRejected = $this->activityRequest?->status === 'rejected';
 
-        $status = ! $letterPresent
+        $status = $requestRejected || ! $letterPresent
             ? 'Pending'
             : ($reportPresent && ! $needsRevision ? 'Completed' : 'Ongoing');
 
@@ -92,7 +93,7 @@ class GpoaActivity extends Model
     public function letterStatusLabel(): string
     {
         return filled($this->activityRequest?->communication_letter)
-            ? 'Uploaded (check)'
+            ? 'Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)'
             : 'Pending';
     }
 
@@ -109,11 +110,13 @@ class GpoaActivity extends Model
         }
 
         if (filled($report->narrative_report) && ($report->narrative_source === 'generated' || $report->narrative_source === 'uploaded')) {
-            return $report->narrative_source === 'generated' ? 'Created (check)' : 'Uploaded (check)';
+            return $report->narrative_source === 'generated'
+                ? 'Created ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)'
+                : 'Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)';
         }
 
         if (filled($report->narrative_content)) {
-            return 'Created (check)';
+            return 'Created ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)';
         }
 
         return 'Pending';

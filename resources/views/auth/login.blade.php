@@ -79,6 +79,15 @@
                     <form method="POST" action="{{ route('login') }}" class="login-form">
                         @csrf
 
+                        <style>
+                            .captcha-block { margin: 18px 0; }
+                            .captcha-prompt { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+                            .captcha-code { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; min-width: 150px; min-height: 46px; padding: 8px 16px; border: 1px solid #D1D5DB; border-radius: 6px; background: #F3F4F6; color: #374151; font-family: monospace; font-size: 1.2rem; font-style: italic; font-weight: 700; letter-spacing: 0.28em; }
+                            .captcha-code::after { content: ''; position: absolute; left: -6%; top: 50%; width: 112%; border-top: 2px solid #9CA3AF; transform: rotate(-11deg); }
+                            .captcha-refresh { border: 0; padding: 4px 0; background: transparent; color: #2563EB; font-size: 0.8rem; font-weight: 600; text-decoration: underline; cursor: pointer; }
+                            .captcha-input { width: 100%; }
+                        </style>
+
                         <div>
                             <div class="form-group student-group">
                                 <div class="input-with-icon">
@@ -139,6 +148,26 @@
                                 @endif
                             </div>
 
+                            <div class="captcha-block">
+                                <div class="captcha-prompt">
+                                    <span id="loginCaptchaCode" class="captcha-code" aria-label="Captcha code">{{ $captcha }}</span>
+                                    <button type="button" id="refreshCaptcha" class="captcha-refresh">Refresh code</button>
+                                </div>
+                                <input
+                                    id="captcha"
+                                    type="text"
+                                    name="captcha"
+                                    required
+                                    autocomplete="off"
+                                    autocapitalize="characters"
+                                    placeholder="Enter the code above"
+                                    class="form-input captcha-input {{ $errors->has('captcha') ? 'form-input--error' : '' }}"
+                                />
+                                @error('captcha')
+                                    <span class="form-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
                             <button type="submit" class="login-button student-submit-button">
                                 <span>Sign In</span>
                                 <svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,6 +215,26 @@
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {
                     alert.style.animation = 'slideIn 0.4s ease-out';
+                });
+
+                const refreshButton = document.getElementById('refreshCaptcha');
+                const captchaCode = document.getElementById('loginCaptchaCode');
+                const captchaInput = document.getElementById('captcha');
+                refreshButton?.addEventListener('click', async function() {
+                    refreshButton.disabled = true;
+                    try {
+                        const response = await fetch(@json(route('login.captcha.refresh')), {
+                            headers: { Accept: 'application/json' },
+                            credentials: 'same-origin',
+                        });
+                        if (!response.ok) throw new Error('Captcha refresh failed.');
+                        const data = await response.json();
+                        captchaCode.textContent = data.captcha;
+                        captchaInput.value = '';
+                        captchaInput.focus();
+                    } finally {
+                        refreshButton.disabled = false;
+                    }
                 });
             });
         </script>

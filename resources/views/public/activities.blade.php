@@ -826,8 +826,6 @@
             align-items: center;
             padding: 7px 12px;
             border-radius: 999px;
-            background: #dbeafe;
-            color: #1d4ed8;
             font-size: 0.78rem;
             font-weight: 700;
         }
@@ -1335,6 +1333,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const sdgLabels = @json($sdgLabels);
+        const sdgColors = @json(config('sdg'));
 
         document.querySelectorAll('.activity-image-wrap').forEach(wrap => {
             const slides = wrap.querySelectorAll('.carousel-slide');
@@ -1446,6 +1445,8 @@
                         const chip = document.createElement('span');
                         chip.className = 'sdg-chip';
                         chip.textContent = `SDG ${sdg} - ${sdgLabels[sdg] || 'Unknown'}`;
+                        chip.style.backgroundColor = sdgColors[sdg]?.color || '#6B7280';
+                        chip.style.color = sdgColors[sdg]?.text || '#FFFFFF';
                         sdgContainer.appendChild(chip);
                     });
                 } else {

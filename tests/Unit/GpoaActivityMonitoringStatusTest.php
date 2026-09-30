@@ -46,6 +46,22 @@ class GpoaActivityMonitoringStatusTest extends TestCase
 
         $this->assertSame('Completed', $status['status']);
         $this->assertFalse($status['late']);
+        $this->assertSame('Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)', $activity->letterStatusLabel());
+        $this->assertSame('Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)', $activity->narrativeStatusLabel());
+    }
+
+    public function test_it_reports_pending_when_the_linked_request_is_rejected(): void
+    {
+        $activity = $this->createActivity(
+            letterPath: 'letters/letter.pdf',
+            reportPath: 'reports/report.pdf'
+        );
+        $activity->activityRequest()->update(['status' => 'rejected']);
+        $activity->load('activityRequest.report');
+
+        $status = $activity->monitoringStatus();
+
+        $this->assertSame('Pending', $status['status']);
     }
 
     public function test_it_marks_activity_late_when_not_completed_after_deadline(): void

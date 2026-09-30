@@ -12,7 +12,6 @@
     $academicYear = str_replace('-', '–', $schoolYear);
 
     $statusLabel = $gpoa ? 'GPOA submitted' : 'GPOA not submitted';
-    $statusBadgeColor = $gpoa ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200';
     $showActionRequired = ! $gpoa;
     $activityCounts = $counts ?? ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
     $monitoringCards = [
@@ -21,6 +20,13 @@
         ['label' => 'Completed', 'count' => $activityCounts['Completed'] ?? 0, 'classes' => 'bg-emerald-100 text-emerald-700'],
         ['label' => 'Late', 'count' => $activityCounts['Late'] ?? 0, 'classes' => 'bg-rose-100 text-rose-700'],
     ];
+    $dashboardCards = [
+        ['Total', $activities->count(), 'text-slate-700'],
+        ['Completed', $activityCounts['Completed'] ?? 0, 'text-emerald-700'],
+        ['Ongoing', $activityCounts['Ongoing'] ?? 0, 'text-sky-700'],
+        ['Pending', $activityCounts['Pending'] ?? 0, 'text-amber-700'],
+    ];
+    $dashboardStatusChart = ['labels' => ['Pending', 'Ongoing', 'Completed'], 'values' => [$activityCounts['Pending'] ?? 0, $activityCounts['Ongoing'] ?? 0, $activityCounts['Completed'] ?? 0]];
 @endphp
 
 <div class="mb-6 rounded-2xl p-5 md:p-6 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl" style="background: linear-gradient(135deg, {{ $themeColorLight }} 0%, {{ $themeColor }} 100%);">
@@ -84,21 +90,41 @@
     </div>
 @endif
 
+<section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Activity summary">
+    @foreach($dashboardCards as [$label, $count, $color])
+        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</p>
+            <p class="mt-2 text-2xl font-bold {{ $color }}">{{ $count }}</p>
+        </article>
+    @endforeach
+</section>
+
 <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="mb-3 flex items-center justify-between gap-4">
         <div>
             <h2 class="text-lg font-bold text-gray-900">Monitoring Progress</h2>
             <p class="text-sm text-slate-500">Derived from your GPOA activities.</p>
         </div>
-        <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold {{ $statusBadgeColor }}">{{ $statusLabel }}</span>
+        @if($gpoa)
+            <x-status-pill status="Submitted" />
+        @else
+            <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $statusLabel }}</span>
+        @endif
     </div>
 
-    <div class="mb-2 flex items-center justify-between text-sm text-slate-600">
-        <span>Overall completion</span>
-        <span class="font-semibold text-slate-800">{{ $overallPercent }}%</span>
-    </div>
-    <div class="h-3 w-full overflow-hidden rounded-full bg-slate-200">
-        <div class="h-full rounded-full bg-emerald-500 transition-all" style="width: {{ $overallPercent }}%"></div>
+    <div class="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+        <div>
+            <div class="mb-2 flex items-center justify-between text-sm text-slate-600">
+                <span>Overall completion</span>
+                <span class="font-semibold text-slate-800">{{ $overallPercent }}%</span>
+            </div>
+            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+                <div class="h-full rounded-full bg-emerald-500 transition-all" style="width: {{ $overallPercent }}%"></div>
+            </div>
+        </div>
+        <div class="relative h-56">
+            <canvas data-chart-type="doughnut" data-center-text="{{ $overallPercent }}%" data-chart-data='@json($dashboardStatusChart)' role="img" aria-label="Activity status doughnut chart"></canvas>
+        </div>
     </div>
 
     <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -117,9 +143,11 @@
     <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <div class="mb-3 flex items-center justify-between">
             <h3 class="text-lg font-bold text-gray-900">GPOA</h3>
-            <span class="inline-flex items-center rounded-full border bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border-emerald-200">
-                {{ $gpoa ? 'Submitted' : 'Not submitted' }}
-            </span>
+            @if($gpoa)
+                <x-status-pill status="Submitted" />
+            @else
+                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">Not submitted</span>
+            @endif
         </div>
         <p class="text-sm text-gray-500">General Plan of Activities</p>
         @if($gpoa)
@@ -150,7 +178,7 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="min-w-[760px] w-full text-sm">
                 <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                         <th class="px-3 py-3">Activity</th>
@@ -164,11 +192,6 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach($activities as $activity)
                         @php($monitoring = $activity->monitoringStatus())
-                        @php($statusClass = match($monitoring['status']) {
-                            'Completed' => 'bg-emerald-100 text-emerald-700',
-                            'Ongoing' => 'bg-amber-100 text-amber-700',
-                            default => 'bg-slate-100 text-slate-700',
-                        })
                         <tr>
                             <td class="px-3 py-3 font-semibold text-slate-900">{{ $activity->title }}</td>
                             <td class="px-3 py-3 text-slate-600">{{ $activity->date?->format('M d, Y') ?? '—' }}</td>
@@ -176,9 +199,8 @@
                             <td class="px-3 py-3 text-slate-600">{{ $activity->letterStatusLabel() }}</td>
                             <td class="px-3 py-3 text-slate-600">{{ $activity->narrativeStatusLabel() }}</td>
                             <td class="px-3 py-3">
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">
-                                    {{ $monitoring['status'] }}
-                                </span>
+                                <x-status-pill :status="$monitoring['status']" />
+                                @if($monitoring['late']) <x-status-pill status="Late" /> @endif
                             </td>
                         </tr>
                     @endforeach

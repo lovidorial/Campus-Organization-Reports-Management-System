@@ -19,34 +19,90 @@
             </div>
         </header>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-lg font-bold text-slate-900">Activity #{{ $activityNumber ?? '—' }}</h2>
-                <span class="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">{{ $monitoring['status'] ?? 'Pending' }}</span>
-            </div>
-            <div class="mt-4 space-y-2 text-sm text-slate-700">
-                <div class="flex items-center gap-2">
-                    <span class="text-base {{ $request->communication_letter ? 'text-emerald-600' : 'text-rose-600' }}">{{ $request->communication_letter ? '✔' : '✖' }}</span>
-                    <span>Signed Communication Letter: <strong>{{ $request->communication_letter ? 'Uploaded' : 'Pending' }}</strong></span>
+        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
+                    <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 4v4h4M8.5 12h5M8.5 15.5h7" />
+                    </svg>
+                </span>
+                <div class="flex min-w-0 flex-wrap items-center gap-2">
+                    <h2 class="text-lg font-bold text-slate-900">Activity #{{ $activityNumber ?? '—' }}</h2>
+                    <x-status-pill :status="$monitoring['status'] ?? 'Pending'" class="shrink-0" />
                 </div>
-                @php($needsRevision = $request->report?->status === 'needs_revision')
-                @php($narrativeSubmitted = $request->report && ($request->report->narrative_report || $request->report->narrative_content))
-                <div class="flex items-start gap-2">
-                    <span class="text-base {{ $needsRevision ? 'text-amber-600' : ($narrativeSubmitted ? 'text-emerald-600' : 'text-rose-600') }}">{{ $needsRevision ? '⚠' : ($narrativeSubmitted ? '✔' : '✖') }}</span>
-                    <div>
-                        <span>Narrative Report: <strong>{{ $needsRevision ? 'Needs Revision' : ($narrativeSubmitted ? 'Submitted' : 'Pending') }}</strong></span>
-                        @if($needsRevision && $request->report?->feedback)
-                            <p class="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">{{ $request->report->feedback }}</p>
-                        @endif
+            </div>
+
+            @php($needsRevision = $request->report?->status === 'needs_revision')
+            @php($narrativeSubmitted = $request->report && ($request->report->narrative_report || $request->report->narrative_content))
+            <p class="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">Requirements</p>
+            <div class="mt-2 space-y-2">
+                <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+                            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 4v4h4M8.5 12h5M8.5 15.5h7" />
+                            </svg>
+                        </span>
+                        <span class="min-w-0 text-sm text-slate-800">Signed Communication Letter</span>
                     </div>
+                    <x-status-pill :status="$request->communication_letter ? 'Uploaded' : 'Pending'" class="shrink-0" />
+                </div>
+
+                <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+                            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 4v4h4M8.5 12h5M8.5 15.5h7" />
+                            </svg>
+                        </span>
+                        <div class="min-w-0">
+                            <span class="text-sm text-slate-800">Narrative Report</span>
+                            @if($needsRevision && $request->report?->feedback)
+                                <p class="mt-1 break-words text-xs text-rose-700">{{ $request->report->feedback }}</p>
+                            @endif
+                        </div>
+                    </div>
+                    <x-status-pill :status="$needsRevision ? 'Needs Revision' : ($narrativeSubmitted ? 'Submitted' : 'Pending')" class="shrink-0" />
                 </div>
             </div>
-            <p class="mt-4 text-xs text-slate-500">Activity is marked Completed once both requirements are submitted.</p>
+
+            <ol class="mt-5 space-y-0" aria-label="Activity timeline">
+                @foreach([
+                    ['label' => 'Activity planned', 'complete' => (bool) $request->gpoaActivity, 'date' => $request->gpoaActivity?->date],
+                    ['label' => 'Communication letter uploaded', 'complete' => filled($request->communication_letter), 'date' => $request->communication_letter_signed_at],
+                    ['label' => $narrativeSubmitted ? 'Narrative report submitted' : 'Narrative report completed', 'complete' => (bool) $narrativeSubmitted, 'date' => $request->report?->submitted_at],
+                ] as $step)
+                    <li class="relative flex gap-3 pb-4 last:pb-0">
+                        @if(!$loop->last)<span class="absolute left-[9px] top-5 h-full w-px {{ $step['complete'] ? 'bg-emerald-200' : 'bg-slate-200' }}" aria-hidden="true"></span>@endif
+                        <span class="relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full {{ $step['complete'] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400' }}">
+                            @if($step['complete'])
+                                <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.2 7.26a1 1 0 0 1-1.42 0l-3.8-3.83a1 1 0 1 1 1.42-1.41l3.09 3.11 6.49-6.54a1 1 0 0 1 1.414-.004Z" clip-rule="evenodd" /></svg>
+                            @else
+                                <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+                            @endif
+                        </span>
+                        <div class="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+                            <span class="text-xs font-medium {{ $step['complete'] ? 'text-slate-800' : 'text-slate-400' }}">{{ $step['label'] }}</span>
+                            @if($step['complete'] && $step['date'])<time class="shrink-0 text-[11px] text-slate-500">{{ \Illuminate\Support\Carbon::parse($step['date'])->format('M d, Y') }}</time>@endif
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
+
+            <p class="mt-4 flex items-center gap-2 text-xs text-slate-500">
+                <svg aria-hidden="true" class="h-4 w-4 shrink-0 text-sky-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-11a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm1 2a1 1 0 1 0-2 0v4a1 1 0 1 0 2 0V9Z" clip-rule="evenodd" />
+                </svg>
+                <span>This activity will be marked as Completed once both requirements are submitted.</span>
+            </p>
         </section>
 
         <section class="rounded border border-slate-200 bg-slate-50 p-2.5">
             <div class="mb-2 flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800">Monitoring: {{ $monitoring['status'] ?? 'Pending' }}</span>
+                <span class="text-[10px] font-semibold text-slate-500">Monitoring:</span><x-status-pill :status="$monitoring['status'] ?? 'Pending'" />
             </div>
 
             <dl class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -57,7 +113,7 @@
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Date / End Date</dt><dd class="{{ $valueClass }}">{{ $request->date?->format('M d, Y') ?? '—' }}{{ $request->end_date ? ' – ' . $request->end_date->format('M d, Y') : '' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Start / End Time</dt><dd class="{{ $valueClass }}">{{ $request->start_time ? substr((string) $request->start_time, 0, 5) : '—' }} – {{ $request->end_time ? substr((string) $request->end_time, 0, 5) : '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Activity Level</dt><dd class="{{ $valueClass }}">{{ $request->activity_level ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">SDGs</dt><dd class="{{ $valueClass }}">{{ $request->sdgs ? implode(', ', $request->sdgs) : '—' }}</dd></div>
+                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">SDGs</dt><dd class="{{ $valueClass }}">@forelse($request->sdgs ?? [] as $sdg)@if(!$loop->first), @endif<x-sdg-badge :number="$sdg" :show-label="false" />@empty—@endforelse</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Description</dt><dd class="{{ $valueClass }}">{{ $request->description ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Objectives</dt><dd class="{{ $valueClass }}">{{ $request->objectives ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Expected Outcome</dt><dd class="{{ $valueClass }}">{{ $request->expected_outcome ?? '—' }}</dd></div>

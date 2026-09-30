@@ -2,7 +2,7 @@
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">Activity Requests</h2>
-        <p class="text-sm text-gray-500">Submit detailed activity requests under your approved GPOA.</p>
+        <p class="text-sm text-gray-500">Submit detailed activity requests and monitor activity progress under your approved GPOA.</p>
             <h2 class="text-2xl font-bold text-gray-800">Activity Records</h2>
             <p class="text-sm text-gray-500">Review your submitted activity details and monitoring progress.</p>
     </div>

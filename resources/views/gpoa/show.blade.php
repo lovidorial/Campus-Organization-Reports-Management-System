@@ -10,7 +10,7 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-xl border p-4">
         <p class="text-xs text-gray-500 uppercase">Status</p>
-        <p class="text-lg font-bold mt-1">Submitted</p>
+        <span class="mt-1 inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Approved</span>
     </div>
     <div class="bg-white rounded-xl border p-4">
         <p class="text-xs text-gray-500 uppercase">College</p>
@@ -25,7 +25,7 @@
 @if($gpoa->document_path)
 <div class="mb-6">
     <a href="{{ asset('storage/'.$gpoa->document_path) }}" target="_blank"
-       class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200">View GPOA Document</a>
+    class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-200">View Approved GPOA Document</a>
 </div>
 @endif
 
@@ -83,7 +83,7 @@
                     @if($activity->sdgs)
                         <div class="flex flex-wrap gap-1">
                             @foreach($activity->sdgs as $sdg)
-                                <span class="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">{{ $sdg }}</span>
+                                <x-sdg-badge :number="$sdg" :show-label="false" />
                             @endforeach
                         </div>
                     @else

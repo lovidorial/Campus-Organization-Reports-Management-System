@@ -14,13 +14,16 @@
 </form>
 
 <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
-    <table class="w-full text-sm min-w-[700px]">
+    <table class="w-full text-sm min-w-[900px]">
         <thead class="bg-gray-50 border-b">
             <tr>
                 <th class="p-3 text-left">Organization</th>
                 <th class="p-3 text-left">Term / SY</th>
                 <th class="p-3 text-left">College</th>
                 <th class="p-3 text-left">Planned Activities</th>
+                <th class="p-3 text-left">Status</th>
+                <th class="p-3 text-left">Approved Document</th>
+                <th class="p-3 text-left">Details</th>
             </tr>
         </thead>
         <tbody>
@@ -30,9 +33,18 @@
                 <td class="p-3">{{ $gpoa->term }}<br><span class="text-xs text-gray-500">{{ $gpoa->school_year }}</span></td>
                 <td class="p-3">{{ $gpoa->college ?? '—' }}</td>
                 <td class="p-3">{{ $gpoa->activities_count }}</td>
+                <td class="p-3"><span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Approved</span></td>
+                <td class="p-3">
+                    @if($gpoa->document_path)
+                        <a href="{{ route('admin.gpoa.document', $gpoa) }}" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">View document</a>
+                    @else
+                        —
+                    @endif
+                </td>
+                <td class="p-3"><a href="{{ route('admin.gpoa.show', $gpoa) }}" class="text-xs font-semibold text-sky-700 hover:underline">View details</a></td>
             </tr>
             @empty
-            <tr><td colspan="4" class="p-8 text-center text-gray-400">No GPOAs found.</td></tr>
+            <tr><td colspan="7" class="p-8 text-center text-gray-400">No GPOAs found.</td></tr>
             @endforelse
         </tbody>
     </table>

@@ -33,12 +33,17 @@ class ActivityRequestController extends Controller
             'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
         ]);
 
-        $activityNumber = $activityRequest->gpoaActivity?->gpoa?->activities()
-            ->whereDate('date', '<=', $activityRequest->gpoaActivity->date)
-            ->orderBy('date')
-            ->pluck('id')
-            ->search($activityRequest->gpoaActivity->id);
-        $activityNumber = $activityNumber === false ? null : $activityNumber + 1;
+        $gpoaActivity = $activityRequest->gpoaActivity;
+        $activityNumber = null;
+
+        if ($gpoaActivity?->date && $gpoaActivity->gpoa) {
+            $activityNumber = $gpoaActivity->gpoa->activities()
+                ->orderBy('date')
+                ->orderBy('id')
+                ->pluck('id')
+                ->search($gpoaActivity->id);
+            $activityNumber = $activityNumber === false ? null : $activityNumber + 1;
+        }
 
         return view('users.activity-request-show', compact('activityRequest', 'activityNumber'));
     }
@@ -80,7 +85,7 @@ class ActivityRequestController extends Controller
             ->where('term', $term)
             ->where('school_year', $schoolYear)
             ->with([
-                'activities' => fn ($query) => $query->orderBy('date')->withMonitoringData(),
+                'activities' => fn ($query) => $query->orderBy('date')->orderBy('id')->withMonitoringData(),
             ])
             ->get();
 

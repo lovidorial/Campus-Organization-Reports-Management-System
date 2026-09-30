@@ -3,166 +3,145 @@
 namespace App\Http\Controllers;
 
 use App\Exports\SummaryReportExport;
-use App\Models\ActivityRequest;
-use App\Models\User;
+use App\Services\AdminActivityMonitoringService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AdminSummaryReportController extends Controller
 {
-    private const CATEGORIES = [
-        'Symposium',
-        'Convocation',
-        'Religious Activity',
-        'Socio-Cultural and Sports',
-        'Makakalikasan (Clean and Green)',
-        'Extension Services Conducted',
-    ];
-
-    public function index(Request $request)
+    public function index(Request $request, AdminActivityMonitoringService $monitoringService)
     {
-        $filters = $this->filters($request);
-        $allActivityRequests = $this->activityRequests($filters, false)->get();
-        $activityRequests = $allActivityRequests->whereIn('status', [
-            'approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed',
-        ])->values();
-        $organizations = User::query()
-            ->where('role', '!=', 'admin')
-            ->whereNotNull('org_name')
-            ->where('org_name', '!=', '')
-            ->distinct()
-            ->orderBy('org_name')
-            ->pluck('org_name');
+        $data = $this->reportData($request, $monitoringService);
 
-        return view('admin.gpoa.summary-report', [
-            'activityRequests' => $activityRequests,
-            'totalRequestCount' => $allActivityRequests->count(),
-            'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
-            'categorySummary' => $this->categorySummary($allActivityRequests),
-            'organizationSummary' => $this->organizationSummary($allActivityRequests),
-            'statusSummary' => $this->statusSummary($allActivityRequests),
-            'filters' => $filters,
-            'organizations' => $organizations,
-            'categories' => self::CATEGORIES,
-        ]);
+        return view('admin.gpoa.summary-report', $data);
     }
 
-    public function download(Request $request)
+    public function download(Request $request, AdminActivityMonitoringService $monitoringService)
     {
-        $filters = $this->filters($request);
-        $activityRequests = $this->activityRequests($filters)->get();
-        $allActivityRequests = $this->activityRequests($filters, false)->get();
+        $data = $this->reportData($request, $monitoringService);
 
         return Excel::download(
             new SummaryReportExport(
-                $activityRequests,
-                $this->organizationSummary($allActivityRequests),
-                $this->categorySummary($allActivityRequests),
-                $this->statusSummary($allActivityRequests),
+                $data['activities'],
+                $data['organizationSummary'],
+                $data['categorySummary'],
+                $data['statusSummary'],
                 $request->boolean('include_category_summary', true),
             ),
             'summary-report.xlsx'
         );
     }
 
-    public function downloadPdf(Request $request)
+    public function downloadPdf(Request $request, AdminActivityMonitoringService $monitoringService)
     {
-        $filters = $this->filters($request);
-        $activityRequests = $this->activityRequests($filters)->get();
-        $allActivityRequests = $this->activityRequests($filters, false)->get();
+        $data = $this->reportData($request, $monitoringService);
 
-        return Pdf::loadView('admin.gpoa.summary-report-pdf', [
-            'activityRequests' => $activityRequests,
-            'totalBudget' => $activityRequests->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
-            'organizationSummary' => $this->organizationSummary($allActivityRequests),
-            'categorySummary' => $this->categorySummary($allActivityRequests),
-            'statusSummary' => $this->statusSummary($allActivityRequests),
+        return Pdf::loadView('admin.gpoa.summary-report-pdf', array_merge($data, [
             'includeSummaries' => $request->boolean('include_category_summary', true),
-            'term' => $filters['term'],
-            'organization' => $filters['organization'],
-            'category' => $filters['category'],
-            'dateFrom' => $filters['date_from'],
-            'dateTo' => $filters['date_to'],
-        ])->download('summary-report.pdf');
+        ]))->setPaper('a4', 'landscape')->download('summary-report.pdf');
     }
 
-    private function filters(Request $request): array
+    private function reportData(Request $request, AdminActivityMonitoringService $monitoringService): array
     {
+        $filters = $request->validate([
+            'organization' => ['nullable', 'integer'],
+            'category' => ['nullable', 'string'],
+            'college' => ['nullable', 'string'],
+            'term' => ['nullable', 'string'],
+            'school_year' => ['nullable', 'string'],
+            'status' => ['nullable', 'in:Pending,Ongoing,Completed,Late'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+        $filters = array_merge([
+            'organization' => '',
+            'category' => '',
+            'college' => '',
+            'term' => '',
+            'school_year' => '',
+            'status' => '',
+            'date_from' => '',
+            'date_to' => '',
+        ], $filters);
+
+        $allActivities = $monitoringService->all();
+        $this->assignActivityNumbers($allActivities);
+        $activities = $monitoringService->filtered($request, $allActivities)
+            ->filter(function ($activity) use ($filters): bool {
+                $date = $activity->date?->toDateString();
+
+                return (! $filters['date_from'] || ($date && $date >= $filters['date_from']))
+                    && (! $filters['date_to'] || ($date && $date <= $filters['date_to']));
+            })
+            ->values();
+
+        $counts = $monitoringService->counts($activities);
+
         return [
-            'term' => $request->input('term'),
-            'organization' => $request->input('organization'),
-            'category' => $request->input('category'),
-            'date_from' => $request->input('date_from'),
-            'date_to' => $request->input('date_to'),
+            'activities' => $activities,
+            'activityCount' => $activities->count(),
+            'totalBudget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
+            'organizationSummary' => $this->organizationSummary($activities),
+            'categorySummary' => $this->categorySummary($activities),
+            'statusSummary' => collect(['Pending', 'Ongoing', 'Completed', 'Late'])->map(fn (string $status) => [
+                'status' => $status,
+                'activity_count' => $counts[$status],
+            ]),
+            'filters' => $filters,
+            'organizationLabel' => $allActivities->first(fn ($activity) => (string) $activity->gpoa?->user_id === (string) $filters['organization'])?->gpoa?->user?->org_name
+                ?? ($filters['organization'] ? 'Selected Organization' : 'All Organizations'),
+            'organizations' => $allActivities->pluck('gpoa.user')->filter()->unique('id')->sortBy('org_name')->values(),
+            'categories' => $allActivities->pluck('category')->filter()->unique()->sort()->values(),
+            'colleges' => $allActivities->pluck('gpoa.college')->filter()->unique()->sort()->values(),
+            'terms' => $allActivities->pluck('gpoa.term')->filter()->unique()->sort()->values(),
+            'schoolYears' => $allActivities->pluck('gpoa.school_year')->filter()->unique()->sort()->values(),
+            'pendingCount' => $counts['Pending'],
+            'ongoingCount' => $counts['Ongoing'],
+            'completedCount' => $counts['Completed'],
+            'lateCount' => $counts['Late'],
         ];
     }
 
-    private function activityRequests(array $filters, bool $completedOnly = true)
+    private function assignActivityNumbers($activities): void
     {
-        return ActivityRequest::with([
-            'user',
-            'gpoaActivity.gpoa',
-            'gpoa',
-            'report',
-            'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
-        ])
-            ->when($completedOnly, fn ($query) => $query->whereIn('status', [
-                'approved', 'in_progress', 'awaiting_report', 'report_submitted', 'closed',
-            ]))
-            ->when($filters['term'], function ($query, $term) {
-                $query->where(function ($gpoaQuery) use ($term) {
-                    $gpoaQuery->whereHas('gpoa', fn ($directGpoa) => $directGpoa->where('term', $term))
-                        ->orWhereHas('gpoaActivity.gpoa', fn ($activityGpoa) => $activityGpoa->where('term', $term));
-                });
-            })
-            ->when($filters['organization'], function ($query, $organization) {
-                $query->whereHas('user', fn ($userQuery) => $userQuery->where('org_name', $organization));
-            })
-            ->when($filters['category'], fn ($query, $category) => $query->where('category', $category))
-            ->when($filters['date_from'], fn ($query, $date) => $query->whereDate('date', '>=', $date))
-            ->when($filters['date_to'], fn ($query, $date) => $query->whereDate('date', '<=', $date))
-            ->orderBy('date');
+        $activities->groupBy('gpoa_id')->each(function ($gpoaActivities): void {
+            $gpoaActivities->sortBy([['date', 'asc'], ['id', 'asc']])->values()
+                ->each(fn ($activity, $index) => $activity->setAttribute('activity_number', $index + 1));
+        });
     }
 
-    private function categorySummary($activityRequests)
+    private function categorySummary($activities)
     {
-        return $activityRequests
+        return $activities
             ->groupBy(fn ($activity) => $activity->category ?: 'Uncategorized')
-            ->map(fn ($activities, $category) => [
+            ->map(fn ($categoryActivities, $category) => [
                 'category' => $category,
-                'activity_count' => $activities->count(),
-                'participants' => $activities->sum(fn ($activity) => (int) ($activity->participants_count ?? 0)),
-                'budget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
+                'activity_count' => $categoryActivities->count(),
+                'completed' => $categoryActivities->where('monitoring_status', 'Completed')->count(),
             ])
+            ->sortKeys()
             ->values();
     }
 
-    private function organizationSummary($activityRequests)
+    private function organizationSummary($activities)
     {
-        return $activityRequests
-            ->groupBy(fn ($activity) => $activity->user->org_name ?? $activity->user->name ?? 'Unknown Organization')
-            ->map(fn ($activities, $organization) => [
-                'organization' => $organization,
-                'activity_count' => $activities->count(),
-                'participants' => $activities->sum(fn ($activity) => (int) ($activity->participants_count ?? 0)),
-                'budget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
-            ])
+        return $activities
+            ->groupBy(fn ($activity) => $activity->gpoa?->user_id)
+            ->map(function ($organizationActivities): array {
+                $first = $organizationActivities->first();
+                $total = $organizationActivities->count();
+
+                return [
+                    'organization' => $first->gpoa?->user?->org_name ?? $first->gpoa?->user?->name ?? '—',
+                    'activity_count' => $total,
+                    'completed' => $organizationActivities->where('monitoring_status', 'Completed')->count(),
+                    'ongoing' => $organizationActivities->where('monitoring_status', 'Ongoing')->count(),
+                    'pending' => $organizationActivities->where('monitoring_status', 'Pending')->count(),
+                    'progress' => $total === 0 ? 0 : (int) round(($organizationActivities->where('monitoring_status', 'Completed')->count() / $total) * 100),
+                ];
+            })
             ->sortBy('organization')
-            ->values();
-    }
-
-    private function statusSummary($activityRequests)
-    {
-        return $activityRequests
-            ->groupBy('status')
-            ->map(fn ($activities, $status) => [
-                'status' => str_replace('_', ' ', ucfirst($status)),
-                'activity_count' => $activities->count(),
-                'participants' => $activities->sum(fn ($activity) => (int) ($activity->participants_count ?? 0)),
-                'budget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
-            ])
-            ->sortBy('status')
             ->values();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gpoa;
+use Illuminate\Http\Request;
 
 class AdminGpoaController extends Controller
 {
@@ -19,8 +20,11 @@ class AdminGpoaController extends Controller
                         $userQuery->where('org_name', 'like', "%{$search}%")
                             ->orWhere('name', 'like', "%{$search}%");
                     })->orWhere('term', 'like', "%{$search}%")
-                    ->orWhere('school_year', 'like', "%{$search}%")
-                    ->orWhere('college', 'like', "%{$search}%");
+                        ->orWhere('school_year', 'like', "%{$search}%")
+                        ->orWhere('college', 'like', "%{$search}%");
+                });
+            });
+
         $gpoas = $query->latest()->paginate(20)->appends($request->query());
 
         $stats = ['total' => Gpoa::excludeAdmins()->count()];
@@ -32,6 +36,7 @@ class AdminGpoaController extends Controller
     {
         $gpoa->load(['user', 'activities.activityRequest.report']);
         $gpoa->loadCount('activityRequests');
+
         return view('admin.gpoa.show', compact('gpoa'));
     }
 }

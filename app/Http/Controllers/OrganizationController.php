@@ -84,10 +84,10 @@ class OrganizationController extends Controller
         $rules = [
             'name'                    => 'required|string|max:255',
             'type'                    => 'required|string|max:100',
-            'college'                 => 'nullable|string|max:100',
+            'college'                 => 'required|string|max:100',
             'sc_president'            => 'nullable|string|max:255',
-            'term'                    => 'nullable|string|max:50',
-            'school_year'             => 'nullable|string|max:20',
+            'term'                    => 'required|string|max:50',
+            'school_year'             => $this->schoolYearRules(),
             'description'             => 'nullable|string',
             'storage_limit_mb'        => 'sometimes|integer|min:1|max:102400',
             'logo'                    => 'nullable|image|max:2048',
@@ -228,10 +228,10 @@ class OrganizationController extends Controller
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
             'type'        => 'required|string|max:100',
-            'college'     => 'nullable|string|max:100',
+            'college'     => 'required|string|max:100',
             'sc_president'=> 'nullable|string|max:255',
-            'term'        => 'nullable|string|max:50',
-            'school_year' => 'nullable|string|max:20',
+            'term'        => 'required|string|max:50',
+            'school_year' => $this->schoolYearRules(),
             'description' => 'nullable|string',
             'storage_limit_mb' => 'sometimes|integer|min:1|max:102400',
             'logo'        => 'nullable|image|max:2048',
@@ -285,6 +285,23 @@ class OrganizationController extends Controller
         }
 
         return $validated;
+    }
+
+    private function schoolYearRules(): array
+    {
+        return [
+            'required',
+            'regex:/^\d{4}-\d{4}$/',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! is_string($value) || ! preg_match('/^(\d{4})-(\d{4})$/', $value, $years)) {
+                    return;
+                }
+
+                if ((int) $years[2] !== (int) $years[1] + 1) {
+                    $fail('The school year must end one year after it begins.');
+                }
+            },
+        ];
     }
 
     private function typeForClassification(string $classification): string

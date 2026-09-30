@@ -138,21 +138,20 @@ class GpoaController extends Controller
             'term'                => 'required|string|max:50',
             'school_year'         => 'required|string|max:20',
             'prepared_by'         => 'required|string|max:255',
-            'document_path'       => 'nullable|file|mimes:pdf|max:20480',
+            'document_path'       => 'required|file|mimes:pdf|max:20480',
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
             'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
             'planned_activities.*.date' => 'nullable|required_with:planned_activities.*.sdgs|date',
             'planned_activities.*.venue' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',
             'planned_activities.*.category' => 'nullable|required_with:planned_activities.*.sdgs|string|max:100',
             'planned_activities.*.sdgs' => 'nullable|array|min:1|max:8',
+            'approved_confirmation' => 'required|accepted',
             'verify'              => 'required|accepted',
         ], [
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
-        $documentPath = $request->hasFile('document_path')
-            ? $request->file('document_path')->store('uploads/gpoa', 'public')
-            : null;
+        $documentPath = $request->file('document_path')->store('uploads/gpoa', 'public');
 
         $gpoa = Gpoa::create([
             'user_id'       => auth()->id(),
@@ -161,7 +160,8 @@ class GpoaController extends Controller
             'college'       => $validated['colleges'],
             'document_path' => $documentPath,
             'prepared_by'   => $validated['prepared_by'],
-            'status'        => 'submitted',
+            'status'        => 'approved',
+            'approved_at'   => now(),
         ]);
 
         $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
@@ -197,7 +197,7 @@ class GpoaController extends Controller
         $validated = $request->validate([
             'colleges' => 'required|string|max:100',
             'prepared_by' => 'required|string|max:255',
-            'document_path' => 'nullable|file|mimes:pdf|max:20480',
+            'document_path' => ($gpoa->document_path ? 'nullable' : 'required') . '|file|mimes:pdf|max:20480',
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
             'planned_activities.*.id' => 'nullable|integer',
             'planned_activities.*.title' => 'nullable|required_with:planned_activities.*.sdgs|string|max:255',

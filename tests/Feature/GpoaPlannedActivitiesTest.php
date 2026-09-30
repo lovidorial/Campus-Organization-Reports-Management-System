@@ -29,6 +29,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
             'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [
                 [
