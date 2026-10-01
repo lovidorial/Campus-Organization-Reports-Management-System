@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityReport;
+use App\Models\ActivityReportPhoto;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
@@ -105,6 +106,39 @@ class ActivityDocumentFlowTest extends TestCase
 
         $this->actingAs($otherUser)
             ->get(route('activity-requests.documents.show', [$request, 'communication-letter']))
+            ->assertForbidden();
+    }
+
+    public function test_only_the_activity_owner_can_view_private_attendance_sheet_and_photo(): void
+    {
+        Storage::fake('private');
+        [$owner, $request] = $this->createActivityRequest();
+        $report = ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'activity-documents/narrative-reports/report.pdf',
+            'narrative_source' => 'generated',
+            'narrative_content' => ['body' => 'Report text'],
+            'attendance_sheet_path' => 'activity-documents/attendance-sheets/attendance.pdf',
+            'submitted_at' => now(),
+        ]);
+        $photo = ActivityReportPhoto::create([
+            'activity_report_id' => $report->id,
+            'path' => 'activity-documents/activity-photos/proof.jpg',
+            'sort_order' => 0,
+        ]);
+        Storage::disk('private')->put($report->attendance_sheet_path, 'attendance');
+        Storage::disk('private')->put($photo->path, 'photo');
+
+        $this->actingAs($owner)
+            ->get(route('activity-requests.documents.show', [$request, 'attendance-sheet']))
+            ->assertOk();
+        $this->get(route('activity-requests.report-photos.show', [$request, $photo]))->assertOk();
+
+        $otherUser = User::factory()->create();
+        $this->actingAs($otherUser)
+            ->get(route('activity-requests.documents.show', [$request, 'attendance-sheet']))
+            ->assertForbidden();
+        $this->get(route('activity-requests.report-photos.show', [$request, $photo]))
             ->assertForbidden();
     }
 

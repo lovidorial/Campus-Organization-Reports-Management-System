@@ -1128,19 +1128,6 @@
                 <div class="activities-grid">
                     @foreach($completed as $activity)
                         <div class="activity-card completed-card">
-                            @if($activity->report && $activity->report->photos->count())
-                                <div class="activity-image-wrap">
-                                    @foreach($activity->report->photos as $photo)
-                                        <img src="{{ Storage::disk('public')->url($photo->path) }}"
-                                            alt="{{ $activity->title }}"
-                                            class="activity-cover carousel-slide {{ $loop->first ? 'active' : '' }}"
-                                            onerror="this.closest('.activity-image-wrap').style.display='none'">
-                                    @endforeach
-                                    @if($activity->report->photos->count() > 1)
-                                        <span class="photo-count">+{{ $activity->report->photos->count() - 1 }}</span>
-                                    @endif
-                                </div>
-                            @endif
                             <div class="activity-body">
                                 <div>
                                     <h3 class="activity-title">{{ $activity->title }}</h3>
@@ -1166,7 +1153,7 @@
                                     data-sy="{{ $activity->gpoa?->school_year ?? 'N/A' }}"
                                     data-description="{{ $activity->report?->description ?? $activity->description ?? '' }}"
                                     data-sdgs='@json($activity->sdgs ?? [])'
-                                    data-photos='@json($activity->report?->photos->map(fn($photo) => ['url' => Storage::disk('public')->url($photo->path), 'caption' => $photo->caption])->all())'>
+                                    data-photos='[]'>
                                     View Highlights
                                 </button>
                             </div>

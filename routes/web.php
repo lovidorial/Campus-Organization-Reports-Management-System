@@ -24,7 +24,10 @@ Route::get('/', function () {
 })->name('welcome');
 
 Route::get('/storage/{path}', function (string $path) {
-    $safePath = str_replace(['../', '..\\'], '', $path);
+    $safePath = str_replace('\\', '/', ltrim($path, '/'));
+    $allowedPrefixes = ['organization-logos/', 'profile-photos/', 'uploads/members/'];
+    abort_if(in_array('..', explode('/', $safePath), true), 404);
+    abort_unless(collect($allowedPrefixes)->contains(fn (string $prefix) => str_starts_with($safePath, $prefix)), 404);
 
     abort_unless(Storage::disk('public')->exists($safePath), 404);
 
@@ -59,6 +62,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/gpoa/create', [GpoaController::class, 'create'])->name('gpoa.create');
         Route::post('/gpoa/import-preview', [GpoaController::class, 'importPreview'])->middleware('throttle:10,1')->name('gpoa.import-preview');
         Route::post('/gpoa/store', [GpoaController::class, 'store'])->name('gpoa.store');
+        Route::get('/gpoa/{gpoa}/document', [GpoaController::class, 'document'])->name('gpoa.document');
         Route::get('/gpoa/{gpoa}', [GpoaController::class, 'show'])->name('gpoa.show');
         Route::get('/gpoa/{gpoa}/edit', [GpoaController::class, 'edit'])->name('gpoa.edit');
         Route::put('/gpoa/{gpoa}', [GpoaController::class, 'update'])->name('gpoa.update');
@@ -81,8 +85,9 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');
         Route::post('/activity-requests/{activityRequest}/communication-letter', [\App\Http\Controllers\ActivityDocumentController::class, 'storeCommunicationLetter'])->name('activity-requests.communication-letter.store');
         Route::get('/activity-requests/{activityRequest}/documents/{documentType}', [\App\Http\Controllers\ActivityDocumentController::class, 'show'])
-            ->whereIn('documentType', ['communication-letter', 'narrative-report'])
+            ->whereIn('documentType', ['communication-letter', 'narrative-report', 'attendance-sheet'])
             ->name('activity-requests.documents.show');
+        Route::get('/activity-requests/{activityRequest}/report-photos/{photo}', [\App\Http\Controllers\ActivityDocumentController::class, 'showPhoto'])->name('activity-requests.report-photos.show');
         Route::post('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'store'])->name('activity-reports.store');
 
         Route::get('/organization/officers', [\App\Http\Controllers\OfficerController::class, 'userIndex'])->name('organization.officers.index');

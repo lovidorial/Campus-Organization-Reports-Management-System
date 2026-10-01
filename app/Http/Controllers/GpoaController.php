@@ -170,7 +170,7 @@ class GpoaController extends Controller
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
-        $documentPath = $request->file('document_path')->store('uploads/gpoa', 'public');
+        $documentPath = $request->file('document_path')->store('uploads/gpoa', 'private');
 
         $gpoa = Gpoa::create([
             'user_id'       => auth()->id(),
@@ -224,9 +224,10 @@ class GpoaController extends Controller
 
         if ($request->hasFile('document_path')) {
             if ($gpoa->document_path) {
+                Storage::disk('private')->delete($gpoa->document_path);
                 Storage::disk('public')->delete($gpoa->document_path);
             }
-            $gpoa->document_path = $request->file('document_path')->store('uploads/gpoa', 'public');
+            $gpoa->document_path = $request->file('document_path')->store('uploads/gpoa', 'private');
         }
 
         $gpoa->update([
@@ -248,6 +249,24 @@ class GpoaController extends Controller
         $gpoa->load('activities.activityRequest.report');
 
         return view('gpoa.show', compact('gpoa'));
+    }
+
+    public function document(Gpoa $gpoa)
+    {
+        $this->authorize('view', $gpoa);
+        abort_unless($gpoa->document_path, 404, 'GPOA document not found.');
+
+        foreach (['private', 'public'] as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($gpoa->document_path)) {
+                return $disk->response($gpoa->document_path, basename($gpoa->document_path), [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline',
+                ]);
+            }
+        }
+
+        abort(404, 'GPOA document not found.');
     }
 
     private function syncPlannedActivities(Gpoa $gpoa, array $plannedActivities): void

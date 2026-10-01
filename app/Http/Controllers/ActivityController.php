@@ -11,7 +11,7 @@ class ActivityController extends Controller
     {
         $query = GpoaActivity::query()->with([
             'gpoa.user',
-            'activityRequest.report.photos',
+            'activityRequest.report',
             'activityRequest.venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
         ]);
 

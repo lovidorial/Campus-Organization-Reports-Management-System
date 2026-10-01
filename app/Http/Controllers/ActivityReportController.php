@@ -129,7 +129,7 @@ class ActivityReportController extends Controller
         if ($request->hasFile('photos')) {
             $sortOrder = ($report->photos()->max('sort_order') ?? -1) + 1;
             foreach ($request->file('photos') as $photoFile) {
-                $photoPath = $photoFile->store('uploads/activity-photos', 'public');
+                $photoPath = $photoFile->store('activity-documents/activity-photos', 'private');
                 $report->photos()->create([
                     'path' => $photoPath,
                     'sort_order' => $sortOrder++,

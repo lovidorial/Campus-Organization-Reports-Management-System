@@ -164,6 +164,16 @@
                     @if(data_get($request->report->narrative_content, 'body'))
                         <div class="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-700">{{ data_get($request->report->narrative_content, 'body') }}</div>
                     @endif
+                    @if($request->report->attendance_sheet_path)
+                        <a href="{{ route('activity-requests.documents.show', [$request, 'attendance-sheet']) }}" data-file-viewer data-title="Attendance Sheet" class="mt-2 inline-block text-xs font-semibold text-sky-700 underline">View attendance sheet</a>
+                    @endif
+                    @if($request->report->photos->isNotEmpty())
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach($request->report->photos as $photo)
+                                <a href="{{ route('activity-requests.report-photos.show', [$request, $photo]) }}" data-file-viewer data-title="Activity Photo {{ $loop->iteration }}" class="text-xs font-semibold text-sky-700 underline">Photo {{ $loop->iteration }}</a>
+                            @endforeach
+                        </div>
+                    @endif
                 @else
                     <p class="mb-2 text-xs text-slate-500">No narrative report saved.</p>
                 @endif

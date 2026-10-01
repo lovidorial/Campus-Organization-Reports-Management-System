@@ -318,10 +318,18 @@ class AdminController extends Controller
 
     public function viewGpoaDocument(Gpoa $gpoa)
     {
-        if (!$gpoa->document_path || !file_exists(storage_path('app/public/' . $gpoa->document_path))) {
-            abort(404, 'GPOA document not found');
+        abort_unless($gpoa->document_path, 404, 'GPOA document not found');
+
+        foreach (['private', 'public'] as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($gpoa->document_path)) {
+                return $disk->response($gpoa->document_path, basename($gpoa->document_path), [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline',
+                ]);
+            }
         }
 
-        return response()->file(storage_path('app/public/' . $gpoa->document_path));
+        abort(404, 'GPOA document not found');
     }
 }
