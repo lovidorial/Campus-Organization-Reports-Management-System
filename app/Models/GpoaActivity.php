@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GpoaActivity extends Model
@@ -58,11 +57,6 @@ class GpoaActivity extends Model
         return $this->belongsTo(ActivityRequest::class);
     }
 
-    public function activityRequests(): HasMany
-    {
-        return $this->hasMany(ActivityRequest::class);
-    }
-
     public function monitoringResult(): HasOne
     {
         return $this->hasOne(MonitoringResult::class);
@@ -74,11 +68,6 @@ class GpoaActivity extends Model
             'gpoa',
             'activityRequest.report',
         ]);
-    }
-
-    public static function withMonitoringDataLoaded(): Builder
-    {
-        return static::query()->withMonitoringData();
     }
 
     public function monitoringStatus(): array
@@ -126,27 +115,6 @@ class GpoaActivity extends Model
         }
 
         return 'Pending';
-    }
-
-    public function getDisplayDateAttribute(): string
-    {
-        if (! $this->date) {
-            return '—';
-        }
-
-        if ($this->date_is_month_only) {
-            return $this->date->format('F Y');
-        }
-
-        if ($this->time_frame === 'date_range' && $this->end_date && $this->end_date->ne($this->date)) {
-            if ($this->date->format('M Y') === $this->end_date->format('M Y')) {
-                return $this->date->format('M j') . '-' . $this->end_date->format('j, Y');
-            }
-
-            return $this->date->format('M j, Y') . ' - ' . $this->end_date->format('M j, Y');
-        }
-
-        return $this->date->format('M d, Y');
     }
 
     protected function isLateForMonitoring(): bool

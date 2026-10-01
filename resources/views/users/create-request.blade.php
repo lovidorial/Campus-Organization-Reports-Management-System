@@ -133,160 +133,6 @@
 
                     <div class="grid gap-6 md:grid-cols-1 mt-6">
                         @include('partials.sdg-checkboxes', ['gpoa' => false])
-                        @if(false)
-                        <div class="form-group">
-                            <div class="sdg-label-row">
-                                <label for="sdgCheckboxes">SDGs *</label>
-                                <div id="sdgSummary" class="sdg-summary-badges" aria-live="polite" aria-atomic="true">
-                                    <span class="sdg-placeholder">No SDGs selected yet</span>
-                                </div>
-                            </div>
-
-                            @php
-                                $sdgList = [
-                                    1 => 'No Poverty',
-                                    2 => 'Zero Hunger',
-                                    3 => 'Good Health',
-                                    4 => 'Quality Education',
-                                    5 => 'Gender Equality',
-                                    6 => 'Clean Water',
-                                    7 => 'Affordable Energy',
-                                    8 => 'Decent Work',
-                                    9 => 'Industry, Innovation',
-                                    10 => 'Reduced Inequality',
-                                    11 => 'Sustainable Cities',
-                                    12 => 'Responsible Consumption',
-                                    13 => 'Climate Action',
-                                    14 => 'Life Below Water',
-                                    15 => 'Life on Land',
-                                    16 => 'Peace/Justice',
-                                    17 => 'Partnerships'
-                                ];
-                                $oldSdgs = old('sdgs');
-                                if (is_array($oldSdgs)) {
-                                    $oldNums = $oldSdgs;
-                                } else {
-                                    $oldSdgs = $oldSdgs ?: '';
-                                    preg_match_all('/\b(\d{1,2})\b/', $oldSdgs, $m);
-                                    $oldNums = $m[1] ?? [];
-                                }
-                            @endphp
-
-                            <style>
-                                .sdg-label-row {
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                    gap: 12px;
-                                    margin-bottom: 12px;
-                                }
-                                .sdg-label-row label {
-                                    margin: 0;
-                                    flex-shrink: 0;
-                                }
-                                .sdg-summary-badges {
-                                    display: flex;
-                                    gap: 6px;
-                                    flex-wrap: wrap;
-                                    flex: 1;
-                                    padding: 6px 8px;
-                                    background: #F3F4F6;
-                                    border-radius: 4px;
-                                    min-height: 24px;
-                                    align-items: center;
-                                }
-                                .sdg-badge {
-                                    padding: 2px 8px;
-                                    border-radius: 999px;
-                                    font-size: 0.75rem;
-                                    font-weight: 600;
-                                    display: inline-block;
-                                    white-space: nowrap;
-                                }
-                                .sdg-placeholder {
-                                    color: #9CA3AF;
-                                    font-size: 0.875rem;
-                                }
-                                .sdg-checkbox-list {
-                                    display: flex;
-                                    flex-direction: column;
-                                    gap: 8px;
-                                    max-height: 240px;
-                                    overflow-y: auto;
-                                    padding: 8px 0;
-                                    border: 1px solid #D1D5DB;
-                                    border-radius: 4px;
-                                    background: #FFFFFF;
-                                    padding: 8px;
-                                    margin-bottom: 8px;
-                                }
-                                .sdg-checkbox-item {
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                    padding: 4px;
-                                    cursor: pointer;
-                                    user-select: none;
-                                }
-                                .sdg-checkbox-item input[type="checkbox"] {
-                                    cursor: pointer;
-                                }
-                                .sdg-checkbox-item input[type="checkbox"]:disabled {
-                                    cursor: not-allowed;
-                                    opacity: 0.5;
-                                }
-                                .sdg-checkbox-item label {
-                                    cursor: pointer;
-                                    margin: 0;
-                                    font-size: 0.875rem;
-                                    flex: 1;
-                                }
-                                .sdg-checkbox-item input[type="checkbox"]:disabled + label {
-                                    opacity: 0.5;
-                                    cursor: not-allowed;
-                                }
-                                .sdg-count-message {
-                                    font-size: 0.75rem;
-                                    color: #6B7280;
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 500;
-                                }
-                                .sdg-helper-text {
-                                    font-size: 0.75rem;
-                                    color: #6B7280;
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 500;
-                                }
-                                .sdg-validation-error {
-                                    color: #DC2626;
-                                    font-size: 0.875rem;
-                                    margin-top: 6px;
-                                    display: none;
-                                }
-                                .sdg-validation-error.show {
-                                    display: block;
-                                }
-                            </style>
-
-                            <div class="sdg-checkbox-list" id="sdgCheckboxes">
-                                @foreach($sdgList as $num => $label)
-                                    <div class="sdg-checkbox-item">
-                                             <input type="checkbox" id="sdg{{ $num }}" name="sdgs[]" value="{{ $num }}" style="accent-color: {{ config('sdg.' . $num . '.color') }}"
-                                               {{ in_array((string)$num, $oldNums) ? 'checked' : '' }}>
-                                             <span class="sdg-number" style="background-color: {{ config('sdg.' . $num . '.color') }}; color: {{ config('sdg.' . $num . '.text') }}" aria-hidden="true">{{ $num }}</span>
-                                        <label for="sdg{{ $num }}">SDG {{ $num }} - {{ $label }}</label>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div id="sdgHelperText" class="sdg-helper-text">Must select 1-8 SDGs aligned with the activity</div>
-                            <div id="sdgValidationError" class="sdg-validation-error"></div>
-
-                            @error('sdgs')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-                        @endif
                     </div>
 
                         <div class="form-group mt-6">
@@ -437,8 +283,8 @@
                                 <option value="Student Council Funds" {{ old('source_of_funds') == 'Student Council Funds' ? 'selected' : '' }}>Student Council Funds</option>
                                 <option value="School-Generated Funds / MOOE" {{ old('source_of_funds') == 'School-Generated Funds / MOOE' ? 'selected' : '' }}>School-Generated Funds / MOOE</option>
                                 <option value="Sponsorship / Donations" {{ old('source_of_funds') == 'Sponsorship / Donations' ? 'selected' : '' }}>Sponsorship / Donations</option>
-                                <option value="Others" {{ old('source_of_funds') == 'UniFast' ? 'selected' : '' }}>UniFast</option>
-                                 <option value="Others" {{ old('source_of_funds') == 'Cash on Hand' ? 'selected' : '' }}>Cash on Hand</option>
+                                <option value="UniFast" {{ old('source_of_funds', $selectedActivityId ? $gpoa->activities->firstWhere('id', $selectedActivityId)?->source_of_funds : null) === 'UniFast' ? 'selected' : '' }}>UniFast</option>
+                                <option value="Cash on Hand" {{ old('source_of_funds', $selectedActivityId ? $gpoa->activities->firstWhere('id', $selectedActivityId)?->source_of_funds : null) === 'Cash on Hand' ? 'selected' : '' }}>Cash on Hand</option>
                             </select>
                             @error('source_of_funds')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
@@ -476,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function(){
         'facilities_materials' => $activity->facilities_materials,
         'estimated_budget' => $activity->estimated_budget,
         'source_of_funds' => $activity->source_of_funds,
-    ]])->all()) !!};
+    ]])->all());
     const plannedActivitySelect = document.getElementById('gpoa_activity_id');
     const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
     const sdgSummary = document.getElementById('sdgSummary');
@@ -503,11 +349,13 @@ document.addEventListener('DOMContentLoaded', function(){
             'end_date', 'start_time', 'end_time', 'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
             'estimated_budget', 'source_of_funds'].forEach(field => {
             const input = document.getElementById(field);
-            if (input && activity[field] !== null && activity[field] !== undefined && (!onlyEmpty || !input.value)) {
-                if (field === 'category' && !Array.from(input.options).some(option => option.value === String(activity[field]))) {
+            if (input && (!onlyEmpty || !input.value)) {
+                const value = activity[field] ?? '';
+                if (input instanceof HTMLSelectElement && value !== '' && !Array.from(input.options).some(option => option.value === String(value))) {
+                    input.value = '';
                     return;
                 }
-                input.value = activity[field];
+                input.value = value;
             }
         });
 

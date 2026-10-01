@@ -148,10 +148,22 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->assertSee('\\u0022category\\u0022:\\u0022Symposium\\u0022', false)
             ->assertSee('\\u0022sdgs\\u0022:[4,13]', false)
             ->assertSee('\\u0022date\\u0022:\\u00222026-10-03\\u0022', false)
+            ->assertSee('\\u0022objectives\\u0022:\\u0022Celebrate teachers.\\u0022', false)
+            ->assertSee('\\u0022expected_outcome\\u0022:\\u0022Staff feel appreciated.\\u0022', false)
+            ->assertSee('\\u0022plan_key_strategy\\u0022:\\u0022Recognition program.\\u0022', false)
             ->assertSee('\\u0022end_date\\u0022:\\u00222026-10-04\\u0022', false)
             ->assertSee('\\u0022start_time\\u0022:\\u002209:30\\u0022', false)
             ->assertSee('\\u0022end_time\\u0022:\\u002215:45\\u0022', false)
-            ->assertSee('\\u0022venue\\u0022:\\u0022Main Hall\\u0022', false);
+            ->assertSee('\\u0022venue\\u0022:\\u0022Main Hall\\u0022', false)
+            ->assertSee('\\u0022target_participants\\u0022:\\u0022Teachers\\u0022', false)
+            ->assertSee('\\u0022person_in_charge\\u0022:\\u0022Student Council\\u0022', false)
+            ->assertSee('\\u0022facilities_materials\\u0022:\\u0022Sound system\\u0022', false)
+            ->assertSee('\\u0022estimated_budget\\u0022:\\u00222500.00\\u0022', false)
+            ->assertSee('\\u0022source_of_funds\\u0022:\\u0022Organization Funds\\u0022', false)
+            ->assertSee("plannedActivitySelect?.addEventListener('change', prefillFromPlannedActivity)", false)
+            ->assertDontSee('!!};', false)
+            ->assertSee('<option value="UniFast"', false)
+            ->assertSee('<option value="Cash on Hand"', false);
 
         $response = $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
 

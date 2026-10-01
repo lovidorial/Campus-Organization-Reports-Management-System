@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gpoa;
-use App\Models\GpoaActivity;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
