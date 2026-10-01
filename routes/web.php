@@ -8,7 +8,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminDocumentDeadlineController;
 use App\Http\Controllers\AdminGpoaController;
 use App\Http\Controllers\AdminSummaryReportController;
-use App\Http\Controllers\AdminWorkflowController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GpoaController;
@@ -124,11 +123,6 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/gpoa', [AdminGpoaController::class, 'index'])->name('gpoa.index');
         Route::get('/gpoa/{gpoa}', [AdminGpoaController::class, 'show'])->name('gpoa.show');
         Route::get('/gpoa/{gpoa}/document', [AdminController::class, 'viewGpoaDocument'])->name('gpoa.document');
-
-        Route::get('/workflows', [AdminWorkflowController::class, 'index'])->name('workflows.index');
-        Route::get('/workflows/export', [AdminWorkflowController::class, 'export'])->name('workflows.export');
-        Route::get('/workflows/{workflow}', [AdminWorkflowController::class, 'show'])->name('workflows.show');
-        Route::get('/workflow-submissions/{submission}/document', [AdminWorkflowController::class, 'viewDocument'])->name('workflows.submissions.document');
 
         Route::get('/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [\App\Http\Controllers\AdminUserController::class, 'create'])->name('users.create');
