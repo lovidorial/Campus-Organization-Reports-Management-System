@@ -7,6 +7,8 @@ use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -115,6 +117,27 @@ class PasswordResetTest extends TestCase
 
         $response->assertSessionHas('status', __('passwords.sent'));
         Notification::assertNotSentTo($user, ResetPasswordNotification::class);
+    }
+
+    public function test_mail_transport_exception_still_returns_generic_success(): void
+    {
+        $user = User::factory()->create();
+
+        Password::shouldReceive('sendResetLink')
+            ->once()
+            ->with(['email' => $user->email])
+            ->andThrow(new RuntimeException('Transport failure details must not be shown or logged.'));
+
+        Log::shouldReceive('error')
+            ->once()
+            ->with('Password reset email could not be sent.', ['exception' => RuntimeException::class]);
+
+        $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
+
+        $response
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHas('status', __('passwords.sent'))
+            ->assertSessionHasNoErrors();
     }
 
     public function test_invalid_reset_token_is_rejected(): void
