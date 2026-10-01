@@ -51,6 +51,13 @@ class AdminSummaryReportTest extends TestCase
             'category' => 'Symposium',
             'estimated_budget' => 800,
         ]);
+        $archivedActivity = $gpoa->activities()->create([
+            'title' => 'Archived Orientation',
+            'date' => '2027-03-10',
+            'venue' => 'Lecture Hall',
+            'category' => 'Orientation',
+            'archived_at' => now(),
+        ]);
 
         $activityRequest = ActivityRequest::create([
             'user_id' => $user->id,
@@ -89,6 +96,7 @@ class AdminSummaryReportTest extends TestCase
             ->assertSee('Monitoring Status Summary')
             ->assertSee('Completed Outreach')
             ->assertSee('Unrequested Symposium')
+            ->assertDontSee('Archived Orientation')
             ->assertSee('Activity #1')
             ->assertSee('Activity #2')
             ->assertSee('Completed')
@@ -102,6 +110,16 @@ class AdminSummaryReportTest extends TestCase
         $filteredPage->assertOk()
             ->assertSee('Unrequested Symposium')
             ->assertDontSee('Completed Outreach');
+
+        $archivedPage = $this->actingAs($admin)->get(route('admin.summary-report', array_merge($filters, ['status' => 'Archived'])));
+        $archivedPage->assertOk()
+            ->assertSee('Archived Orientation')
+            ->assertDontSee('Completed Outreach')
+            ->assertDontSee('Unrequested Symposium');
+
+        $archivedExcel = $this->actingAs($admin)->get(route('admin.summary-report.download', array_merge($filters, ['status' => 'Archived'])));
+        $archivedExcel->assertOk();
+        $this->assertStringContainsString('summary-report.xlsx', $archivedExcel->headers->get('content-disposition'));
 
         $excel = $this->actingAs($admin)->get(route('admin.summary-report.download', $filters));
         $excel->assertOk();

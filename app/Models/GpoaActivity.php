@@ -35,6 +35,7 @@ class GpoaActivity extends Model
         'facilities_materials',
         'remarks',
         'activity_level',
+        'archived_at',
     ];
 
     protected $casts = [
@@ -43,6 +44,7 @@ class GpoaActivity extends Model
         'start_time' => 'string',
         'end_time' => 'string',
         'date_is_month_only' => 'boolean',
+        'archived_at' => 'datetime',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
     ];
@@ -72,6 +74,10 @@ class GpoaActivity extends Model
 
     public function monitoringStatus(): array
     {
+        if ($this->archived_at) {
+            return ['status' => 'Archived', 'late' => false];
+        }
+
         $letterPresent = filled($this->activityRequest?->communication_letter);
         $report = $this->activityRequest?->report;
         $reportPresent = filled($report?->narrative_report) || filled($report?->narrative_content);

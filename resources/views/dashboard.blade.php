@@ -18,6 +18,7 @@
         ['label' => 'Pending', 'count' => $activityCounts['Pending'] ?? 0, 'classes' => 'bg-slate-100 text-slate-700'],
         ['label' => 'Ongoing', 'count' => $activityCounts['Ongoing'] ?? 0, 'classes' => 'bg-amber-100 text-amber-700'],
         ['label' => 'Completed', 'count' => $activityCounts['Completed'] ?? 0, 'classes' => 'bg-emerald-100 text-emerald-700'],
+        ['label' => 'Archived', 'count' => $activityCounts['Archived'] ?? 0, 'classes' => 'bg-slate-200 text-slate-700'],
         ['label' => 'Late', 'count' => $activityCounts['Late'] ?? 0, 'classes' => 'bg-rose-100 text-rose-700'],
     ];
     $dashboardCards = [
@@ -25,8 +26,9 @@
         ['Completed', $activityCounts['Completed'] ?? 0, 'text-emerald-700'],
         ['Ongoing', $activityCounts['Ongoing'] ?? 0, 'text-sky-700'],
         ['Pending', $activityCounts['Pending'] ?? 0, 'text-amber-700'],
+        ['Archived', $activityCounts['Archived'] ?? 0, 'text-slate-600'],
     ];
-    $dashboardStatusChart = ['labels' => ['Pending', 'Ongoing', 'Completed'], 'values' => [$activityCounts['Pending'] ?? 0, $activityCounts['Ongoing'] ?? 0, $activityCounts['Completed'] ?? 0]];
+    $dashboardStatusChart = ['labels' => ['Pending', 'Ongoing', 'Completed', 'Archived'], 'values' => [$activityCounts['Pending'] ?? 0, $activityCounts['Ongoing'] ?? 0, $activityCounts['Completed'] ?? 0, $activityCounts['Archived'] ?? 0]];
 @endphp
 
 <div class="mb-6 rounded-2xl p-5 md:p-6 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl" style="background: linear-gradient(135deg, {{ $themeColorLight }} 0%, {{ $themeColor }} 100%);">
@@ -90,7 +92,7 @@
     </div>
 @endif
 
-<section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Activity summary">
+<section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Activity summary">
     @foreach($dashboardCards as [$label, $count, $color])
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</p>

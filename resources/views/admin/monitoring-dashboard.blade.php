@@ -9,16 +9,17 @@
         </header>
 
         @php
-            $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed'], 'values' => [$stats['Pending'], $stats['Ongoing'], $stats['Completed']]];
+            $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed', 'Archived'], 'values' => [$stats['Pending'], $stats['Ongoing'], $stats['Completed'], $stats['Archived']]];
             $topProgress = $organizationProgress->sortByDesc('percent')->take(10)->values();
             $organizationChart = ['labels' => $topProgress->pluck('organization')->all(), 'values' => $topProgress->pluck('percent')->all()];
         @endphp
 
-        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Activity monitoring totals">
+        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7" aria-label="Activity monitoring totals">
             @foreach([
             ['Active Organizations', $dashboardData['activeOrganizations'], 'text-sky-800'],
                 ['Total', $stats['Total'], 'text-slate-900'],
                 ['Completed', $stats['Completed'], 'text-emerald-700'],
+                ['Archived', $stats['Archived'], 'text-slate-600'],
                 ['Ongoing', $stats['Ongoing'], 'text-sky-700'],
                 ['Pending', $stats['Pending'], 'text-slate-700'],
                 ['Late', $stats['Late'], 'text-rose-700'],

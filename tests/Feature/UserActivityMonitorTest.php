@@ -68,4 +68,37 @@ class UserActivityMonitorTest extends TestCase
         $response->assertSee('100%');
         $response->assertDontSee('You must have an approved GPOA');
     }
+
+    public function test_archived_activities_are_hidden_by_default_and_shown_by_status_filter(): void
+    {
+        $user = User::factory()->create([
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+        ]);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Archived Field Activity',
+            'date' => '2025-10-15',
+            'archived_at' => now(),
+            'venue' => 'Main Hall',
+            'category' => 'Education',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-monitor.index'))
+            ->assertOk()
+            ->assertDontSee('Archived Field Activity')
+            ->assertSee('Archived');
+
+        $this->get(route('activity-monitor.index', ['status' => 'Archived']))
+            ->assertOk()
+            ->assertSee('Archived Field Activity');
+    }
 }

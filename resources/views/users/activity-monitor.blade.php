@@ -8,6 +8,15 @@
                 <h1 class="text-2xl font-bold text-slate-900">My Activities</h1>
                 <p class="mt-1 text-sm text-slate-500">{{ $term }} / SY {{ $schoolYear }} progress for your organization.</p>
             </div>
+            <form method="GET" action="{{ route('activity-monitor.index') }}" class="flex items-center gap-2">
+                <label for="monitorStatus" class="sr-only">Filter activities by status</label>
+                <select id="monitorStatus" name="status" onchange="this.form.submit()" class="rounded-md border-slate-300 text-sm">
+                    <option value="" @selected($statusFilter === '')>Active statuses</option>
+                    @foreach(['Pending', 'Ongoing', 'Completed', 'Archived'] as $status)
+                        <option value="{{ $status }}" @selected($statusFilter === $status)>{{ $status }}</option>
+                    @endforeach
+                </select>
+            </form>
             <div class="flex items-center gap-3">
                 <a href="{{ route('gpoa.create') }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Add GPOA</a>
                 <a href="{{ route('activity-requests.create') }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Request Activity</a>
@@ -16,15 +25,16 @@
 
         @php
             $summaryCards = [
-                ['Total', $activities->count(), 'text-slate-700'],
+                ['Total', $activities->count() + ($statusFilter === 'Archived' ? 0 : $archivedCount), 'text-slate-700'],
                 ['Completed', $completedCount, 'text-emerald-700'],
                 ['Ongoing', $ongoingCount, 'text-sky-700'],
                 ['Pending', $pendingCount, 'text-amber-700'],
+                ['Archived', $archivedCount, 'text-slate-600'],
             ];
-            $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed'], 'values' => [$pendingCount, $ongoingCount, $completedCount]];
+            $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed', 'Archived'], 'values' => [$pendingCount, $ongoingCount, $completedCount, $archivedCount]];
         @endphp
 
-        <section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Activity summary">
+        <section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Activity summary">
             @foreach($summaryCards as [$label, $count, $color])
                 <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</p>
@@ -93,7 +103,17 @@
                                     <x-status-pill :status="$monitoring['status']" />
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    @if($activity->activityRequest)
+                                    @if($activity->archived_at)
+                                        <form method="POST" action="{{ route('activities.restore', $activity) }}">
+                                            @csrf
+                                            <button type="submit" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-200">Restore</button>
+                                        </form>
+                                    @elseif($activity->monitor_status === 'Completed')
+                                        <form method="POST" action="{{ route('activities.archive', $activity) }}">
+                                            @csrf
+                                            <button type="submit" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Archive</button>
+                                        </form>
+                                    @elseif($activity->activityRequest)
                                         @php($reportDate = $activity->end_date ?? $activity->date)
                                         @php($reportAllowed = $reportDate && $reportDate->lte(today()))
                                         <div class="flex flex-wrap justify-end gap-2">

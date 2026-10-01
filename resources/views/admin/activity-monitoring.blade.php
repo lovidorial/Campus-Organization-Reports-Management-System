@@ -8,12 +8,13 @@
             <a href="{{ route('admin.activities.export', array_merge(['format' => 'excel'], request()->query())) }}" class="inline-flex items-center rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Export CSV</a>
         </header>
 
-        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Monitoring totals">
+        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6" aria-label="Monitoring totals">
             @foreach([
                 ['Total', $stats['Total'], 'text-slate-900'],
                 ['Pending', $stats['Pending'], 'text-slate-700'],
                 ['Ongoing', $stats['Ongoing'], 'text-amber-700'],
                 ['Completed', $stats['Completed'], 'text-emerald-700'],
+                ['Archived', $stats['Archived'], 'text-slate-600'],
                 ['Late', $stats['Late'], 'text-rose-700'],
             ] as [$label, $count, $color])
                 <div class="rounded-lg border border-slate-200 bg-white p-3">
@@ -27,7 +28,7 @@
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Search activity, organization, venue, date" class="min-w-0 rounded-md border-slate-300 text-sm">
             <select name="status" class="min-w-0 rounded-md border-slate-300 text-sm">
                 <option value="">All monitoring statuses</option>
-                @foreach(['Pending', 'Ongoing', 'Completed', 'Late'] as $status)
+                @foreach(['Pending', 'Ongoing', 'Completed', 'Archived', 'Late'] as $status)
                     <option value="{{ $status }}" @selected(request('status') === $status)>{{ $status }}</option>
                 @endforeach
             </select>
@@ -176,6 +177,17 @@
                                     @if($activity->monitoring_late)<div class="mt-1"><x-status-pill status="Late" /></div>@endif
                                     @if($activity->monitoringResult)
                                         <p class="mt-1 max-w-48 whitespace-pre-wrap text-xs text-slate-600" title="{{ $activity->monitoringResult->compliance_notes }}">{{ $activity->monitoringResult->compliance_notes ?: ucfirst(str_replace('_', ' ', $activity->monitoringResult->compliance_status)) }}</p>
+                                    @endif
+                                    @if($activity->monitoring_status === 'Completed')
+                                        <form method="POST" action="{{ route('activities.archive', $activity) }}" class="mt-2">
+                                            @csrf
+                                            <button type="submit" class="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">Archive</button>
+                                        </form>
+                                    @elseif($activity->monitoring_status === 'Archived')
+                                        <form method="POST" action="{{ route('activities.restore', $activity) }}" class="mt-2">
+                                            @csrf
+                                            <button type="submit" class="rounded border border-sky-300 px-2 py-1 text-xs font-semibold text-sky-800 hover:bg-sky-50">Restore</button>
+                                        </form>
                                     @endif
                                     <details class="mt-2">
                                         <summary class="cursor-pointer text-xs font-semibold text-sky-700">{{ $activity->monitoringResult ? 'Edit remark' : 'Add remark' }}</summary>

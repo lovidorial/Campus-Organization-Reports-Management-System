@@ -122,6 +122,7 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
                         'Pending' => 'FFFFEDD5',
                         'Ongoing' => 'FFE0F2FE',
                         'Completed' => 'FFD1FAE5',
+                        'Archived' => 'FFE2E8F0',
                         default => 'FFF3F4F6',
                     };
                     $sheet->getStyle("G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($statusColor);
@@ -270,6 +271,7 @@ class StatusSummarySheet implements FromCollection, ShouldAutoSize, WithEvents, 
                         'Pending' => 'FFFFEDD5',
                         'Ongoing' => 'FFE0F2FE',
                         'Completed' => 'FFD1FAE5',
+                        'Archived' => 'FFE2E8F0',
                         'Late' => 'FFFFE4E6',
                         default => 'FFFFFFFF',
                     };

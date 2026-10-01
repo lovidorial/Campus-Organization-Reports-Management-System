@@ -25,6 +25,7 @@ class GpoaController extends Controller
             'Pending' => 0,
             'Ongoing' => 0,
             'Completed' => 0,
+            'Archived' => 0,
         ];
 
         $activities = GpoaActivity::query()

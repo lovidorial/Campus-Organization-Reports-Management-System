@@ -199,6 +199,101 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertDontSee('Recent Submissions');
     }
 
+    public function test_completed_activity_archive_restore_is_policy_checked_and_filtered(): void
+    {
+        $organization = Organization::create([
+            'name' => 'CICS Student Council',
+            'type' => 'Major Student Organization',
+            'college' => 'CICS',
+            'is_active' => true,
+        ]);
+        $owner = User::factory()->create([
+            'role' => 'user',
+            'organization_id' => $organization->id,
+            'org_name' => $organization->name,
+        ]);
+        $otherOrg = Organization::create([
+            'name' => 'CET Society',
+            'type' => 'Major Student Organization',
+            'college' => 'CET',
+            'is_active' => true,
+        ]);
+        $otherUser = User::factory()->create([
+            'role' => 'user',
+            'organization_id' => $otherOrg->id,
+            'org_name' => $otherOrg->name,
+        ]);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = $this->plannedActivity($gpoa, 'Archivable Completed Activity', '2026-09-01');
+        $request = $this->createRequest($owner, $gpoa, $activity, 'letters/archive.pdf');
+        $activity->update(['activity_request_id' => $request->id]);
+        ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'reports/archive.pdf',
+            'narrative_source' => 'uploaded',
+            'status' => 'approved',
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($otherUser)
+            ->post(route('activities.archive', $activity))
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->post(route('activities.archive', $activity))
+            ->assertRedirect();
+
+        $this->assertSame('Archived', $activity->fresh()->monitoringStatus()['status']);
+        $this->assertFalse($activity->fresh()->monitoringStatus()['late']);
+        $this->assertDatabaseHas('activity_log', [
+            'description' => 'monitoring.activity_archived',
+            'causer_id' => $owner->id,
+        ]);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)
+            ->get(route('admin.activities'))
+            ->assertOk()
+            ->assertDontSee('Archivable Completed Activity');
+        $this->get(route('admin.activities', ['status' => 'Archived']))
+            ->assertOk()
+            ->assertSee('Archivable Completed Activity')
+            ->assertSee('Restore');
+
+        $this->post(route('activities.restore', $activity))->assertRedirect();
+        $this->assertNull($activity->fresh()->archived_at);
+        $this->assertSame('Completed', $activity->fresh()->monitoringStatus()['status']);
+        $this->assertDatabaseHas('activity_log', [
+            'description' => 'monitoring.activity_restored',
+            'causer_id' => $admin->id,
+        ]);
+    }
+
+    public function test_only_completed_activities_can_be_archived(): void
+    {
+        $owner = User::factory()->create(['role' => 'admin']);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = $this->plannedActivity($gpoa, 'Not Completed', '2026-09-01');
+
+        $this->actingAs($owner)
+            ->post(route('activities.archive', $activity))
+            ->assertStatus(422);
+
+        $this->assertNull($activity->fresh()->archived_at);
+    }
+
     private function plannedActivity(Gpoa $gpoa, string $title, string $date): GpoaActivity
     {
         return GpoaActivity::create([

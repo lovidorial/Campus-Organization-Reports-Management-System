@@ -62,6 +62,14 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         $this->assertSame('For Review', $activity->narrativeStatusLabel());
     }
 
+    public function test_archived_activity_is_archived_and_never_late(): void
+    {
+        $activity = $this->createActivity(date: '2024-01-15');
+        $activity->forceFill(['archived_at' => now()])->save();
+
+        $this->assertSame(['status' => 'Archived', 'late' => false], $activity->fresh()->monitoringStatus());
+    }
+
     public function test_it_reports_pending_when_the_linked_request_is_rejected(): void
     {
         $activity = $this->createActivity(

@@ -72,6 +72,8 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         // Activity Requests
         Route::get('/activity-requests', [ActivityRequestController::class, 'index'])->name('activity-requests.index');
         Route::get('/activity-monitor', [ActivityRequestController::class, 'monitor'])->name('activity-monitor.index');
+        Route::post('/activities/{gpoaActivity}/archive', [AdminController::class, 'archiveActivity'])->name('activities.archive');
+        Route::post('/activities/{gpoaActivity}/restore', [AdminController::class, 'restoreActivity'])->name('activities.restore');
         Route::get('/activity-requests/statuses', [ActivityRequestController::class, 'statuses'])->name('activity-requests.statuses');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');

@@ -25,9 +25,10 @@ class AdminController extends Controller
     {
         $activities = $monitoringService->all();
         $stats = $monitoringService->counts($activities);
-        $dashboardData = $monitoringService->dashboardData($activities);
-        $organizationProgress = $monitoringService->organizationProgress($activities);
-        $recentActivities = $activities
+        $visibleActivities = $activities->reject(fn (GpoaActivity $activity) => $activity->archived_at)->values();
+        $dashboardData = $monitoringService->dashboardData($visibleActivities);
+        $organizationProgress = $monitoringService->organizationProgress($visibleActivities);
+        $recentActivities = $visibleActivities
             ->sortByDesc(fn ($activity) => $activity->updated_at?->timestamp ?? 0)
             ->take(8)
             ->values();
@@ -260,6 +261,37 @@ class AdminController extends Controller
 
         return redirect()->route('admin.activities')
             ->with('success', 'Monitoring remark saved.');
+    }
+
+    public function archiveActivity(GpoaActivity $gpoaActivity)
+    {
+        $this->authorize('archive', $gpoaActivity);
+
+        abort_unless(! $gpoaActivity->archived_at && $gpoaActivity->monitoringStatus()['status'] === 'Completed', 422, 'Only completed activities can be archived.');
+
+        $gpoaActivity->update(['archived_at' => now()]);
+
+        activity('monitoring')
+            ->performedOn($gpoaActivity)
+            ->causedBy(auth()->user())
+            ->log('monitoring.activity_archived');
+
+        return back()->with('success', 'Activity archived.');
+    }
+
+    public function restoreActivity(GpoaActivity $gpoaActivity)
+    {
+        $this->authorize('restore', $gpoaActivity);
+        abort_unless($gpoaActivity->archived_at, 422, 'This activity is not archived.');
+
+        $gpoaActivity->update(['archived_at' => null]);
+
+        activity('monitoring')
+            ->performedOn($gpoaActivity)
+            ->causedBy(auth()->user())
+            ->log('monitoring.activity_restored');
+
+        return back()->with('success', 'Activity restored.');
     }
 
     public function approveReport(ActivityReport $activityReport)

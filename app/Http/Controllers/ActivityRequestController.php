@@ -75,7 +75,7 @@ class ActivityRequestController extends Controller
             ->download('activity-request-' . $activityRequest->id . '.pdf');
     }
 
-    public function monitor()
+    public function monitor(Request $request)
     {
         $user = auth()->user();
         $term = $user->term ?? '1st Term';
@@ -89,7 +89,7 @@ class ActivityRequestController extends Controller
             ])
             ->get();
 
-        $activities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->values()->map(function ($activity, $index) use ($gpoa) {
+        $allActivities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->values()->map(function ($activity, $index) use ($gpoa) {
             $status = $activity->monitoringStatus();
             $activity->monitor_status = $status['status'];
             $activity->monitor_late = $status['late'];
@@ -98,12 +98,18 @@ class ActivityRequestController extends Controller
             return $activity;
         }));
 
+        $statusFilter = (string) $request->query('status', '');
+        $activities = $allActivities->filter(fn ($activity) => $statusFilter !== ''
+            ? $activity->monitor_status === $statusFilter
+            : $activity->monitor_status !== 'Archived')->values();
+
         $completedCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Completed')->count();
         $ongoingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Ongoing')->count();
         $pendingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Pending')->count();
+        $archivedCount = $allActivities->filter(fn ($activity) => $activity->monitor_status === 'Archived')->count();
         $progressPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
 
-        return view('users.activity-monitor', compact('activities', 'completedCount', 'ongoingCount', 'pendingCount', 'progressPercent', 'term', 'schoolYear'));
+        return view('users.activity-monitor', compact('activities', 'completedCount', 'ongoingCount', 'pendingCount', 'archivedCount', 'progressPercent', 'term', 'schoolYear', 'statusFilter'));
     }
 
     public function statuses()

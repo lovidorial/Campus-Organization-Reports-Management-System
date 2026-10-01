@@ -50,7 +50,7 @@ class AdminSummaryReportController extends Controller
             'college' => ['nullable', 'string'],
             'term' => ['nullable', 'string'],
             'school_year' => ['nullable', 'string'],
-            'status' => ['nullable', 'in:Pending,Ongoing,Completed,Late'],
+            'status' => ['nullable', 'in:Pending,Ongoing,Completed,Archived,Late'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
@@ -84,7 +84,7 @@ class AdminSummaryReportController extends Controller
             'totalBudget' => $activities->sum(fn ($activity) => (float) ($activity->estimated_budget ?? 0)),
             'organizationSummary' => $this->organizationSummary($activities),
             'categorySummary' => $this->categorySummary($activities),
-            'statusSummary' => collect(['Pending', 'Ongoing', 'Completed', 'Late'])->map(fn (string $status) => [
+            'statusSummary' => collect(['Pending', 'Ongoing', 'Completed', 'Archived', 'Late'])->map(fn (string $status) => [
                 'status' => $status,
                 'activity_count' => $counts[$status],
             ]),
@@ -99,6 +99,7 @@ class AdminSummaryReportController extends Controller
             'pendingCount' => $counts['Pending'],
             'ongoingCount' => $counts['Ongoing'],
             'completedCount' => $counts['Completed'],
+            'archivedCount' => $counts['Archived'],
             'lateCount' => $counts['Late'],
         ];
     }

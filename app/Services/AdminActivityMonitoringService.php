@@ -43,6 +43,10 @@ class AdminActivityMonitoringService
         $schoolYearFilter = (string) $request->query('school_year', '');
 
         return $activities->filter(function (GpoaActivity $activity) use ($search, $statusFilter, $organizationFilter, $categoryFilter, $collegeFilter, $termFilter, $schoolYearFilter, $applySearchAndStatus): bool {
+            if ($statusFilter !== 'Archived' && $activity->archived_at) {
+                return false;
+            }
+
             if ($organizationFilter !== '' && (string) $activity->gpoa?->user_id !== $organizationFilter) {
                 return false;
             }
@@ -90,7 +94,7 @@ class AdminActivityMonitoringService
     public function counts(?Collection $activities = null): array
     {
         $activities ??= $this->all();
-        $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
+        $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Archived' => 0, 'Late' => 0];
 
         foreach ($activities as $activity) {
             $counts[$activity->monitoring_status]++;

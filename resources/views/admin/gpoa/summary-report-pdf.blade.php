@@ -17,6 +17,7 @@
         .pending { background: #fef3c7; color: #92400e; }
         .ongoing { background: #e0f2fe; color: #075985; }
         .completed { background: #d1fae5; color: #065f46; }
+        .archived { background: #e2e8f0; color: #334155; }
         .late { background: #ffe4e6; color: #9f1239; }
         .document-pending { background: #fef3c7; color: #92400e; }
         .document-submitted { background: #d1fae5; color: #065f46; }

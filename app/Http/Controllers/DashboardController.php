@@ -32,9 +32,11 @@ class DashboardController extends Controller
             'Pending' => 0,
             'Ongoing' => 0,
             'Completed' => 0,
+            'Archived' => 0,
             'Late' => 0,
         ];
 
+        $visibleActivities = $activities->filter(fn ($activity) => ! $activity->archived_at)->values();
         foreach ($activities as $activity) {
             $status = $activity->monitoringStatus();
             $label = $status['status'];
@@ -51,8 +53,9 @@ class DashboardController extends Controller
         }
 
         $completedCount = $counts['Completed'];
-        $overallPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
+        $overallPercent = $visibleActivities->isEmpty() ? 0 : (int) round(($completedCount / $visibleActivities->count()) * 100);
         $unreadCount = $user->unreadNotificationsCount();
+        $activities = $visibleActivities;
 
         return view('dashboard', compact(
             'gpoa',

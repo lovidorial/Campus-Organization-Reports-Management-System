@@ -62,7 +62,7 @@
                 <label for="status" class="mb-1 block text-xs font-semibold text-slate-600">Status</label>
                 <select id="status" name="status" class="w-full rounded border-slate-300 px-3 py-2 text-sm">
                     <option value="">All statuses</option>
-                    @foreach(['Pending', 'Ongoing', 'Completed', 'Late'] as $status)
+                    @foreach(['Pending', 'Ongoing', 'Completed', 'Archived', 'Late'] as $status)
                         <option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ $status }}</option>
                     @endforeach
                 </select>
@@ -82,11 +82,12 @@
         </div>
     </form>
 
-    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Activity status counts">
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Activity status counts">
         @foreach([
             ['Pending', $pendingCount],
             ['Ongoing', $ongoingCount],
             ['Completed', $completedCount],
+            ['Archived', $archivedCount],
             ['Late', $lateCount],
         ] as [$label, $count])
             <div class="rounded-lg border border-slate-200 bg-white p-3">
