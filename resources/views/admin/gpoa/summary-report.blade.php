@@ -156,9 +156,7 @@
                         $activityRequest = $activity->activityRequest;
                         $report = $activityRequest?->report;
                         $letterSubmitted = filled($activityRequest?->communication_letter);
-                        $narrativeStatus = $report?->status === 'needs_revision'
-                            ? 'Needs Revision'
-                            : ((filled($report?->narrative_report) || filled($report?->narrative_content)) ? 'Submitted' : 'Pending');
+                        $narrativeStatus = $report?->reviewStatusLabel() ?? 'Pending';
                     @endphp
                     <tr class="border-b align-top">
                         <td class="p-3">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>
@@ -173,11 +171,11 @@
                         </td>
                         <td class="p-3 whitespace-nowrap">
                             <x-status-pill :status="$letterSubmitted ? 'Uploaded' : 'Pending'" />
-                            @if($letterSubmitted)<a href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" target="_blank" class="ml-1 text-xs font-semibold text-sky-700 underline">View</a>@endif
+                            @if($letterSubmitted)<a href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter" class="ml-1 text-xs font-semibold text-sky-700 underline">View</a>@endif
                         </td>
                         <td class="p-3 whitespace-nowrap">
                             <x-status-pill :status="$narrativeStatus" />
-                            @if(filled($report?->narrative_report))<a href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" target="_blank" class="ml-1 text-xs font-semibold text-sky-700 underline">View</a>@endif
+                            @if(filled($report?->narrative_report))<a href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report" class="ml-1 text-xs font-semibold text-sky-700 underline">View</a>@endif
                         </td>
                         <td class="p-3 text-right whitespace-nowrap">PHP {{ number_format((float) ($activity->estimated_budget ?? 0), 2) }}</td>
                     </tr>

@@ -112,6 +112,9 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::get('/summary-report/pdf', [AdminSummaryReportController::class, 'downloadPdf'])->name('summary-report.pdf');
         Route::get('/summary-report/download', [AdminSummaryReportController::class, 'download'])->name('summary-report.download');
         Route::post('/monitoring/{id}/record', [AdminController::class, 'recordMonitoring'])->name('monitoring.record');
+        Route::post('/reports/{activityReport}/approve', [AdminController::class, 'approveReport'])->name('reports.approve');
+        Route::post('/reports/{activityReport}/request-revision', [AdminController::class, 'requestReportRevision'])->name('reports.request-revision');
+        Route::get('/reports/{activityReport}/evidence/{evidence}', [AdminController::class, 'viewReportEvidence'])->name('reports.evidence');
         Route::get('/activities/export/{format}', [AdminController::class, 'exportActivities'])->name('activities.export');
         Route::get('/file/view/{activityId}/{fileType}', [AdminController::class, 'viewFile'])->name('file.view');
         Route::get('/file/download/{activityId}/{fileType}', [AdminController::class, 'downloadFile'])->name('file.download');

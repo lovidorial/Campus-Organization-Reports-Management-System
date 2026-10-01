@@ -300,6 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
     overlay && overlay.addEventListener('click', close);
 });
 </script>
+@include('partials.file-viewer-modal')
 @stack('scripts')
 </body>
 </html>

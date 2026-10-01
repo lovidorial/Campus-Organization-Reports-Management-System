@@ -86,12 +86,11 @@ class GpoaActivity extends Model
         $letterPresent = filled($this->activityRequest?->communication_letter);
         $report = $this->activityRequest?->report;
         $reportPresent = filled($report?->narrative_report) || filled($report?->narrative_content);
-        $needsRevision = $report?->status === 'needs_revision';
         $requestRejected = $this->activityRequest?->status === 'rejected';
 
         $status = $requestRejected || ! $letterPresent
             ? 'Pending'
-            : ($reportPresent && ! $needsRevision ? 'Completed' : 'Ongoing');
+            : ($reportPresent && $report?->status === 'approved' ? 'Completed' : 'Ongoing');
 
         return [
             'status' => $status,
@@ -110,22 +109,20 @@ class GpoaActivity extends Model
     {
         $report = $this->activityRequest?->report;
 
-        if ($report?->status === 'needs_revision') {
-            return 'Needs Revision';
-        }
-
         if (! $report) {
             return 'Pending';
         }
 
+        if (in_array($report->status, ['approved', 'needs_revision', 'rejected'], true)) {
+            return $report->reviewStatusLabel();
+        }
+
         if (filled($report->narrative_report) && ($report->narrative_source === 'generated' || $report->narrative_source === 'uploaded')) {
-            return $report->narrative_source === 'generated'
-                ? 'Created ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)'
-                : 'Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)';
+            return 'For Review';
         }
 
         if (filled($report->narrative_content)) {
-            return 'Created ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)';
+            return 'For Review';
         }
 
         return 'Pending';

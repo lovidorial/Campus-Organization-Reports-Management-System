@@ -186,6 +186,14 @@ class GpoaImportParser
             }
 
             $parsedTime = $this->parseTimeFrameCell((string) ($cells[$columns['time_frame']] ?? ''), $schoolYear);
+            $sdgs = $columns['sdgs'] !== null
+                ? $this->extractSdgs((string) ($cells[$columns['sdgs']] ?? ''))
+                : [];
+            $rowWarnings = $parsedTime['warnings'];
+            if ($columns['sdgs'] !== null && $sdgs === []) {
+                $rowWarnings[] = 'No SDGs detected';
+            }
+
             $rows[] = [
                 'title' => $title,
                 'time_frame' => $parsedTime['time_frame'],
@@ -197,7 +205,8 @@ class GpoaImportParser
                     (string) ($columns['facilities'] !== null ? ($cells[$columns['facilities']] ?? '') : ''),
                     (string) ($columns['delivery'] !== null ? ($cells[$columns['delivery']] ?? '') : '')
                 ),
-                'warnings' => $parsedTime['warnings'],
+                'sdgs' => $sdgs,
+                'warnings' => $rowWarnings,
             ];
         }
 
@@ -221,7 +230,7 @@ class GpoaImportParser
                     continue;
                 }
 
-                $columns = ['title' => null, 'time_frame' => null, 'facilities' => null, 'delivery' => null];
+                $columns = ['title' => null, 'time_frame' => null, 'facilities' => null, 'delivery' => null, 'sdgs' => null];
                 foreach ($headers as $index => $text) {
                     $normalized = mb_strtolower($text);
                     if ($columns['time_frame'] === null && str_contains($normalized, 'time frame')) {
@@ -236,6 +245,9 @@ class GpoaImportParser
                     if ($columns['delivery'] === null && str_contains($normalized, 'delivery strategy')) {
                         $columns['delivery'] = $index;
                     }
+                    if ($columns['sdgs'] === null && (str_contains($normalized, 'sdg') || str_contains($normalized, 'sustainable development goal') || str_contains($normalized, 'sustainable development'))) {
+                        $columns['sdgs'] = $index;
+                    }
                 }
 
                 if ($columns['title'] !== null && $columns['time_frame'] !== null) {
@@ -245,6 +257,69 @@ class GpoaImportParser
         }
 
         return null;
+    }
+
+    private function extractSdgs(string $value): array
+    {
+        $sdgs = [];
+        $addGoal = static function (int $goal) use (&$sdgs): void {
+            if ($goal >= 1 && $goal <= 17) {
+                $sdgs[$goal] = $goal;
+            }
+        };
+
+        if (preg_match_all('/\b(?:sdg|goal)s?\s*#?\s*(\d+)(?:\s*[-–]\s*(\d+))?/iu', $value, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            foreach ($matches as $match) {
+                $first = (int) $match[1][0];
+                $last = isset($match[2]) && $match[2][0] !== '' ? (int) $match[2][0] : $first;
+                if ($last >= $first && $last - $first <= 16) {
+                    for ($goal = $first; $goal <= $last; $goal++) {
+                        $addGoal($goal);
+                    }
+                } else {
+                    $addGoal($first);
+                    $addGoal($last);
+                }
+
+                $offset = $match[0][1] + strlen($match[0][0]);
+                $remainder = substr($value, $offset);
+                while (preg_match('/^\s*(?:,|\/|;|&|\band\b|\bor\b)\s*#?\s*(\d+)/iu', $remainder, $next, PREG_OFFSET_CAPTURE)) {
+                    $addGoal((int) $next[1][0]);
+                    $consumed = strlen($next[0][0]);
+                    $remainder = substr($remainder, $consumed);
+                }
+            }
+        }
+
+        $normalizedValue = mb_strtolower(trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $value) ?? $value));
+        foreach ((array) config('sdg', []) as $goal => $details) {
+            $label = is_array($details) ? (string) ($details['label'] ?? '') : '';
+            if ($label === '') {
+                continue;
+            }
+
+            $normalizedLabel = mb_strtolower(trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $label) ?? $label));
+            if ($normalizedLabel !== '' && preg_match('/(?:^|\s)' . preg_quote($normalizedLabel, '/') . '(?:\s|$)/u', $normalizedValue)) {
+                $addGoal((int) $goal);
+            }
+        }
+
+        $trimmed = trim($value);
+        $containsDate = preg_match('/\b(?:\d{4}[\/.]\d{1,2}[\/.]\d{1,2}|\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4})\b/u', $trimmed) === 1;
+        $containsYear = preg_match('/(?<!\d)\d{4}(?!\d)/u', $trimmed) === 1;
+        $containsAmount = preg_match('/(?:[$₱€£]\s*)?\d+(?:,\d{3})+(?:\.\d+)?|\b\d+\.\d+\b/u', $trimmed) === 1;
+        $numericList = '/^\s*\d+(?:\s*(?:[,\/;&]|\band\b|\bor\b|\s)\s*\d+)*\s*$/iu';
+
+        if (! $containsDate && ! $containsYear && ! $containsAmount && preg_match($numericList, $trimmed)) {
+            preg_match_all('/\d+/u', $trimmed, $numberMatches);
+            foreach ($numberMatches[0] as $number) {
+                $addGoal((int) $number);
+            }
+        }
+
+        ksort($sdgs);
+
+        return array_values($sdgs);
     }
 
     private function readDocxTables(string|false $path): array
@@ -322,7 +397,7 @@ class GpoaImportParser
             foreach ($xpath->query('.//w:t | .//w:tab | .//w:br', $paragraph) as $node) {
                 $parts[] = match ($node->localName) {
                     'tab' => "\t",
-                    'br' => ' ',
+                    'br' => "\n",
                     default => $node->textContent,
                 };
             }
@@ -355,7 +430,18 @@ class GpoaImportParser
                     }
                 }
             }
-            $tables[] = array_map(fn ($row) => array_map(fn ($cell) => (string) ($cell ?? ''), $row), $rows);
+            $textRows = [];
+            foreach ($rows as $rowIndex => $row) {
+                $textRows[] = array_map(function ($cell, $columnIndex) use ($worksheet, $rowIndex): string {
+                    $rawValue = $worksheet->getCell([$columnIndex + 1, $rowIndex + 1])->getValue();
+                    if (is_int($rawValue) || (is_float($rawValue) && floor($rawValue) === $rawValue)) {
+                        return (string) (int) $rawValue;
+                    }
+
+                    return (string) ($cell ?? '');
+                }, $row, array_keys($row));
+            }
+            $tables[] = $textRows;
         }
         $spreadsheet->disconnectWorksheets();
 

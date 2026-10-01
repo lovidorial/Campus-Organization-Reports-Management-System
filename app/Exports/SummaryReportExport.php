@@ -86,9 +86,7 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
             $activity->monitoring_status,
             $activity->monitoring_late ? 'Late' : '—',
             filled($request?->communication_letter) ? 'Uploaded' : 'Pending',
-            $report?->status === 'needs_revision'
-                ? 'Needs Revision'
-                : ((filled($report?->narrative_report) || filled($report?->narrative_content)) ? 'Submitted' : 'Pending'),
+            $report?->reviewStatusLabel() ?? 'Pending',
             (float) ($activity->estimated_budget ?? 0),
         ];
     }

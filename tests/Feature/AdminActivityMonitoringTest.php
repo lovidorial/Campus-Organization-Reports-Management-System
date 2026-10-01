@@ -51,6 +51,7 @@ class AdminActivityMonitoringTest extends TestCase
             'activity_request_id' => $completeRequest->id,
             'narrative_report' => 'reports/complete.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 
@@ -66,7 +67,7 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertSee('Both Documents')
             ->assertDontSee('Awaiting Resubmission')
             ->assertDontSee('Review Report')
-            ->assertDontSee('Approve</button>');
+            ->assertSee('Approve');
 
         $this->actingAs($admin)
             ->get(route('admin.activities', ['status' => 'Completed']))
@@ -178,6 +179,7 @@ class AdminActivityMonitoringTest extends TestCase
             'activity_request_id' => $request->id,
             'narrative_report' => 'reports/dashboard.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 

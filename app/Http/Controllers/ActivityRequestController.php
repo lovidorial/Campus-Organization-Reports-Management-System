@@ -143,6 +143,14 @@ class ActivityRequestController extends Controller
 
         $selectedGpoaId = $request->query('gpoa') ?: $availableGpoas->first()->id;
         $gpoa = $availableGpoas->firstWhere('id', $selectedGpoaId) ?: $availableGpoas->first();
+        $selectedActivityId = null;
+        $requestedActivityId = $request->query('activity');
+        if ($requestedActivityId !== null) {
+            $plannedActivity = $gpoa->activities->firstWhere('id', $requestedActivityId);
+            if ($plannedActivity && ! $plannedActivity->activityRequest()->exists()) {
+                $selectedActivityId = $plannedActivity->id;
+            }
+        }
 
         $categoryCounts = ActivityRequest::where('user_id', auth()->id())
             ->where('gpoa_id', $gpoa->id)
@@ -164,6 +172,7 @@ class ActivityRequestController extends Controller
             'availableGpoas',
             'gpoa',
             'selectedGpoaId',
+            'selectedActivityId',
             'activityLimits',
             'categoryCounts',
             'usedCount',

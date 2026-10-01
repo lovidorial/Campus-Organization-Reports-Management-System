@@ -63,7 +63,7 @@ class DashboardMonitoringFlowTest extends TestCase
         $response->assertOk();
         $response->assertSee('GPOA submitted');
         $response->assertSee('Monitoring Progress');
-        $response->assertSee('Completed');
+        $response->assertSee('Ongoing');
         $response->assertSee('Open Activity Monitor');
         $response->assertDontSee('Summary Report');
         $response->assertDontSee('Submit report');

@@ -56,6 +56,7 @@ class GpoaMonitoringUiTest extends TestCase
             'activity_request_id' => $completedRequest->id,
             'narrative_report' => 'reports/completed.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 
@@ -133,6 +134,7 @@ class GpoaMonitoringUiTest extends TestCase
             'activity_request_id' => $activityRequest->id,
             'narrative_report' => 'reports/community.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 

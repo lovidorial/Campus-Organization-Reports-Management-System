@@ -77,13 +77,11 @@
                     $activityRequest = $activity->activityRequest;
                     $report = $activityRequest?->report;
                     $letterSubmitted = filled($activityRequest?->communication_letter);
-                    $narrativeStatus = $report?->status === 'needs_revision'
-                        ? 'Needs Revision'
-                        : ((filled($report?->narrative_report) || filled($report?->narrative_content)) ? 'Submitted' : 'Pending');
+                    $narrativeStatus = $report?->reviewStatusLabel() ?? 'Pending';
                     $statusClass = strtolower($activity->monitoring_status);
                     $narrativeClass = $narrativeStatus === 'Needs Revision'
                         ? 'revision'
-                        : ($narrativeStatus === 'Submitted' ? 'document-submitted' : 'document-pending');
+                        : (in_array($narrativeStatus, ['Approved', 'For Review'], true) ? 'document-submitted' : 'document-pending');
                 @endphp
                 <tr>
                     <td>{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>

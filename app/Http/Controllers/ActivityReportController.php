@@ -17,7 +17,9 @@ class ActivityReportController extends Controller
     public function create(ActivityRequest $activityRequest)
     {
         $this->authorize('update', $activityRequest);
+        $this->ensureActivityHasPassed($activityRequest);
         $existingReport = $activityRequest->report;
+        $existingReport?->loadMissing('photos');
 
         return view('users.submit-report', compact('activityRequest', 'existingReport'));
     }
@@ -25,8 +27,14 @@ class ActivityReportController extends Controller
     public function store(Request $request, ActivityRequest $activityRequest)
     {
         $this->authorize('update', $activityRequest);
+        $this->ensureActivityHasPassed($activityRequest);
 
         $existingReport = $activityRequest->report;
+        $existingPhotoCount = $existingReport?->photos()->count() ?? 0;
+        $hasExistingPhotos = $existingPhotoCount > 0;
+        $photoRules = $hasExistingPhotos
+            ? 'nullable|array|max:' . max(0, 10 - $existingPhotoCount)
+            : 'required|array|min:1|max:10';
 
         $validated = $request->validate([
             'narrative_source' => 'required|in:uploaded,generated',
@@ -37,8 +45,9 @@ class ActivityReportController extends Controller
             'signed_by_governor' => 'required|accepted',
             'signed_by_advisor' => 'required|accepted',
             'signed_by_dean_president' => 'required|accepted',
-            'photos' => 'nullable|array|max:10',
+            'photos' => $photoRules,
             'photos.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'attendance_sheet' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp,gif|max:10240',
         ]);
 
         if ($validated['narrative_source'] === 'uploaded'
@@ -70,6 +79,11 @@ class ActivityReportController extends Controller
             Storage::disk('private')->put($path, $pdf->output());
         }
 
+        $previousAttendancePath = $existingReport?->attendance_sheet_path;
+        $attendancePath = $request->hasFile('attendance_sheet')
+            ? $request->file('attendance_sheet')->store('activity-documents/attendance-sheets', 'private')
+            : $previousAttendancePath;
+
         if ($existingReport) {
             $previousPath = $existingReport->narrative_report;
             $existingReport->update([
@@ -86,6 +100,7 @@ class ActivityReportController extends Controller
                 'feedback' => null,
                 'reviewed_at' => null,
                 'reviewed_by' => null,
+                'attendance_sheet_path' => $attendancePath,
             ]);
             $report = $existingReport;
 
@@ -107,6 +122,7 @@ class ActivityReportController extends Controller
                 'signed_by_governor' => $validated['signed_by_governor'],
                 'signed_by_advisor' => $validated['signed_by_advisor'],
                 'signed_by_dean_president' => $validated['signed_by_dean_president'],
+                'attendance_sheet_path' => $attendancePath,
             ]);
         }
 
@@ -121,6 +137,10 @@ class ActivityReportController extends Controller
             }
         }
 
+        if ($previousAttendancePath && $previousAttendancePath !== $attendancePath && Storage::disk('private')->exists($previousAttendancePath)) {
+            Storage::disk('private')->delete($previousAttendancePath);
+        }
+
         User::where('role', 'admin')->each(function (User $admin) use ($activityRequest) {
             UserNotification::create([
                 'user_id' => $admin->id,
@@ -132,6 +152,20 @@ class ActivityReportController extends Controller
 
         return redirect()->route('activity-requests.show', $activityRequest)
             ->with('success', 'Narrative report saved.');
+    }
+
+    private function ensureActivityHasPassed(ActivityRequest $activityRequest): void
+    {
+        $activityDate = $activityRequest->end_date
+            ?? $activityRequest->gpoaActivity?->end_date
+            ?? $activityRequest->date
+            ?? $activityRequest->gpoaActivity?->date;
+
+        if ($activityDate && $activityDate->gt(today())) {
+            throw ValidationException::withMessages([
+                'activity_date' => 'You can submit an activity report only after the activity end date has passed.',
+            ]);
+        }
     }
 
 }

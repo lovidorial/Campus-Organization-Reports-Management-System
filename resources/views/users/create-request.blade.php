@@ -90,7 +90,7 @@
                         <select id="gpoa_activity_id" name="gpoa_activity_id">
                             <option value="">Select a planned activity</option>
                             @foreach($gpoa->activities as $activity)
-                                <option value="{{ $activity->id }}" {{ old('gpoa_activity_id') == $activity->id ? 'selected' : '' }}>
+                                <option value="{{ $activity->id }}" {{ old('gpoa_activity_id', $selectedActivityId ?? null) == $activity->id ? 'selected' : '' }}>
                                     {{ $activity->title }} — {{ $activity->date ? $activity->date->format('M d, Y') : 'No date' }} @ {{ $activity->venue ?? 'Venue not set' }}
                                 </option>
                             @endforeach
@@ -311,6 +311,7 @@
                         <div class="form-group">
                             <label for="date">Date *</label>
                             <input id="date" type="date" name="date" value="{{ old('date') }}" min="{{ today()->toDateString() }}" required>
+                            <p id="plannedActivityPastDateWarning" class="mt-1 hidden text-xs text-amber-700">This planned activity date is in the past. Choose today or a future date to submit the request.</p>
                             @error('date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
@@ -457,13 +458,32 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    const plannedActivities = @json($gpoa->activities->keyBy('id'));
+    const plannedActivities = @js($gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
+        'title' => $activity->title,
+        'category' => $activity->category,
+        'sdgs' => $activity->sdgs ?? [],
+        'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
+        'date_is_month_only' => (bool) $activity->date_is_month_only,
+        'end_date' => $activity->end_date?->toDateString() ?? '',
+        'start_time' => $activity->start_time ? substr((string) $activity->start_time, 0, 5) : '',
+        'end_time' => $activity->end_time ? substr((string) $activity->end_time, 0, 5) : '',
+        'venue' => $activity->venue,
+        'objectives' => $activity->objectives,
+        'expected_outcome' => $activity->expected_outcome,
+        'plan_key_strategy' => $activity->plan_key_strategy,
+        'target_participants' => $activity->target_participants,
+        'person_in_charge' => $activity->person_in_charge,
+        'facilities_materials' => $activity->facilities_materials,
+        'estimated_budget' => $activity->estimated_budget,
+        'source_of_funds' => $activity->source_of_funds,
+    ]])->all()) !!};
     const plannedActivitySelect = document.getElementById('gpoa_activity_id');
     const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
     const sdgSummary = document.getElementById('sdgSummary');
     const sdgColors = @json(config('sdg'));
     const sdgValidationError = document.getElementById('sdgValidationError');
     const requestForm = document.getElementById('requestForm');
+    const hasOldInput = @json(session()->hasOldInput());
     const dateInput = document.getElementById('date');
     const endDateInput = document.getElementById('end_date');
     const targetParticipantsInput = document.getElementById('target_participants');
@@ -471,23 +491,37 @@ document.addEventListener('DOMContentLoaded', function(){
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
 
-    function prefillFromPlannedActivity() {
+    function prefillFromPlannedActivity(onlyEmpty = false) {
         const activity = plannedActivities[plannedActivitySelect?.value];
-        if (!activity) return;
+        const pastDateWarning = document.getElementById('plannedActivityPastDateWarning');
+        if (!activity) {
+            pastDateWarning?.classList.add('hidden');
+            return;
+        }
 
         ['title', 'category', 'objectives', 'expected_outcome', 'plan_key_strategy', 'date',
-            'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
+            'end_date', 'start_time', 'end_time', 'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
             'estimated_budget', 'source_of_funds'].forEach(field => {
             const input = document.getElementById(field);
-            if (input && activity[field] !== null && activity[field] !== undefined) {
+            if (input && activity[field] !== null && activity[field] !== undefined && (!onlyEmpty || !input.value)) {
+                if (field === 'category' && !Array.from(input.options).some(option => option.value === String(activity[field]))) {
+                    return;
+                }
                 input.value = activity[field];
             }
         });
 
-        sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = (activity.sdgs || []).map(String).includes(checkbox.value);
-        });
-        updateSdgSummary();
+        if (!onlyEmpty || !hasOldInput) {
+            sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = (activity.sdgs || []).map(String).includes(checkbox.value);
+            });
+            updateSdgSummary();
+        }
+
+        const plannedDate = activity.date ? new Date(`${activity.date}T00:00:00`) : null;
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        pastDateWarning?.classList.toggle('hidden', !plannedDate || plannedDate >= todayDate);
     }
 
     if(!sdgCheckboxContainer) return;
@@ -588,6 +622,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Initialize on page load - update badges to reflect any pre-checked checkboxes
     updateSdgSummary();
+    if (plannedActivitySelect?.value) {
+        prefillFromPlannedActivity(true);
+    }
 
     window.addEventListener('pageshow', function(event) {
         updateSdgSummary();

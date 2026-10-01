@@ -1,8 +1,11 @@
 <x-app-layout>
     <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        @if($errors->has('activity_date'))
+            <div role="alert" class="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>
+        @endif
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900">Activity Monitor</h1>
+                <h1 class="text-2xl font-bold text-slate-900">My Activities</h1>
                 <p class="mt-1 text-sm text-slate-500">{{ $term }} / SY {{ $schoolYear }} progress for your organization.</p>
             </div>
             <div class="flex items-center gap-3">
@@ -91,9 +94,18 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     @if($activity->activityRequest)
-                                        <a href="{{ route('activity-requests.show', $activity->activityRequest) }}" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-200">Open</a>
+                                        @php($reportDate = $activity->end_date ?? $activity->date)
+                                        @php($reportAllowed = $reportDate && $reportDate->lte(today()))
+                                        <div class="flex flex-wrap justify-end gap-2">
+                                            <a href="{{ route('activity-requests.show', $activity->activityRequest) }}" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-200">Open</a>
+                                            @if($reportAllowed)
+                                                <a href="{{ route('activity-reports.create', $activity->activityRequest) }}" class="rounded bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-200">{{ $activity->activityRequest->report ? 'Update report' : 'Submit report' }}</a>
+                                            @else
+                                                <button type="button" disabled title="Available after the activity end date" class="cursor-not-allowed rounded bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400">Report unavailable</button>
+                                            @endif
+                                        </div>
                                     @else
-                                        <a href="{{ route('activity-requests.create', ['gpoa' => $activity->gpoa_id]) }}" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-200">Add</a>
+                                        <a href="{{ route('activity-requests.create', ['gpoa' => $activity->gpoa_id, 'activity' => $activity->id]) }}" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-200">Add</a>
                                     @endif
                                 </td>
                             </tr>

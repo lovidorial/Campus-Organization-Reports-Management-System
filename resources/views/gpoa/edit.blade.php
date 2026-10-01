@@ -307,7 +307,7 @@
                         end_time: row.end_time || '',
                         venue: row.venue || '',
                         category: '',
-                        sdgs: [],
+                        sdgs: Array.isArray(row.sdgs) ? row.sdgs.map(Number) : [],
                         importWarnings: row.warnings || [],
                     }));
                     this.importSummary = `Imported ${this.activities.length} activities`;

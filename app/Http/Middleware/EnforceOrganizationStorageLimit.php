@@ -77,7 +77,10 @@ class EnforceOrganizationStorageLimit
             'profile.update' => [$request->user()?->profile_photo_path],
             'gpoa.update' => [$request->route('gpoa')?->document_path],
             'organization.members.update' => [$request->route('member')?->photo_path],
-            'activity-reports.store' => [$request->route('activityRequest')?->report?->narrative_report],
+            'activity-reports.store' => [
+                $request->route('activityRequest')?->report?->narrative_report,
+                $request->route('activityRequest')?->report?->attendance_sheet_path,
+            ],
             default => [],
         };
     }

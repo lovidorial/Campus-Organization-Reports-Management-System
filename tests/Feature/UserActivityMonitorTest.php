@@ -56,6 +56,7 @@ class UserActivityMonitorTest extends TestCase
             'narrative_report' => 'reports/activity-1.pdf',
             'submitted_at' => now(),
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
         ]);
 
         $response = $this->actingAs($user)->get(route('activity-monitor.index'));

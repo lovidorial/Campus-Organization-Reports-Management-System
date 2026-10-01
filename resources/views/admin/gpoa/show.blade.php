@@ -28,7 +28,7 @@
                         <span class="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-sky-800">GPOA</span>
                         <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Approved</span>
                         @if($gpoa->document_path)
-                            <a href="{{ route('admin.gpoa.document', $gpoa) }}" target="_blank" class="text-xs font-semibold text-emerald-700 underline">View approved document</a>
+                            <a href="{{ route('admin.gpoa.document', $gpoa) }}" data-file-viewer data-title="Approved GPOA Document" class="text-xs font-semibold text-emerald-700 underline">View approved document</a>
                         @endif
                     </div>
 

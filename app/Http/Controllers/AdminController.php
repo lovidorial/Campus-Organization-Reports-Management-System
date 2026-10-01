@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
+use App\Models\ActivityReport;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\MonitoringResult;
@@ -261,6 +262,97 @@ class AdminController extends Controller
 
         return redirect()->route('admin.activities')
             ->with('success', 'Monitoring remark saved.');
+    }
+
+    public function approveReport(ActivityReport $activityReport)
+    {
+        $this->authorize('review', $activityReport);
+
+        $activityReport->update([
+            'status' => 'approved',
+            'reviewed_at' => now(),
+            'reviewed_by' => auth()->id(),
+            'feedback' => null,
+        ]);
+
+        activity('activity_reports')
+            ->performedOn($activityReport)
+            ->causedBy(auth()->user())
+            ->withProperties(['activity_request_id' => $activityReport->activity_request_id])
+            ->log('activity_report.approved');
+
+        $this->notifyReportOrganization($activityReport, 'activity_report_approved', 'Activity Report Approved', 'Your activity report has been approved.');
+
+        return redirect()->route('admin.activities')->with('success', 'Activity report approved.');
+    }
+
+    public function requestReportRevision(Request $request, ActivityReport $activityReport)
+    {
+        $this->authorize('review', $activityReport);
+        $validated = $request->validate([
+            'feedback' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $activityReport->update([
+            'status' => 'needs_revision',
+            'feedback' => $validated['feedback'],
+            'reviewed_at' => now(),
+            'reviewed_by' => auth()->id(),
+        ]);
+
+        activity('activity_reports')
+            ->performedOn($activityReport)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'activity_request_id' => $activityReport->activity_request_id,
+                'feedback' => $validated['feedback'],
+            ])
+            ->log('activity_report.revision_requested');
+
+        $this->notifyReportOrganization($activityReport, 'activity_report_revision_requested', 'Activity Report Needs Revision', $validated['feedback']);
+
+        return redirect()->route('admin.activities')->with('success', 'Revision requested for the activity report.');
+    }
+
+    public function viewReportEvidence(ActivityReport $activityReport, string $evidence)
+    {
+        $this->authorize('review', $activityReport);
+
+        $filePath = match ($evidence) {
+            'narrative' => $activityReport->narrative_report,
+            'attendance' => $activityReport->attendance_sheet_path,
+            default => null,
+        };
+        $disks = ['private', 'public'];
+
+        if (preg_match('/^photo-(\d+)$/', $evidence, $matches)) {
+            $filePath = $activityReport->photos()->whereKey((int) $matches[1])->value('path');
+            $disks = ['public', 'private'];
+        }
+
+        abort_unless($filePath, 404, 'Evidence not found.');
+
+        foreach ($disks as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($filePath)) {
+                return $disk->response($filePath, basename($filePath), ['Content-Disposition' => 'inline']);
+            }
+        }
+
+        abort(404, 'Evidence not found.');
+    }
+
+    private function notifyReportOrganization(ActivityReport $activityReport, string $type, string $title, string $message): void
+    {
+        $userId = $activityReport->activityRequest?->user_id;
+        if ($userId) {
+            \App\Models\UserNotification::create([
+                'user_id' => $userId,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+            ]);
+        }
     }
 
     public function exportActivities(Request $request, $format, AdminActivityMonitoringService $monitoringService)

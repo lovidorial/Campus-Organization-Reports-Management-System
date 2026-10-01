@@ -68,6 +68,7 @@ class AdminSummaryReportTest extends TestCase
             'activity_request_id' => $activityRequest->id,
             'narrative_report' => 'reports/completed.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 
@@ -93,7 +94,7 @@ class AdminSummaryReportTest extends TestCase
             ->assertSee('Completed')
             ->assertSee('Pending')
             ->assertSee('Uploaded')
-            ->assertSee('Submitted')
+            ->assertSee('Approved')
             ->assertSee('Total Activities')
             ->assertSee('Progress');
 

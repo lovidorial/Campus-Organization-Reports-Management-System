@@ -105,6 +105,65 @@ class ActivityRequestAvailabilityTest extends TestCase
         $response->assertDontSee('Preceding Activity');
     }
 
+    public function test_add_from_activity_monitor_prefills_the_planned_activity_and_keeps_its_link(): void
+    {
+        $user = User::factory()->create([
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+        ]);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $plannedActivity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => "Teachers' Day",
+            'category' => 'Symposium',
+            'sdgs' => [4, 13],
+            'date' => '2026-10-03',
+            'end_date' => '2026-10-04',
+            'start_time' => '09:30:00',
+            'end_time' => '15:45:00',
+            'venue' => 'Main Hall',
+            'objectives' => 'Celebrate teachers.',
+            'expected_outcome' => 'Staff feel appreciated.',
+            'plan_key_strategy' => 'Recognition program.',
+            'target_participants' => 'Teachers',
+            'person_in_charge' => 'Student Council',
+            'facilities_materials' => 'Sound system',
+            'estimated_budget' => 2500,
+            'source_of_funds' => 'Organization Funds',
+        ]);
+
+        $monitor = $this->actingAs($user)->get(route('activity-monitor.index'));
+        $monitor->assertOk()
+            ->assertSee(route('activity-requests.create', ['gpoa' => $gpoa->id, 'activity' => $plannedActivity->id]));
+
+        $form = $this->get(route('activity-requests.create', ['gpoa' => $gpoa->id, 'activity' => $plannedActivity->id]));
+        $form->assertOk()
+            ->assertSee('<option value="' . $plannedActivity->id . '" selected>', false)
+            ->assertSee('\\u0022category\\u0022:\\u0022Symposium\\u0022', false)
+            ->assertSee('\\u0022sdgs\\u0022:[4,13]', false)
+            ->assertSee('\\u0022date\\u0022:\\u00222026-10-03\\u0022', false)
+            ->assertSee('\\u0022end_date\\u0022:\\u00222026-10-04\\u0022', false)
+            ->assertSee('\\u0022start_time\\u0022:\\u002209:30\\u0022', false)
+            ->assertSee('\\u0022end_time\\u0022:\\u002215:45\\u0022', false)
+            ->assertSee('\\u0022venue\\u0022:\\u0022Main Hall\\u0022', false);
+
+        $response = $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
+
+        $response->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
+        $this->assertDatabaseHas('activity_requests', [
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $plannedActivity->id,
+            'title' => "Teachers' Day",
+        ]);
+    }
+
     public function test_activity_request_dated_tomorrow_is_accepted(): void
     {
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext(

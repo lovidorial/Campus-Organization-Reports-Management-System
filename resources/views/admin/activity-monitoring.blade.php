@@ -131,7 +131,7 @@
                                 <td class="px-3 py-3 text-xs">
                                     @if($activity->activityRequest?->communication_letter)
                                         @php($letterRoute = route('admin.file.view', [$activity->activityRequest->id, 'communication']))
-                                        <a href="{{ $letterRoute }}" target="_blank" class="font-semibold text-sky-700 underline">View</a>
+                                        <a href="{{ $letterRoute }}" data-file-viewer data-title="Communication Letter" class="font-semibold text-sky-700 underline">View</a>
                                         <a href="{{ route('admin.file.download', [$activity->activityRequest->id, 'communication']) }}" class="ml-2 font-semibold text-sky-700 underline">Download</a>
                                     @else
                                         <span class="text-slate-500">Pending</span>
@@ -139,9 +139,34 @@
                                 </td>
                                 <td class="px-3 py-3 text-xs">
                                     @if($activity->activityRequest?->report)
-                                        <a href="{{ route('admin.file.view', [$activity->activityRequest->id, 'narrative']) }}" target="_blank" class="font-semibold text-sky-700 underline">View</a>
-                                        <a href="{{ route('admin.file.download', [$activity->activityRequest->id, 'narrative']) }}" class="ml-2 font-semibold text-sky-700 underline">Download</a>
-                                        @if($activity->activityRequest->report->narrative_source === 'generated')<span class="block text-slate-500">Created in system</span>@endif
+                                        @php($report = $activity->activityRequest->report)
+                                        <div class="flex flex-wrap gap-x-3 gap-y-1">
+                                            <a href="{{ route('admin.reports.evidence', [$report, 'narrative']) }}" data-file-viewer data-title="Narrative Report" class="font-semibold text-sky-700 underline">Narrative</a>
+                                            @foreach($report->photos as $photo)
+                                                <a href="{{ route('admin.reports.evidence', [$report, 'photo-' . $photo->id]) }}" data-file-viewer data-title="Activity Photo {{ $loop->iteration }}" class="font-semibold text-sky-700 underline">Photo {{ $loop->iteration }}</a>
+                                            @endforeach
+                                            @if($report->attendance_sheet_path)
+                                                <a href="{{ route('admin.reports.evidence', [$report, 'attendance']) }}" data-file-viewer data-title="Attendance Sheet" class="font-semibold text-sky-700 underline">Attendance sheet</a>
+                                            @endif
+                                        </div>
+                                        <p class="mt-1 text-slate-600">{{ $report->reviewStatusLabel() }}</p>
+                                        @if($report->feedback)<p class="mt-1 max-w-64 whitespace-pre-wrap text-rose-700">{{ $report->feedback }}</p>@endif
+                                        @if($report->status !== 'approved')
+                                            <div class="mt-2 flex flex-wrap items-start gap-2">
+                                                <form method="POST" action="{{ route('admin.reports.approve', $report) }}">
+                                                    @csrf
+                                                    <button type="submit" class="rounded bg-emerald-700 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-800">Approve</button>
+                                                </form>
+                                                <details>
+                                                    <summary class="cursor-pointer rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">Request Revision</summary>
+                                                    <form method="POST" action="{{ route('admin.reports.request-revision', $report) }}" class="mt-2 min-w-56 space-y-2">
+                                                        @csrf
+                                                        <textarea name="feedback" rows="3" maxlength="1000" required placeholder="Explain what needs revision" class="w-full rounded border-slate-300 text-xs"></textarea>
+                                                        <button type="submit" class="rounded bg-amber-700 px-2 py-1 text-xs font-semibold text-white hover:bg-amber-800">Send Feedback</button>
+                                                    </form>
+                                                </details>
+                                            </div>
+                                        @endif
                                     @else
                                         <span class="text-slate-500">Pending</span>
                                     @endif
