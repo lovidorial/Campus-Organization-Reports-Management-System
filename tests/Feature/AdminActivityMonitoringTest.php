@@ -57,17 +57,23 @@ class AdminActivityMonitoringTest extends TestCase
 
         $page = $this->actingAs($admin)->get(route('admin.activities'));
         $page->assertOk()
-            ->assertSee('Organization GPOA Progress')
+            ->assertSee('Organization progress')
             ->assertSee('Pending')
             ->assertSee('Ongoing')
             ->assertSee('Completed')
             ->assertSee('Late')
-            ->assertSee('No Documents')
+            ->assertDontSee('No Documents')
             ->assertSee('Letter Only')
             ->assertSee('Both Documents')
             ->assertDontSee('Awaiting Resubmission')
             ->assertDontSee('Review Report')
-            ->assertSee('Approve');
+            ->assertSee('View');
+
+        $this->actingAs($admin)
+            ->get(route('admin.activities', ['tab' => 'todo']))
+            ->assertOk()
+            ->assertSee('No Documents')
+            ->assertDontSee('Letter Only');
 
         $this->actingAs($admin)
             ->get(route('admin.activities', ['status' => 'Completed']))
@@ -79,19 +85,19 @@ class AdminActivityMonitoringTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.activities', ['status' => 'Late']))
             ->assertOk()
-            ->assertSee('No Documents')
+            ->assertSee('No recent submissions match these filters.')
             ->assertDontSee('Both Documents');
 
         $this->actingAs($admin)
             ->get(route('admin.activities', ['college' => 'CET', 'term' => '2nd Term', 'school_year' => '2027-2028']))
             ->assertOk()
-            ->assertSee('Other Term Activity')
+            ->assertSee('No recent submissions match these filters.')
             ->assertDontSee('No Documents');
 
         $this->actingAs($admin)
             ->get(route('admin.activities', ['organization' => $user->id, 'category' => 'Academic']))
             ->assertOk()
-            ->assertSee('Organization GPOA Progress')
+            ->assertSee('Organization progress')
             ->assertSee('Both Documents')
             ->assertDontSee('Other Term Activity')
             ->assertSee('33%');
@@ -292,6 +298,85 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertStatus(422);
 
         $this->assertNull($activity->fresh()->archived_at);
+    }
+
+    public function test_admin_recent_activity_is_ordered_by_latest_submission_time(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['org_name' => 'CICS Student Council']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+
+        foreach ([
+            ['Oldest Submission', '2026-09-01', '2026-09-01 08:00:00'],
+            ['Newest Submission', '2026-08-01', '2026-09-03 10:00:00'],
+            ['Middle Submission', '2026-09-02', '2026-09-02 09:00:00'],
+        ] as [$title, $date, $submittedAt]) {
+            $activity = $this->plannedActivity($gpoa, $title, $date);
+            $activityRequest = $this->createRequest($user, $gpoa, $activity, 'letters/' . str_replace(' ', '-', $title) . '.pdf');
+            $activityRequest->update(['communication_letter_signed_at' => $submittedAt]);
+            $activity->update(['activity_request_id' => $activityRequest->id]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.activities'))
+            ->assertOk()
+            ->assertSeeInOrder(['Newest Submission', 'Middle Submission', 'Oldest Submission']);
+    }
+
+    public function test_admin_not_yet_started_tab_excludes_submitted_activities(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['org_name' => 'CICS Student Council']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $submitted = $this->plannedActivity($gpoa, 'Letter Already Submitted', '2026-09-01');
+        $activityRequest = $this->createRequest($user, $gpoa, $submitted, 'letters/submitted.pdf');
+        $activityRequest->update(['communication_letter_signed_at' => now()]);
+        $submitted->update(['activity_request_id' => $activityRequest->id]);
+        $this->plannedActivity($gpoa, 'No Documents Yet', '2026-10-01');
+
+        $this->actingAs($admin)
+            ->get(route('admin.activities', ['tab' => 'todo']))
+            ->assertOk()
+            ->assertSee('No Documents Yet')
+            ->assertDontSee('Letter Already Submitted');
+    }
+
+    public function test_admin_activity_pagination_preserves_active_filters(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['org_name' => 'Searchable Council']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '2nd Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        for ($number = 1; $number <= 11; $number++) {
+            $activity = $this->plannedActivity($gpoa, "Needle Activity {$number}", today()->subDays($number)->toDateString());
+            $activityRequest = $this->createRequest($user, $gpoa, $activity, "letters/needle-{$number}.pdf");
+            $activityRequest->update(['communication_letter_signed_at' => now()->subMinutes($number)]);
+            $activity->update(['activity_request_id' => $activityRequest->id]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.activities', ['search' => 'Needle', 'term' => '2nd Term', 'tab' => 'recent']))
+            ->assertOk()
+            ->assertSee('page=2', false)
+            ->assertSee('search=Needle', false)
+            ->assertSee('term=2nd', false);
     }
 
     private function plannedActivity(Gpoa $gpoa, string $title, string $date): GpoaActivity

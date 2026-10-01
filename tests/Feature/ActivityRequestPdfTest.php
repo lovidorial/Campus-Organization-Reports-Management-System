@@ -85,7 +85,7 @@ class ActivityRequestPdfTest extends TestCase
         $monitoring = $this->actingAs($admin)->get(route('admin.activities'));
 
         $monitoring->assertOk()
-            ->assertSee('No planned activities match these filters.')
+            ->assertSee('No recent submissions match these filters.')
             ->assertDontSee('Approve</button>')
             ->assertDontSee('Review Report');
     }

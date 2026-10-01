@@ -1,140 +1,135 @@
 <x-app-layout>
-    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    @php
+        $tabQuery = request()->query();
+        unset($tabQuery['status'], $tabQuery['page']);
+        $submittedUrl = route('activity-monitor.index', array_merge($tabQuery, ['tab' => 'submitted']));
+        $todoUrl = route('activity-monitor.index', array_merge($tabQuery, ['tab' => 'todo']));
+    @endphp
+
+    <main class="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
         @if($errors->has('activity_date'))
-            <div role="alert" class="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>
+            <div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>
         @endif
-        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900">My Activities</h1>
-                <p class="mt-1 text-sm text-slate-500">{{ $term }} / SY {{ $schoolYear }} progress for your organization.</p>
+                <h1 class="text-2xl font-bold text-slate-900">Activity Monitor</h1>
+                <p class="mt-1 text-sm text-slate-500">{{ $term }} / SY {{ $schoolYear }} · {{ auth()->user()->org_name }}</p>
             </div>
-            <form method="GET" action="{{ route('activity-monitor.index') }}" class="flex items-center gap-2">
-                <label for="monitorStatus" class="sr-only">Filter activities by status</label>
-                <select id="monitorStatus" name="status" onchange="this.form.submit()" class="rounded-md border-slate-300 text-sm">
-                    <option value="" @selected($statusFilter === '')>Active statuses</option>
-                    @foreach(['Pending', 'Ongoing', 'Completed', 'Archived'] as $status)
-                        <option value="{{ $status }}" @selected($statusFilter === $status)>{{ $status }}</option>
-                    @endforeach
+            <div class="flex gap-2">
+                <a href="{{ route('gpoa.create') }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">GPOA</a>
+                <a href="{{ route('activity-requests.create') }}" class="rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Request activity</a>
+            </div>
+        </header>
+
+        <nav class="flex border-b border-slate-200" aria-label="Activity list">
+            <a href="{{ $submittedUrl }}" @class(['border-b-2 px-4 py-2 text-sm font-semibold', 'border-sky-700 text-sky-800' => $tab === 'submitted', 'border-transparent text-slate-600 hover:text-slate-900' => $tab !== 'submitted'])>Submitted</a>
+            <a href="{{ $todoUrl }}" @class(['border-b-2 px-4 py-2 text-sm font-semibold', 'border-sky-700 text-sky-800' => $tab === 'todo', 'border-transparent text-slate-600 hover:text-slate-900' => $tab !== 'todo'])>To do</a>
+        </nav>
+
+        <form method="GET" action="{{ route('activity-monitor.index') }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
+            <input type="hidden" name="tab" value="{{ $tab }}">
+            <input type="search" name="search" value="{{ $search }}" placeholder="Search your activities" class="min-w-[180px] flex-1 rounded-md border-slate-300 text-sm">
+            @if($tab === 'submitted')
+                @foreach($statusCounts as $label => $count)
+                    <button type="submit" name="status" value="{{ $label === 'All' ? '' : $label }}" @class(['rounded-full border px-3 py-1.5 text-xs font-semibold', 'border-sky-700 bg-sky-700 text-white' => ($label === 'All' && $statusFilter === '') || $statusFilter === $label, 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' => !(($label === 'All' && $statusFilter === '') || $statusFilter === $label)])>{{ $label }} <span class="opacity-75">{{ $count }}</span></button>
+                @endforeach
+                <select name="sort" aria-label="Sort submissions" onchange="this.form.submit()" class="rounded-md border-slate-300 text-sm">
+                    <option value="latest" @selected($sort !== 'activity_date')>Latest submission</option>
+                    <option value="activity_date" @selected($sort === 'activity_date')>Activity date</option>
                 </select>
-            </form>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('gpoa.create') }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Add GPOA</a>
-                <a href="{{ route('activity-requests.create') }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Request Activity</a>
-            </div>
-        </div>
-
-        @php
-            $summaryCards = [
-                ['Total', $activities->count() + ($statusFilter === 'Archived' ? 0 : $archivedCount), 'text-slate-700'],
-                ['Completed', $completedCount, 'text-emerald-700'],
-                ['Ongoing', $ongoingCount, 'text-sky-700'],
-                ['Pending', $pendingCount, 'text-amber-700'],
-                ['Archived', $archivedCount, 'text-slate-600'],
-            ];
-            $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed', 'Archived'], 'values' => [$pendingCount, $ongoingCount, $completedCount, $archivedCount]];
-        @endphp
-
-        <section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Activity summary">
-            @foreach($summaryCards as [$label, $count, $color])
-                <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</p>
-                    <p class="mt-2 text-2xl font-bold {{ $color }}">{{ $count }}</p>
-                </article>
-            @endforeach
-        </section>
-
-        <div class="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="mb-2 flex items-center justify-between text-sm text-slate-600">
-                    <span>Overall GPOA progress</span>
-                    <span class="font-semibold text-slate-800">{{ $progressPercent }}%</span>
-                </div>
-                <div class="h-3 w-full overflow-hidden rounded-full bg-slate-200">
-                    <div class="h-full rounded-full bg-emerald-500 transition-all" style="width: {{ $progressPercent }}%"></div>
-                </div>
-                <p class="mt-2 text-xs text-slate-500">{{ $completedCount }} Completed · {{ $ongoingCount }} Ongoing · {{ $pendingCount }} Pending</p>
-            </section>
-            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Activity status chart">
-                <div class="relative h-56">
-                    <canvas data-chart-type="doughnut" data-center-text="{{ $progressPercent }}%" data-chart-data='@json($statusChart)' role="img" aria-label="Activity status doughnut chart"></canvas>
-                </div>
-            </section>
-        </div>
+            @endif
+            <button type="submit" class="rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Apply</button>
+            <a href="{{ route('activity-monitor.index', ['tab' => $tab]) }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
+        </form>
 
         @if($activities->isEmpty())
-            <section class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm">
-                <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-sky-700">
-                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3h8l4 4v14H4V3h4Zm0 0v5h8V3M8 13h8m-8 4h5" /></svg>
-                </span>
-                <h2 class="mt-4 text-base font-semibold text-slate-900">No activities to monitor yet</h2>
-                <p class="mt-1 text-sm text-slate-500">Add your approved plan’s activities to start tracking progress.</p>
-                <a href="{{ route('gpoa.create') }}" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Add GPOA</a>
-            </section>
+            @if($tab === 'submitted' && $pendingActivities->isNotEmpty())
+                <section class="rounded-lg border border-dashed border-slate-300 bg-white px-5 py-8">
+                    <h2 class="font-semibold text-slate-900">No submissions yet</h2>
+                    <p class="mt-1 text-sm text-slate-500">Start one of these planned activities to begin monitoring.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        @foreach($pendingActivities as $activity)
+                            <a href="{{ route('activity-requests.create', ['gpoa' => $activity->gpoa_id, 'activity' => $activity->id]) }}" class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100">{{ $activity->title }}</a>
+                        @endforeach
+                    </div>
+                </section>
+            @else
+                <section class="rounded-lg border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
+                    <h2 class="font-semibold text-slate-900">{{ $tab === 'todo' ? 'You are all caught up' : 'No submissions yet' }}</h2>
+                    <p class="mt-1 text-sm text-slate-500">{{ $tab === 'todo' ? 'No planned activities are waiting for their first document.' : 'Activities will appear here when you upload a communication letter or report.' }}</p>
+                    @if($tab === 'todo')<a href="{{ route('gpoa.index') }}" class="mt-4 inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">View GPOA</a>@endif
+                </section>
+            @endif
         @else
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="min-w-[760px] w-full text-sm">
-                    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                        <tr>
-                            <th class="px-4 py-3">Activity</th>
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3">Venue</th>
-                            <th class="px-4 py-3">Communication Letter</th>
-                            <th class="px-4 py-3">Narrative Report</th>
-                            <th class="px-4 py-3">Status</th>
-                            <th class="px-4 py-3 text-right">Action</th>
-                        </tr>
-                    </thead>
+            <div class="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Activity</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Documents</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Next action</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse($activities as $activity)
-                            @php($monitoring = $activity->monitoringStatus())
+                        @foreach($activities as $activity)
+                            @php
+                                $activityRequest = $activity->activityRequest;
+                                $letterPresent = filled($activityRequest?->communication_letter);
+                                $reportPresent = $activityRequest?->report && (filled($activityRequest->report->narrative_report) || filled($activityRequest->report->narrative_content));
+                                $viewUrl = $activityRequest ? route('activity-requests.show', $activityRequest) : route('activity-requests.create', ['gpoa' => $activity->gpoa_id, 'activity' => $activity->id]);
+                                $reportDate = $activity->end_date ?? $activity->date;
+                            @endphp
                             <tr>
-                                <td class="px-4 py-3">
-                                    <div class="font-semibold text-slate-900">Activity #{{ $activity->activity_number }}: {{ $activity->title }}</div>
-                                    @if($activity->monitor_late)
-                                        <div class="mt-1"><x-status-pill status="Late" /></div>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 text-slate-600">{{ $activity->date?->format('M d, Y') ?? '—' }}</td>
-                                <td class="px-4 py-3 text-slate-600">{{ $activity->venue ?: '—' }}</td>
-                                <td class="px-4 py-3 text-slate-600">{{ $activity->letterStatusLabel() }}</td>
-                                <td class="px-4 py-3 text-slate-600">{{ $activity->narrativeStatusLabel() }}</td>
-                                <td class="px-4 py-3">
-                                    <x-status-pill :status="$monitoring['status']" />
-                                </td>
+                                <td class="px-4 py-3"><div class="font-semibold text-slate-900">{{ $activity->title }}</div>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" datetime="{{ $activity->last_submitted_at->toIso8601String() }}" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block text-xs text-slate-500">to {{ $activity->end_date->format('M j, Y') }}</span>@endif</td>
+                                <td class="px-4 py-3"><div class="flex gap-2"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="text-xs {{ $letterPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $letterPresent ? '●' : '○' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="text-xs {{ $reportPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $reportPresent ? '●' : '○' }} Report</span></div></td>
+                                <td class="px-4 py-3"><x-status-pill :status="$activity->monitor_status" /> @if($activity->monitor_late)<span class="ml-1"><x-status-pill status="Late" /></span>@endif</td>
                                 <td class="px-4 py-3 text-right">
                                     @if($activity->archived_at)
-                                        <form method="POST" action="{{ route('activities.restore', $activity) }}">
-                                            @csrf
-                                            <button type="submit" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-200">Restore</button>
-                                        </form>
+                                        <form method="POST" action="{{ route('activities.restore', $activity) }}">@csrf<button class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Restore</button></form>
                                     @elseif($activity->monitor_status === 'Completed')
-                                        <form method="POST" action="{{ route('activities.archive', $activity) }}">
-                                            @csrf
-                                            <button type="submit" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Archive</button>
-                                        </form>
-                                    @elseif($activity->activityRequest)
-                                        @php($reportDate = $activity->end_date ?? $activity->date)
-                                        @php($reportAllowed = $reportDate && $reportDate->lte(today()))
-                                        <div class="flex flex-wrap justify-end gap-2">
-                                            <a href="{{ route('activity-requests.show', $activity->activityRequest) }}" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-200">Open</a>
-                                            @if($reportAllowed)
-                                                <a href="{{ route('activity-reports.create', $activity->activityRequest) }}" class="rounded bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-200">{{ $activity->activityRequest->report ? 'Update report' : 'Submit report' }}</a>
-                                            @else
-                                                <button type="button" disabled title="Available after the activity end date" class="cursor-not-allowed rounded bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400">Report unavailable</button>
-                                            @endif
+                                        <form method="POST" action="{{ route('activities.archive', $activity) }}">@csrf<button class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Archive</button></form>
+                                    @elseif(!$activityRequest)
+                                        <a href="{{ $viewUrl }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Request activity</a>
+                                    @elseif(!$letterPresent)
+                                        <a href="{{ $viewUrl }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
+                                    @elseif($activityRequest->report?->status === 'needs_revision')
+                                        <a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
+                                    @elseif(!$reportPresent && $reportDate && $reportDate->gt(today()))
+                                        <div class="flex flex-col items-end gap-1">
+                                            <button type="button" disabled class="cursor-not-allowed rounded bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400">Report unavailable</button>
+                                            <span class="text-[10px] text-slate-500">Available after the activity end date</span>
                                         </div>
+                                    @elseif(!$reportPresent && $reportDate && $reportDate->lte(today()))
+                                        <a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                                     @else
-                                        <a href="{{ route('activity-requests.create', ['gpoa' => $activity->gpoa_id, 'activity' => $activity->id]) }}" class="rounded bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-200">Add</a>
+                                        <a href="{{ $viewUrl }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</a>
                                     @endif
                                 </td>
                             </tr>
-                        @empty
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
-        </div>
+
+            <div class="space-y-3 md:hidden">
+                @foreach($activities as $activity)
+                    @php
+                        $activityRequest = $activity->activityRequest;
+                        $letterPresent = filled($activityRequest?->communication_letter);
+                        $reportPresent = $activityRequest?->report && (filled($activityRequest->report->narrative_report) || filled($activityRequest->report->narrative_content));
+                        $reportDate = $activity->end_date ?? $activity->date;
+                    @endphp
+                    <article class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+                        <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activity->title }}</h2><p class="text-sm text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitor_status" /></div>
+                        <div class="flex items-center justify-between"><div class="flex gap-2"><span class="text-xs {{ $letterPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $letterPresent ? '●' : '○' }} Letter</span><span class="text-xs {{ $reportPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $reportPresent ? '●' : '○' }} Report</span></div>
+                            @if($activity->archived_at)<form method="POST" action="{{ route('activities.restore', $activity) }}">@csrf<button class="rounded border px-3 py-1.5 text-xs font-semibold">Restore</button></form>
+                            @elseif($activity->monitor_status === 'Completed')<form method="POST" action="{{ route('activities.archive', $activity) }}">@csrf<button class="rounded border px-3 py-1.5 text-xs font-semibold">Archive</button></form>
+                            @elseif(!$activityRequest)<a href="{{ route('activity-requests.create', ['gpoa' => $activity->gpoa_id, 'activity' => $activity->id]) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Request activity</a>
+                            @elseif(!$letterPresent)<a href="{{ route('activity-requests.show', $activityRequest) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
+                            @elseif($activityRequest->report?->status === 'needs_revision')<a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
+                            @elseif(!$reportPresent && $reportDate && $reportDate->gt(today()))<div class="flex flex-col items-end gap-1"><button type="button" disabled class="cursor-not-allowed rounded bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400">Report unavailable</button><span class="text-[10px] text-slate-500">Available after the activity end date</span></div>
+                            @elseif(!$reportPresent && $reportDate && $reportDate->lte(today()))<a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
+                            @else<a href="{{ route('activity-requests.show', $activityRequest) }}" class="rounded border px-3 py-1.5 text-xs font-semibold">View</a>@endif
+                        </div>
+                    </article>
+                @endforeach
+            </div>
         @endif
-    </div>
+        <div>{{ $activities->links() }}</div>
+    </main>
 </x-app-layout>

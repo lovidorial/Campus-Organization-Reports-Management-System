@@ -32,15 +32,31 @@ class AdminController extends Controller
     public function monitor(Request $request, AdminActivityMonitoringService $monitoringService)
     {
         $allActivities = $monitoringService->all();
+        $tab = $request->query('tab', 'recent') === 'todo' ? 'todo' : 'recent';
+        $countRequest = $request->duplicate();
+        $countRequest->query->remove('status');
+        $filterBase = $monitoringService->filtered($countRequest, $allActivities);
+        $recentForCounts = $filterBase->filter(fn (GpoaActivity $activity) => $activity->last_submitted_at !== null)->values();
+        $archivedCountRequest = $request->duplicate();
+        $archivedCountRequest->query->set('status', 'Archived');
+        $archivedCount = $monitoringService->filtered($archivedCountRequest, $allActivities)
+            ->filter(fn (GpoaActivity $activity) => $activity->archived_at)
+            ->count();
+        $statusCounts = [
+            'All' => $recentForCounts->count(),
+            'Pending' => $recentForCounts->where('monitoring_status', 'Pending')->count(),
+            'Ongoing' => $recentForCounts->where('monitoring_status', 'Ongoing')->count(),
+            'Completed' => $recentForCounts->where('monitoring_status', 'Completed')->count(),
+            'Late' => $recentForCounts->where('monitoring_late', true)->count(),
+            'Archived' => $archivedCount,
+        ];
         $filteredActivities = $monitoringService->filtered($request, $allActivities);
-        $page = LengthAwarePaginator::resolveCurrentPage();
-        $activities = new LengthAwarePaginator(
-            $filteredActivities->forPage($page, 15)->values(),
-            $filteredActivities->count(),
-            15,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
+        $selectedTabActivities = $tab === 'todo'
+            ? $filteredActivities->filter(fn (GpoaActivity $activity) => $activity->last_submitted_at === null && ! $activity->archived_at)->sortBy(fn (GpoaActivity $activity) => $activity->date?->timestamp ?? PHP_INT_MAX)->values()
+            : $filteredActivities->filter(fn (GpoaActivity $activity) => $request->query('status') === 'Archived'
+                ? (bool) $activity->archived_at
+                : $activity->last_submitted_at !== null)->values();
+        $activities = $monitoringService->paginate($selectedTabActivities, $request);
         $stats = $monitoringService->counts($allActivities);
         $organizations = $allActivities->pluck('gpoa.user')->filter()->unique('id')->sortBy('org_name')->values();
         $categories = $allActivities->pluck('category')->filter()->unique()->sort()->values();
@@ -51,7 +67,7 @@ class AdminController extends Controller
         $organizationProgress = $monitoringService->organizationProgress($progressActivities);
 
         return view('admin.activity-monitoring', compact(
-            'activities', 'stats', 'organizations', 'categories', 'colleges', 'terms', 'schoolYears', 'organizationProgress'
+            'activities', 'stats', 'organizations', 'categories', 'colleges', 'terms', 'schoolYears', 'organizationProgress', 'tab', 'statusCounts'
         ));
     }
 

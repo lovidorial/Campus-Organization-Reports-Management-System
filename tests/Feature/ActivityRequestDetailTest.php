@@ -92,7 +92,7 @@ class ActivityRequestDetailTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.activities'))
             ->assertOk()
-            ->assertSee('No planned activities match these filters.');
+            ->assertSee('No recent submissions match these filters.');
     }
 
     public function test_users_cannot_view_another_users_request(): void

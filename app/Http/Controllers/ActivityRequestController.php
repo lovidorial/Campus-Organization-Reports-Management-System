@@ -11,6 +11,7 @@ use App\Services\VenueAvailabilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 
 class ActivityRequestController extends Controller
@@ -91,25 +92,83 @@ class ActivityRequestController extends Controller
 
         $allActivities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->values()->map(function ($activity, $index) use ($gpoa) {
             $status = $activity->monitoringStatus();
+            $activityRequest = $activity->activityRequest;
+            $letterSubmittedAt = filled($activityRequest?->communication_letter)
+                ? ($activityRequest->communication_letter_signed_at ?? $activityRequest->updated_at)
+                : null;
+            $reportSubmittedAt = $activityRequest?->report?->submitted_at;
+            $requestUpdatedAt = $activityRequest?->updated_at;
+            $lastSubmittedAt = collect([$letterSubmittedAt, $reportSubmittedAt, $requestUpdatedAt])
+                ->filter()
+                ->sortByDesc(fn ($submittedAt) => $submittedAt->timestamp)
+                ->first();
             $activity->monitor_status = $status['status'];
             $activity->monitor_late = $status['late'];
+            $activity->last_submitted_at = $lastSubmittedAt;
             $activity->monitor_gpoa = $gpoa;
             $activity->activity_number = $index + 1;
             return $activity;
         }));
 
+        $tab = $request->query('tab', 'submitted') === 'todo' ? 'todo' : 'submitted';
+        $sort = $request->query('sort', 'latest');
         $statusFilter = (string) $request->query('status', '');
-        $activities = $allActivities->filter(fn ($activity) => $statusFilter !== ''
-            ? $activity->monitor_status === $statusFilter
-            : $activity->monitor_status !== 'Archived')->values();
+        $search = mb_strtolower(trim((string) $request->query('search', '')));
+        $searchMatches = fn ($activity) => $search === '' || str_contains(mb_strtolower(implode(' ', array_filter([
+            $activity->title,
+            $activity->venue,
+            $activity->date?->toDateString(),
+        ]))), $search);
+        $submittedActivities = $allActivities->filter(fn ($activity) => $activity->last_submitted_at !== null && ! $activity->archived_at && $searchMatches($activity))->values();
+        $archivedActivities = $allActivities->filter(fn ($activity) => $activity->monitor_status === 'Archived' && $searchMatches($activity))->values();
+        $statusCounts = [
+            'All' => $submittedActivities->count(),
+            'Pending' => $submittedActivities->where('monitor_status', 'Pending')->count(),
+            'Ongoing' => $submittedActivities->where('monitor_status', 'Ongoing')->count(),
+            'Completed' => $submittedActivities->where('monitor_status', 'Completed')->count(),
+            'Late' => $submittedActivities->where('monitor_late', true)->count(),
+            'Archived' => $archivedActivities->count(),
+        ];
+        $tabActivities = $tab === 'todo'
+            ? $allActivities->filter(fn ($activity) => $activity->last_submitted_at === null && ! $activity->archived_at && $searchMatches($activity))->values()
+            : ($statusFilter === 'Archived'
+                ? $archivedActivities
+                : $submittedActivities);
 
-        $completedCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Completed')->count();
-        $ongoingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Ongoing')->count();
-        $pendingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Pending')->count();
-        $archivedCount = $allActivities->filter(fn ($activity) => $activity->monitor_status === 'Archived')->count();
+        if ($tab === 'todo') {
+            $tabActivities = $tabActivities->sortBy(fn ($activity) => $activity->date?->timestamp ?? PHP_INT_MAX)->values();
+        } elseif ($sort === 'activity_date') {
+            $tabActivities = $tabActivities->sortByDesc(fn ($activity) => $activity->date?->timestamp ?? 0)->values();
+        } else {
+            $tabActivities = $tabActivities->sortByDesc(fn ($activity) => $activity->last_submitted_at?->timestamp ?? 0)->values();
+        }
+
+        if ($statusFilter !== '' && $statusFilter !== 'Archived' && $tab === 'submitted') {
+            $tabActivities = $statusFilter === 'Late'
+                ? $tabActivities->where('monitor_late', true)->values()
+                : $tabActivities->where('monitor_status', $statusFilter)->values();
+        }
+
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $activities = new LengthAwarePaginator(
+            $tabActivities->forPage($page, 10)->values(),
+            $tabActivities->count(),
+            10,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $pendingActivities = $allActivities
+            ->filter(fn ($activity) => $activity->last_submitted_at === null && ! $activity->archived_at && $searchMatches($activity))
+            ->values();
+
+        $completedCount = $statusCounts['Completed'];
+        $ongoingCount = $statusCounts['Ongoing'];
+        $pendingCount = $statusCounts['Pending'];
+        $archivedCount = $statusCounts['Archived'];
         $progressPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
 
-        return view('users.activity-monitor', compact('activities', 'completedCount', 'ongoingCount', 'pendingCount', 'archivedCount', 'progressPercent', 'term', 'schoolYear', 'statusFilter'));
+        return view('users.activity-monitor', compact('activities', 'pendingActivities', 'completedCount', 'ongoingCount', 'pendingCount', 'archivedCount', 'progressPercent', 'term', 'schoolYear', 'statusFilter', 'statusCounts', 'tab', 'sort', 'search'));
     }
 
     public function statuses()
