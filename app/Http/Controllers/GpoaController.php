@@ -247,7 +247,7 @@ class GpoaController extends Controller
 
         $gpoa->load('activities');
 
-        return view('gpoa.edit', compact('gpoa'));
+        return view('gpoa.edit', compact('gpoa', 'workflow'));
     }
 
     public function update(Request $request, Gpoa $gpoa)
