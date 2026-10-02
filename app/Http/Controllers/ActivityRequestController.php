@@ -59,26 +59,47 @@ class ActivityRequestController extends Controller
     {
         $this->authorize('view', $activityRequest);
 
-        $activityRequest->loadMissing(['user.organization', 'gpoa', 'programFlows']);
+        $activityRequest->loadMissing(['user.organization', 'gpoa', 'gpoaActivity.gpoa', 'programFlows']);
         $organization = $activityRequest->user?->organization;
-        $organizationName = $organization?->name ?? $activityRequest->user?->org_name ?? 'Campus Organization';
-        $logoDataUri = null;
-        $logoPath = $organization?->logo_path;
+        $organizationName = $organization?->name ?? $activityRequest->user?->org_name ?? '';
+        $imageDataUri = static function (array $paths): ?string {
+            foreach ($paths as $path) {
+                $fullPath = public_path($path);
+                if (! is_file($fullPath)) {
+                    continue;
+                }
 
-        if ($logoPath && Storage::disk('public')->exists($logoPath)) {
-            $imageInfo = @getimagesize(Storage::disk('public')->path($logoPath));
-            $mimeType = $imageInfo['mime'] ?? null;
-            if ($mimeType && str_starts_with($mimeType, 'image/')) {
-                $logoDataUri = 'data:' . $mimeType . ';base64,' . base64_encode(Storage::disk('public')->get($logoPath));
+                $mimeType = mime_content_type($fullPath);
+                $contents = file_get_contents($fullPath);
+                if ($mimeType && str_starts_with($mimeType, 'image/') && $contents !== false) {
+                    return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+                }
             }
-        }
+
+            return null;
+        };
+        $templateImages = [
+            'csuLogo' => $imageDataUri(['images/pdf-template/csu-logo.png', 'images/osdw.logo.jpg']),
+            'campusBuilding' => $imageDataUri([
+                'images/pdf-template/campus-building.png',
+                'images/pdfTemplateimg/9404d1ab-7999-4b20-ac10-da93a79681bf.jpg',
+            ]),
+            'footerLogos' => $imageDataUri([
+                'images/pdf-template/footer-logos.png',
+                'images/pdfTemplateimg/377479f2-fc78-4c12-add2-8429cf284be7.jpg',
+            ]),
+        ];
+        $organizationCollege = $organization?->college
+            ?? $activityRequest->gpoa?->college
+            ?? $activityRequest->user?->college;
 
         return Pdf::loadView('users.activity-request-pdf', [
             'activityRequest' => $activityRequest,
             'organizationName' => $organizationName,
-            'logoDataUri' => $logoDataUri,
+            'organizationCollege' => $organizationCollege,
+            'templateImages' => $templateImages,
         ])
-            ->setPaper('letter', 'portrait')
+            ->setPaper('legal', 'portrait')
             ->download('activity-request-' . $activityRequest->id . '.pdf');
     }
 

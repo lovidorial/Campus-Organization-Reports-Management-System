@@ -29,7 +29,10 @@
                     @if($report)<x-status-pill :status="$reportStatus" />@endif
                 </div>
             </div>
-            <a href="{{ $backUrl }}" class="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to Activity Monitoring</a>
+            <div class="flex shrink-0 flex-wrap gap-2">
+                <a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Download PDF</a>
+                <a href="{{ $backUrl }}" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to Activity Monitoring</a>
+            </div>
         </header>
 
         <section class="rounded-lg border border-slate-200 bg-white p-4">
