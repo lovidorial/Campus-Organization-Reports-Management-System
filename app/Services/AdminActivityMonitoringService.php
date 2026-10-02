@@ -6,6 +6,7 @@ use App\Models\GpoaActivity;
 use App\Models\Organization;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AdminActivityMonitoringService
 {
@@ -24,14 +25,25 @@ class AdminActivityMonitoringService
             ->get()
             ->map(function (GpoaActivity $activity): GpoaActivity {
                 $status = $activity->monitoringStatus();
+                $activityRequest = $activity->activityRequest;
+                $letterSubmittedAt = filled($activityRequest?->communication_letter)
+                    ? ($activityRequest->communication_letter_signed_at ?? $activityRequest->updated_at)
+                    : null;
+                $reportSubmittedAt = $activityRequest?->report?->submitted_at;
+                $requestUpdatedAt = $activityRequest?->updated_at;
+                $lastSubmittedAt = collect([$letterSubmittedAt, $reportSubmittedAt, $requestUpdatedAt])
+                    ->filter()
+                    ->sortByDesc(fn ($submittedAt) => $submittedAt->timestamp)
+                    ->first();
                 $activity->setAttribute('monitoring_status', $status['status']);
                 $activity->setAttribute('monitoring_late', $status['late']);
+                $activity->setAttribute('last_submitted_at', $lastSubmittedAt);
 
                 return $activity;
             });
     }
 
-    public function filtered(Request $request, ?Collection $activities = null, bool $applySearchAndStatus = true): Collection
+    public function filtered(Request $request, ?Collection $activities = null, bool $applySearchAndStatus = true, bool $forceIncludeArchived = false): Collection
     {
         $activities ??= $this->all();
         $search = trim((string) $request->query('search', ''));
@@ -41,8 +53,16 @@ class AdminActivityMonitoringService
         $collegeFilter = (string) $request->query('college', '');
         $termFilter = (string) $request->query('term', '');
         $schoolYearFilter = (string) $request->query('school_year', '');
+        $assessmentFilter = (string) $request->query('assessment', '');
 
-        return $activities->filter(function (GpoaActivity $activity) use ($search, $statusFilter, $organizationFilter, $categoryFilter, $collegeFilter, $termFilter, $schoolYearFilter, $applySearchAndStatus): bool {
+        $sort = (string) $request->query('sort', 'latest');
+        $includeArchived = $forceIncludeArchived || $request->boolean('include_archived') || $statusFilter === 'Archived';
+
+        $filtered = $activities->filter(function (GpoaActivity $activity) use ($search, $statusFilter, $organizationFilter, $categoryFilter, $collegeFilter, $termFilter, $schoolYearFilter, $assessmentFilter, $applySearchAndStatus, $includeArchived): bool {
+            if (! $includeArchived && $activity->archived_at) {
+                return false;
+            }
+
             if ($organizationFilter !== '' && (string) $activity->gpoa?->user_id !== $organizationFilter) {
                 return false;
             }
@@ -58,6 +78,9 @@ class AdminActivityMonitoringService
                 return false;
             }
             if ($schoolYearFilter !== '' && $activity->gpoa?->school_year !== $schoolYearFilter) {
+                return false;
+            }
+            if ($assessmentFilter !== '' && ($activity->monitoringResult?->compliance_status ?? '') !== $assessmentFilter) {
                 return false;
             }
 
@@ -84,13 +107,61 @@ class AdminActivityMonitoringService
             }
 
             return true;
-        })->sortByDesc(fn (GpoaActivity $activity) => $activity->date?->timestamp ?? 0)->values();
+        });
+
+        return ($sort === 'activity_date'
+            ? $filtered->sortByDesc(fn (GpoaActivity $activity) => $activity->date?->timestamp ?? 0)
+            : $filtered->sortByDesc(fn (GpoaActivity $activity) => $activity->last_submitted_at?->timestamp ?? 0))
+            ->values();
+    }
+
+    public function reportActivities(): Collection
+    {
+        return GpoaActivity::query()
+            ->whereHas('gpoa.user', fn ($query) => $query->where('role', '!=', 'admin'))
+            ->with([
+                'gpoa.user',
+                'activityRequest.report',
+                'monitoringResult',
+            ])
+            ->get()
+            ->map(function (GpoaActivity $activity): GpoaActivity {
+                $status = $activity->monitoringStatus();
+                $activityRequest = $activity->activityRequest;
+                $letterSubmittedAt = filled($activityRequest?->communication_letter)
+                    ? ($activityRequest->communication_letter_signed_at ?? $activityRequest->updated_at)
+                    : null;
+                $reportSubmittedAt = $activityRequest?->report?->submitted_at;
+                $requestUpdatedAt = $activityRequest?->updated_at;
+                $lastSubmittedAt = collect([$letterSubmittedAt, $reportSubmittedAt, $requestUpdatedAt])
+                    ->filter()
+                    ->sortByDesc(fn ($submittedAt) => $submittedAt->timestamp)
+                    ->first();
+                $activity->setAttribute('monitoring_status', $status['status']);
+                $activity->setAttribute('monitoring_late', $status['late']);
+                $activity->setAttribute('last_submitted_at', $lastSubmittedAt);
+
+                return $activity;
+            });
+    }
+
+    public function paginate(Collection $activities, Request $request, int $perPage = 10): LengthAwarePaginator
+    {
+        $page = LengthAwarePaginator::resolveCurrentPage();
+
+        return new LengthAwarePaginator(
+            $activities->forPage($page, $perPage)->values(),
+            $activities->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
     }
 
     public function counts(?Collection $activities = null): array
     {
         $activities ??= $this->all();
-        $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Late' => 0];
+        $counts = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Archived' => 0, 'Late' => 0];
 
         foreach ($activities as $activity) {
             $counts[$activity->monitoring_status]++;

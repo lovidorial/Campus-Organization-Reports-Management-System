@@ -56,6 +56,7 @@ class GpoaMonitoringUiTest extends TestCase
             'activity_request_id' => $completedRequest->id,
             'narrative_report' => 'reports/completed.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 
@@ -77,7 +78,8 @@ class GpoaMonitoringUiTest extends TestCase
         $detailsResponse = $this->get(route('gpoa.show', $gpoa));
         $detailsResponse->assertOk();
         $detailsResponse->assertSee('Approved');
-        $detailsResponse->assertSee('Edit GPOA');
+        $detailsResponse->assertSee('Locked after submission');
+        $detailsResponse->assertDontSee(route('gpoa.edit', $gpoa), false);
         $detailsResponse->assertSee('Pending');
         $detailsResponse->assertDontSee('Awaiting Approval');
         $detailsResponse->assertDontSee('Request a GPOA Activity Modification');
@@ -108,7 +110,7 @@ class GpoaMonitoringUiTest extends TestCase
             ->assertSee(route('admin.gpoa.document', $gpoa));
     }
 
-    public function test_user_can_edit_legacy_approved_gpoa_without_losing_linked_monitoring_data(): void
+    public function test_officer_cannot_edit_submitted_gpoa_and_sees_locked_notice(): void
     {
         Storage::fake('public');
         $user = $this->createOrganizationUser();
@@ -133,16 +135,15 @@ class GpoaMonitoringUiTest extends TestCase
             'activity_request_id' => $activityRequest->id,
             'narrative_report' => 'reports/community.pdf',
             'narrative_source' => 'uploaded',
+            'status' => 'approved',
             'submitted_at' => now(),
         ]);
 
         $this->actingAs($user)
             ->get(route('gpoa.edit', $gpoa))
-            ->assertOk()
-            ->assertSee('Edit GPOA')
-            ->assertDontSee('Pending Review');
+            ->assertForbidden();
 
-        $response = $this->put(route('gpoa.update', $gpoa), [
+        $this->actingAs($user)->put(route('gpoa.update', $gpoa), [
             'colleges' => 'CICS',
             'prepared_by' => 'Updated Officer',
             'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
@@ -156,22 +157,21 @@ class GpoaMonitoringUiTest extends TestCase
                 'sdgs' => [4],
             ]],
             'verify' => '1',
-        ]);
+        ])->assertForbidden();
 
-        $response->assertRedirect(route('dashboard', absolute: false));
-        $this->assertDatabaseHas('gpoa_activities', [
-            'id' => $activity->id,
-            'title' => 'Updated Community Outreach',
-            'activity_request_id' => $activityRequest->id,
-        ]);
-        $this->assertDatabaseHas('activity_reports', [
-            'activity_request_id' => $activityRequest->id,
-            'narrative_report' => 'reports/community.pdf',
-        ]);
+        $this->actingAs($user)
+            ->get(route('gpoa.index'))
+            ->assertOk()
+            ->assertSee('Locked after submission')
+            ->assertDontSee(route('gpoa.edit', $gpoa), false);
 
-        $activity->refresh()->load('activityRequest.report');
-        $this->assertSame($activityRequest->id, $activity->activity_request_id);
-        $this->assertSame('Completed', $activity->monitoringStatus()['status']);
+        $this->get(route('gpoa.show', $gpoa))
+            ->assertOk()
+            ->assertSee('Locked after submission')
+            ->assertDontSee(route('gpoa.edit', $gpoa), false);
+
+        $this->assertSame('Community Outreach', $activity->fresh()->title);
+        $this->assertSame($activityRequest->id, $activity->fresh()->activity_request_id);
     }
 
     private function createOrganizationUser(): User

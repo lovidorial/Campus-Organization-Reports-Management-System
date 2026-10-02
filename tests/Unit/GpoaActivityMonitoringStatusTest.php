@@ -39,15 +39,35 @@ class GpoaActivityMonitoringStatusTest extends TestCase
     {
         $activity = $this->createActivity(
             letterPath: 'letters/letter.pdf',
-            reportPath: 'reports/report.pdf'
+            reportPath: 'reports/report.pdf',
+            reportStatus: 'approved'
         );
 
         $status = $activity->monitoringStatus();
 
         $this->assertSame('Completed', $status['status']);
         $this->assertFalse($status['late']);
-        $this->assertSame('Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)', $activity->letterStatusLabel());
-        $this->assertSame('Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)', $activity->narrativeStatusLabel());
+        $this->assertSame('Uploaded', $activity->letterStatusLabel());
+        $this->assertSame('Approved', $activity->narrativeStatusLabel());
+    }
+
+    public function test_it_reports_ongoing_until_a_submitted_report_is_approved(): void
+    {
+        $activity = $this->createActivity(
+            letterPath: 'letters/letter.pdf',
+            reportPath: 'reports/report.pdf'
+        );
+
+        $this->assertSame('Ongoing', $activity->monitoringStatus()['status']);
+        $this->assertSame('For Review', $activity->narrativeStatusLabel());
+    }
+
+    public function test_archived_activity_is_archived_and_never_late(): void
+    {
+        $activity = $this->createActivity(date: '2024-01-15');
+        $activity->forceFill(['archived_at' => now()])->save();
+
+        $this->assertSame(['status' => 'Archived', 'late' => false], $activity->fresh()->monitoringStatus());
     }
 
     public function test_it_reports_pending_when_the_linked_request_is_rejected(): void
@@ -107,7 +127,8 @@ class GpoaActivityMonitoringStatusTest extends TestCase
     private function createActivity(
         string $date = '2026-09-29',
         ?string $letterPath = null,
-        ?string $reportPath = null
+        ?string $reportPath = null,
+        string $reportStatus = 'pending'
     ): GpoaActivity {
         $user = User::factory()->create();
 
@@ -146,6 +167,7 @@ class GpoaActivityMonitoringStatusTest extends TestCase
                 'narrative_report' => $reportPath,
                 'submitted_at' => now(),
                 'narrative_source' => 'uploaded',
+                'status' => $reportStatus,
             ]);
         }
 

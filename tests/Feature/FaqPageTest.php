@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -53,5 +54,28 @@ class FaqPageTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('href="' . route('faq') . '"', false);
+    }
+
+    public function test_user_can_view_notifications_and_mark_them_read(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $notification = UserNotification::create([
+            'user_id' => $user->id,
+            'type' => 'activity_report_approved',
+            'title' => 'Report approved',
+            'message' => 'Your report has been approved.',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('Report approved')
+            ->assertSee('Your report has been approved.')
+            ->assertSee(route('notifications.read', $notification), false);
+
+        $this->patch(route('notifications.read', $notification))
+            ->assertRedirect();
+
+        $this->assertNotNull($notification->fresh()->read_at);
     }
 }

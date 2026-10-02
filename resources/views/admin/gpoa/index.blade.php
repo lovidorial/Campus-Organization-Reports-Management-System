@@ -36,7 +36,7 @@
                 <td class="p-3"><span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Approved</span></td>
                 <td class="p-3">
                     @if($gpoa->document_path)
-                        <a href="{{ route('admin.gpoa.document', $gpoa) }}" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">View document</a>
+                        <a href="{{ route('admin.gpoa.document', $gpoa) }}" data-file-viewer data-title="Approved GPOA Document" class="text-xs font-semibold text-emerald-700 hover:underline">View document</a>
                     @else
                         —
                     @endif

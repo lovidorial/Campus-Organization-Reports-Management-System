@@ -22,6 +22,11 @@ class ActivityReportPolicy
         return $this->allowsOrganizationAccess($user, $activityReport->activityRequest?->user?->organization_id);
     }
 
+    public function review(User $user, ActivityReport $activityReport): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function delete(User $user, ActivityReport $activityReport): bool
     {
         return $this->allowsOrganizationAccess($user, $activityReport->activityRequest?->user?->organization_id);

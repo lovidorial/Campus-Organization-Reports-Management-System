@@ -7,10 +7,13 @@ use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Services\OutstandingActivityReportService;
 use App\Services\VenueAvailabilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class ActivityRequestController extends Controller
@@ -26,14 +29,18 @@ class ActivityRequestController extends Controller
         $activityRequest->load([
             'user',
             'gpoa',
+            'gpoaActivity.monitoringResult.admin',
             'gpoaActivity',
-            'report',
+            'report.photos',
+            'report.reviewer',
+            'monitoringResult.admin',
             'monitoringResult',
             'programFlows',
             'venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
         ]);
 
         $gpoaActivity = $activityRequest->gpoaActivity;
+    $reviewerRemarks = $activityRequest->monitoringResult ?? $gpoaActivity?->monitoringResult;
         $activityNumber = null;
 
         if ($gpoaActivity?->date && $gpoaActivity->gpoa) {
@@ -45,39 +52,66 @@ class ActivityRequestController extends Controller
             $activityNumber = $activityNumber === false ? null : $activityNumber + 1;
         }
 
-        return view('users.activity-request-show', compact('activityRequest', 'activityNumber'));
+        return view('users.activity-request-show', compact('activityRequest', 'activityNumber', 'reviewerRemarks'));
     }
 
     public function downloadPdf(ActivityRequest $activityRequest)
     {
         $this->authorize('view', $activityRequest);
 
-        $activityRequest->loadMissing(['user.organization', 'gpoa', 'programFlows']);
+        $activityRequest->loadMissing(['user.organization', 'gpoa', 'gpoaActivity.gpoa', 'programFlows']);
         $organization = $activityRequest->user?->organization;
-        $organizationName = $organization?->name ?? $activityRequest->user?->org_name ?? 'Campus Organization';
-        $logoDataUri = null;
-        $logoPath = $organization?->logo_path;
+        $organizationName = $organization?->name ?? $activityRequest->user?->org_name ?? '';
+        $imageDataUri = static function (array $paths): ?string {
+            foreach ($paths as $path) {
+                $fullPath = public_path($path);
+                if (! is_file($fullPath)) {
+                    continue;
+                }
 
-        if ($logoPath && Storage::disk('public')->exists($logoPath)) {
-            $imageInfo = @getimagesize(Storage::disk('public')->path($logoPath));
-            $mimeType = $imageInfo['mime'] ?? null;
-            if ($mimeType && str_starts_with($mimeType, 'image/')) {
-                $logoDataUri = 'data:' . $mimeType . ';base64,' . base64_encode(Storage::disk('public')->get($logoPath));
+                $mimeType = mime_content_type($fullPath);
+                $contents = file_get_contents($fullPath);
+                if ($mimeType && str_starts_with($mimeType, 'image/') && $contents !== false) {
+                    return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+                }
             }
-        }
+
+            return null;
+        };
+        $templateImages = [
+            'csuLogo' => $imageDataUri(['images/pdf-template/csu-logo.png', 'images/osdw.logo.jpg']),
+            'campusBuilding' => $imageDataUri([
+                'images/pdf-template/campus-building.png',
+                'images/pdfTemplateimg/9404d1ab-7999-4b20-ac10-da93a79681bf.jpg',
+            ]),
+            'footerLogos' => $imageDataUri([
+                'images/pdf-template/footer-logos.png',
+                'images/pdfTemplateimg/377479f2-fc78-4c12-add2-8429cf284be7.jpg',
+            ]),
+        ];
+        $organizationCollege = $organization?->college
+            ?? $activityRequest->gpoa?->college
+            ?? $activityRequest->user?->college;
 
         return Pdf::loadView('users.activity-request-pdf', [
             'activityRequest' => $activityRequest,
             'organizationName' => $organizationName,
-            'logoDataUri' => $logoDataUri,
+            'organizationCollege' => $organizationCollege,
+            'templateImages' => $templateImages,
         ])
-            ->setPaper('letter', 'portrait')
+            ->setPaper('legal', 'portrait')
             ->download('activity-request-' . $activityRequest->id . '.pdf');
     }
 
-    public function monitor()
+    public function monitor(Request $request, OutstandingActivityReportService $outstandingReportService)
     {
         $user = auth()->user();
+        $outstandingReports = $outstandingReportService->forUser($user)
+            ->map(fn (ActivityRequest $activityRequest) => [
+                'title' => $activityRequest->title,
+                'url' => route('activity-reports.create', $activityRequest),
+            ])
+            ->values();
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
 
@@ -89,21 +123,85 @@ class ActivityRequestController extends Controller
             ])
             ->get();
 
-        $activities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->values()->map(function ($activity, $index) use ($gpoa) {
+        $allActivities = $gpoas->flatMap(fn ($gpoa) => $gpoa->activities->values()->map(function ($activity, $index) use ($gpoa) {
             $status = $activity->monitoringStatus();
+            $activityRequest = $activity->activityRequest;
+            $letterSubmittedAt = filled($activityRequest?->communication_letter)
+                ? ($activityRequest->communication_letter_signed_at ?? $activityRequest->updated_at)
+                : null;
+            $reportSubmittedAt = $activityRequest?->report?->submitted_at;
+            $requestUpdatedAt = $activityRequest?->updated_at;
+            $lastSubmittedAt = collect([$letterSubmittedAt, $reportSubmittedAt, $requestUpdatedAt])
+                ->filter()
+                ->sortByDesc(fn ($submittedAt) => $submittedAt->timestamp)
+                ->first();
             $activity->monitor_status = $status['status'];
             $activity->monitor_late = $status['late'];
+            $activity->last_submitted_at = $lastSubmittedAt;
             $activity->monitor_gpoa = $gpoa;
             $activity->activity_number = $index + 1;
             return $activity;
         }));
 
-        $completedCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Completed')->count();
-        $ongoingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Ongoing')->count();
-        $pendingCount = $activities->filter(fn ($activity) => $activity->monitor_status === 'Pending')->count();
+        $tab = $request->query('tab', 'submitted') === 'todo' ? 'todo' : 'submitted';
+        $sort = $request->query('sort', 'latest');
+        $statusFilter = (string) $request->query('status', '');
+        $search = mb_strtolower(trim((string) $request->query('search', '')));
+        $searchMatches = fn ($activity) => $search === '' || str_contains(mb_strtolower(implode(' ', array_filter([
+            $activity->title,
+            $activity->venue,
+            $activity->date?->toDateString(),
+        ]))), $search);
+        $submittedActivities = $allActivities->filter(fn ($activity) => $activity->last_submitted_at !== null && ! $activity->archived_at && $searchMatches($activity))->values();
+        $archivedActivities = $allActivities->filter(fn ($activity) => $activity->monitor_status === 'Archived' && $searchMatches($activity))->values();
+        $statusCounts = [
+            'All' => $submittedActivities->count(),
+            'Pending' => $submittedActivities->where('monitor_status', 'Pending')->count(),
+            'Ongoing' => $submittedActivities->where('monitor_status', 'Ongoing')->count(),
+            'Completed' => $submittedActivities->where('monitor_status', 'Completed')->count(),
+            'Late' => $submittedActivities->where('monitor_late', true)->count(),
+            'Archived' => $archivedActivities->count(),
+        ];
+        $tabActivities = $tab === 'todo'
+            ? $allActivities->filter(fn ($activity) => $activity->last_submitted_at === null && ! $activity->archived_at && $searchMatches($activity))->values()
+            : ($statusFilter === 'Archived'
+                ? $archivedActivities
+                : $submittedActivities);
+
+        if ($tab === 'todo') {
+            $tabActivities = $tabActivities->sortBy(fn ($activity) => $activity->date?->timestamp ?? PHP_INT_MAX)->values();
+        } elseif ($sort === 'activity_date') {
+            $tabActivities = $tabActivities->sortByDesc(fn ($activity) => $activity->date?->timestamp ?? 0)->values();
+        } else {
+            $tabActivities = $tabActivities->sortByDesc(fn ($activity) => $activity->last_submitted_at?->timestamp ?? 0)->values();
+        }
+
+        if ($statusFilter !== '' && $statusFilter !== 'Archived' && $tab === 'submitted') {
+            $tabActivities = $statusFilter === 'Late'
+                ? $tabActivities->where('monitor_late', true)->values()
+                : $tabActivities->where('monitor_status', $statusFilter)->values();
+        }
+
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $activities = new LengthAwarePaginator(
+            $tabActivities->forPage($page, 10)->values(),
+            $tabActivities->count(),
+            10,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $pendingActivities = $allActivities
+            ->filter(fn ($activity) => $activity->last_submitted_at === null && ! $activity->archived_at && $searchMatches($activity))
+            ->values();
+
+        $completedCount = $statusCounts['Completed'];
+        $ongoingCount = $statusCounts['Ongoing'];
+        $pendingCount = $statusCounts['Pending'];
+        $archivedCount = $statusCounts['Archived'];
         $progressPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
 
-        return view('users.activity-monitor', compact('activities', 'completedCount', 'ongoingCount', 'pendingCount', 'progressPercent', 'term', 'schoolYear'));
+        return view('users.activity-monitor', compact('activities', 'pendingActivities', 'completedCount', 'ongoingCount', 'pendingCount', 'archivedCount', 'progressPercent', 'term', 'schoolYear', 'statusFilter', 'statusCounts', 'tab', 'sort', 'search', 'outstandingReports'));
     }
 
     public function statuses()
@@ -122,9 +220,25 @@ class ActivityRequestController extends Controller
         ]);
     }
 
-    public function create(Request $request)
+    public function create(Request $request, OutstandingActivityReportService $outstandingReportService)
     {
         $user = auth()->user();
+        $outstandingReports = $outstandingReportService->forUser($user);
+        if ($outstandingReports->isNotEmpty()) {
+            return $this->outstandingReportRedirect($outstandingReports);
+        }
+
+        if ($request->filled('gpoa') && $request->filled('activity')) {
+            $requestedActivity = GpoaActivity::with('gpoa')->find($request->query('activity'));
+            if ($requestedActivity
+                && (string) $requestedActivity->gpoa_id === (string) $request->query('gpoa')
+                && (int) $requestedActivity->gpoa?->user_id === (int) $user->id
+                && ! $requestedActivity->activity_request_id
+                && ! $requestedActivity->archived_at) {
+                return redirect()->route('activity-requests.create-from-activity', $requestedActivity);
+            }
+        }
+
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
 
@@ -143,6 +257,14 @@ class ActivityRequestController extends Controller
 
         $selectedGpoaId = $request->query('gpoa') ?: $availableGpoas->first()->id;
         $gpoa = $availableGpoas->firstWhere('id', $selectedGpoaId) ?: $availableGpoas->first();
+        $selectedActivityId = null;
+        $requestedActivityId = $request->query('activity');
+        if ($requestedActivityId !== null) {
+            $plannedActivity = $gpoa->activities->firstWhere('id', $requestedActivityId);
+            if ($plannedActivity && ! $plannedActivity->activityRequest()->exists()) {
+                $selectedActivityId = $plannedActivity->id;
+            }
+        }
 
         $categoryCounts = ActivityRequest::where('user_id', auth()->id())
             ->where('gpoa_id', $gpoa->id)
@@ -164,6 +286,7 @@ class ActivityRequestController extends Controller
             'availableGpoas',
             'gpoa',
             'selectedGpoaId',
+            'selectedActivityId',
             'activityLimits',
             'categoryCounts',
             'usedCount',
@@ -173,8 +296,90 @@ class ActivityRequestController extends Controller
         ));
     }
 
-    public function store(Request $request, VenueAvailabilityService $venueAvailability)
+    public function createFromActivity(GpoaActivity $gpoaActivity, OutstandingActivityReportService $outstandingReportService)
     {
+        $gpoaActivity->load(['gpoa.user', 'gpoa.activities', 'activityRequest', 'activityRequest.programFlows']);
+        abort_unless((int) $gpoaActivity->gpoa?->user_id === (int) auth()->id(), 403);
+
+        $outstandingReports = $outstandingReportService->forUser(auth()->user());
+        if ($outstandingReports->isNotEmpty()) {
+            return $this->outstandingReportRedirect($outstandingReports);
+        }
+
+        if ($gpoaActivity->activityRequest) {
+            return redirect()->route('activity-requests.show', $gpoaActivity->activityRequest)
+                ->with('info', 'An activity request already exists. Continue editing its documents from the request details.');
+        }
+
+        if ($gpoaActivity->archived_at) {
+            return redirect()->route('activity-monitor.index')
+                ->with('error', 'Archived planned activities cannot be requested.');
+        }
+
+        $user = auth()->user();
+        $gpoa = $gpoaActivity->gpoa;
+        $availableGpoas = Gpoa::where('user_id', $user->id)
+            ->with('activities')
+            ->orderByDesc('school_year')
+            ->orderByRaw("CASE WHEN term = '1st Term' THEN 0 ELSE 1 END")
+            ->get();
+        $selectedGpoaId = $gpoa->id;
+        $selectedActivityId = $gpoaActivity->id;
+        $fromPlannedActivity = true;
+        $prefill = [
+            'title' => $gpoaActivity->title,
+            'category' => $gpoaActivity->category,
+            'sdgs' => $gpoaActivity->sdgs ?? [],
+            'date' => $gpoaActivity->date
+                ? ($gpoaActivity->date_is_month_only ? $gpoaActivity->date->format('Y-m-01') : $gpoaActivity->date->toDateString())
+                : '',
+            'end_date' => $gpoaActivity->end_date?->toDateString() ?? '',
+            'start_time' => $gpoaActivity->start_time ? substr((string) $gpoaActivity->start_time, 0, 5) : '',
+            'end_time' => $gpoaActivity->end_time ? substr((string) $gpoaActivity->end_time, 0, 5) : '',
+            'venue' => $gpoaActivity->venue,
+            'objectives' => $gpoaActivity->objectives,
+            'expected_outcome' => $gpoaActivity->expected_outcome,
+            'plan_key_strategy' => $gpoaActivity->plan_key_strategy,
+            'target_participants' => $gpoaActivity->target_participants,
+            'person_in_charge' => $gpoaActivity->person_in_charge,
+            'facilities_materials' => $gpoaActivity->facilities_materials,
+            'estimated_budget' => $gpoaActivity->estimated_budget,
+            'source_of_funds' => $gpoaActivity->source_of_funds,
+        ];
+        $programFlows = collect($gpoaActivity->getAttribute('program_flows') ?? [])
+            ->map(fn ($flow) => [
+                'time' => data_get($flow, 'time', ''),
+                'flow' => data_get($flow, 'flow', ''),
+                'person_in_charge' => data_get($flow, 'person_in_charge', ''),
+            ])
+            ->values()
+            ->all();
+        $categoryCounts = ActivityRequest::where('user_id', $user->id)
+            ->where('gpoa_id', $gpoa->id)
+            ->selectRaw('category, count(*) as count')
+            ->groupBy('category')
+            ->pluck('count', 'category')
+            ->toArray();
+        $activityLimits = config('gpoa_activity_limits', []);
+        $usedCount = array_sum($categoryCounts);
+        $limitCount = array_sum($activityLimits);
+        $atCap = $usedCount >= $limitCount;
+        $activityLimitTemplate = (object) ['used' => $usedCount, 'limit' => $limitCount];
+
+        return view('users.create-request', compact(
+            'availableGpoas', 'gpoa', 'selectedGpoaId', 'selectedActivityId', 'activityLimits',
+            'categoryCounts', 'usedCount', 'limitCount', 'atCap', 'activityLimitTemplate',
+            'fromPlannedActivity', 'prefill', 'programFlows', 'gpoaActivity'
+        ));
+    }
+
+    public function store(Request $request, VenueAvailabilityService $venueAvailability, OutstandingActivityReportService $outstandingReportService)
+    {
+        $outstandingReports = $outstandingReportService->forUser(auth()->user());
+        if ($outstandingReports->isNotEmpty()) {
+            return $this->outstandingReportRedirect($outstandingReports, true);
+        }
+
         $programFlows = collect($request->input('program_flows', []))
             ->filter(fn ($row) => is_array($row) && (
                 filled($row['time'] ?? null)
@@ -318,6 +523,22 @@ class ActivityRequestController extends Controller
 
         return redirect()->route('activity-requests.show', $activityRequest)
             ->with('success', 'Activity request added.');
+    }
+
+    private function outstandingReportRedirect(Collection $outstandingReports, bool $withValidationErrors = false)
+    {
+        $firstRequest = $outstandingReports->first();
+        $message = "Submit the pending report for {$firstRequest->title} before requesting a new activity.";
+        $reportLinks = $outstandingReports->map(fn (ActivityRequest $activityRequest) => [
+            'title' => $activityRequest->title,
+            'url' => route('activity-reports.create', $activityRequest),
+        ])->values()->all();
+        $redirect = redirect()->route('activity-monitor.index')
+            ->with('outstandingReports', $reportLinks);
+
+        return $withValidationErrors
+            ? $redirect->withErrors(['activity_request' => $message])
+            : $redirect->with('error', $message);
     }
 
 }

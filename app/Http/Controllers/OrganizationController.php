@@ -126,17 +126,6 @@ class OrganizationController extends Controller
 
         if ($request->hasFile('logo')) {
             $path = $request->file('logo')->store('organization-logos', 'public');
-            $publicPath = public_path('storage/' . $path);
-            $publicDir = dirname($publicPath);
-
-            if (! is_dir($publicDir)) {
-                mkdir($publicDir, 0777, true);
-            }
-
-            if (file_exists(storage_path('app/public/' . $path))) {
-                copy(storage_path('app/public/' . $path), $publicPath);
-            }
-
             $organizationData['logo_path'] = $path;
             $organizationData['theme_color'] = $themeColorService->fromUploadedFile($request->file('logo'));
         }
@@ -240,17 +229,6 @@ class OrganizationController extends Controller
 
         if ($request->hasFile('logo')) {
             $path = $request->file('logo')->store('organization-logos', 'public');
-            $publicPath = public_path('storage/' . $path);
-            $publicDir = dirname($publicPath);
-
-            if (! is_dir($publicDir)) {
-                mkdir($publicDir, 0777, true);
-            }
-
-            if (file_exists(storage_path('app/public/' . $path))) {
-                copy(storage_path('app/public/' . $path), $publicPath);
-            }
-
             $validated['logo_path'] = $path;
             $validated['theme_color'] = $themeColorService->fromUploadedFile($request->file('logo'));
         }

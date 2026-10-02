@@ -3,7 +3,7 @@
     <a href="{{ route('gpoa.index') }}" class="text-sky-600 text-sm hover:underline">← Back to My GPOA</a>
     <h2 class="text-2xl font-bold text-gray-800 mt-2">GPOA Details</h2>
     <p class="text-sm text-gray-500">{{ $gpoa->term }} / SY {{ $gpoa->school_year }}</p>
-    <a href="{{ route('gpoa.edit', $gpoa) }}" class="mt-3 inline-flex rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Edit GPOA</a>
+    <span class="mt-3 inline-flex rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">Locked after submission. Contact your administrator to request changes.</span>
 </div>
 
 <!-- GPOA Status and Summary -->
@@ -24,7 +24,7 @@
 
 @if($gpoa->document_path)
 <div class="mb-6">
-    <a href="{{ asset('storage/'.$gpoa->document_path) }}" target="_blank"
+    <a href="{{ route('gpoa.document', $gpoa) }}" data-file-viewer data-title="Approved GPOA Document"
     class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-200">View Approved GPOA Document</a>
 </div>
 @endif

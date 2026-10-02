@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\GpoaActivity;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class ActivityController extends Controller
@@ -12,7 +11,7 @@ class ActivityController extends Controller
     {
         $query = GpoaActivity::query()->with([
             'gpoa.user',
-            'activityRequest.report.photos',
+            'activityRequest.report',
             'activityRequest.venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
         ]);
 

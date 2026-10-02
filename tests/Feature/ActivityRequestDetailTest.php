@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityRequest;
+use App\Models\ActivityReport;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
+use App\Models\MonitoringResult;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,19 +71,20 @@ class ActivityRequestDetailTest extends TestCase
             ->assertSee('Stronger student leaders.')
             ->assertSee('Facilitated workshops.')
             ->assertSee('Student leaders')
-            ->assertSee('45')
             ->assertSee('Jane Week')
             ->assertSee('Projector and sound system')
             ->assertSee('1,250.50')
             ->assertSee('Student funds')
-            ->assertSee('Leadership Orientation')
             ->assertSee('Institutional')
             ->assertSee('>4</span>', false)
             ->assertSee('>16</span>', false)
             ->assertSee('Bring printed materials.')
             ->assertSee('Prior rejection notes.')
             ->assertSee('Opening Remarks')
-            ->assertSee('letter.pdf');
+            ->assertSee('letter.pdf')
+            ->assertDontSee('Preceding Activity')
+            ->assertDontSee('Leadership Orientation')
+            ->assertDontSee('Participants Count');
 
         $this->actingAs($owner)
             ->get(route('activity-requests.index'))
@@ -92,7 +95,7 @@ class ActivityRequestDetailTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.activities'))
             ->assertOk()
-            ->assertSee('No planned activities match these filters.');
+            ->assertSee('No recent submissions match these filters.');
     }
 
     public function test_users_cannot_view_another_users_request(): void
@@ -104,6 +107,42 @@ class ActivityRequestDetailTest extends TestCase
         $this->actingAs($otherUser)
             ->get(route('activity-requests.show', $request))
             ->assertForbidden();
+    }
+
+    public function test_organization_sees_read_only_reviewer_remark_and_report_approval_date_without_admin_identity(): void
+    {
+        $owner = User::factory()->create(['org_name' => 'CICS-SC', 'terms_accepted_at' => now()]);
+        $admin = User::factory()->create(['role' => 'admin', 'name' => 'Private Reviewer Name']);
+        $gpoa = Gpoa::create(['user_id' => $owner->id, 'term' => '1st Term', 'school_year' => '2026-2027', 'college' => 'CICS', 'status' => 'approved']);
+        $activity = $this->createPlannedActivity($gpoa, '2026-10-15');
+        $request = $this->createPlannedRequest($owner, $gpoa, $activity);
+        $reviewedAt = now()->subDay();
+        $report = ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'reports/approved.pdf',
+            'narrative_source' => 'uploaded',
+            'submitted_at' => now()->subDays(2),
+            'status' => 'approved',
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => $reviewedAt,
+        ]);
+        MonitoringResult::create([
+            'activity_request_id' => $request->id,
+            'gpoa_activity_id' => $activity->id,
+            'admin_id' => $admin->id,
+            'compliance_status' => 'partial',
+            'compliance_notes' => 'Please include participant feedback next time.',
+            'recorded_at' => now(),
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('activity-requests.show', $request))
+            ->assertOk()
+            ->assertSee('Reviewer remarks')
+            ->assertSee('Partially aligned')
+            ->assertSee('Please include participant feedback next time.')
+            ->assertSee('Approved on ' . $reviewedAt->format('M d, Y'))
+            ->assertDontSee('Private Reviewer Name');
     }
 
     public function test_activity_number_uses_date_and_id_order_and_is_null_without_a_date(): void

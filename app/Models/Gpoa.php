@@ -28,6 +28,24 @@ class Gpoa extends Model
         return $this->hasMany(GpoaActivity::class);
     }
 
+    public function unfinishedActivitiesCount(): int
+    {
+        $this->loadMissing([
+            'activities' => fn ($query) => $query->withMonitoringData(),
+        ]);
+
+        return $this->activities->filter(fn (GpoaActivity $activity) => ! in_array(
+            $activity->monitoringStatus()['status'],
+            ['Completed', 'Archived'],
+            true
+        ))->count();
+    }
+
+    public function isFinished(): bool
+    {
+        return $this->unfinishedActivitiesCount() === 0;
+    }
+
     public function activityRequests(): HasMany
     {
         return $this->hasMany(ActivityRequest::class);

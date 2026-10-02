@@ -18,6 +18,7 @@ class ActivityReportController extends Controller
     {
         $this->authorize('update', $activityRequest);
         $existingReport = $activityRequest->report;
+        $existingReport?->loadMissing('photos');
 
         return view('users.submit-report', compact('activityRequest', 'existingReport'));
     }
@@ -27,6 +28,11 @@ class ActivityReportController extends Controller
         $this->authorize('update', $activityRequest);
 
         $existingReport = $activityRequest->report;
+        $existingPhotoCount = $existingReport?->photos()->count() ?? 0;
+        $hasExistingPhotos = $existingPhotoCount > 0;
+        $photoRules = $hasExistingPhotos
+            ? 'nullable|array|max:' . max(0, 10 - $existingPhotoCount)
+            : 'required|array|min:1|max:10';
 
         $validated = $request->validate([
             'narrative_source' => 'required|in:uploaded,generated',
@@ -37,8 +43,9 @@ class ActivityReportController extends Controller
             'signed_by_governor' => 'required|accepted',
             'signed_by_advisor' => 'required|accepted',
             'signed_by_dean_president' => 'required|accepted',
-            'photos' => 'nullable|array|max:10',
+            'photos' => $photoRules,
             'photos.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            'attendance_sheet' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp,gif|max:10240',
         ]);
 
         if ($validated['narrative_source'] === 'uploaded'
@@ -70,6 +77,11 @@ class ActivityReportController extends Controller
             Storage::disk('private')->put($path, $pdf->output());
         }
 
+        $previousAttendancePath = $existingReport?->attendance_sheet_path;
+        $attendancePath = $request->hasFile('attendance_sheet')
+            ? $request->file('attendance_sheet')->store('activity-documents/attendance-sheets', 'private')
+            : $previousAttendancePath;
+
         if ($existingReport) {
             $previousPath = $existingReport->narrative_report;
             $existingReport->update([
@@ -86,6 +98,7 @@ class ActivityReportController extends Controller
                 'feedback' => null,
                 'reviewed_at' => null,
                 'reviewed_by' => null,
+                'attendance_sheet_path' => $attendancePath,
             ]);
             $report = $existingReport;
 
@@ -107,18 +120,23 @@ class ActivityReportController extends Controller
                 'signed_by_governor' => $validated['signed_by_governor'],
                 'signed_by_advisor' => $validated['signed_by_advisor'],
                 'signed_by_dean_president' => $validated['signed_by_dean_president'],
+                'attendance_sheet_path' => $attendancePath,
             ]);
         }
 
         if ($request->hasFile('photos')) {
             $sortOrder = ($report->photos()->max('sort_order') ?? -1) + 1;
             foreach ($request->file('photos') as $photoFile) {
-                $photoPath = $photoFile->store('uploads/activity-photos', 'public');
+                $photoPath = $photoFile->store('activity-documents/activity-photos', 'private');
                 $report->photos()->create([
                     'path' => $photoPath,
                     'sort_order' => $sortOrder++,
                 ]);
             }
+        }
+
+        if ($previousAttendancePath && $previousAttendancePath !== $attendancePath && Storage::disk('private')->exists($previousAttendancePath)) {
+            Storage::disk('private')->delete($previousAttendancePath);
         }
 
         User::where('role', 'admin')->each(function (User $admin) use ($activityRequest) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
+use App\Models\ActivityReportPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -42,6 +43,7 @@ class ActivityDocumentController extends Controller
         $path = match ($documentType) {
             'communication-letter' => $activityRequest->communication_letter,
             'narrative-report' => $activityRequest->report?->narrative_report,
+            'attendance-sheet' => $activityRequest->report?->attendance_sheet_path,
             default => null,
         };
 
@@ -50,14 +52,37 @@ class ActivityDocumentController extends Controller
         foreach (['private', 'public'] as $diskName) {
             $disk = Storage::disk($diskName);
             if ($disk->exists($path)) {
-                $fileName = $documentType === 'communication-letter'
-                    ? 'communication-letter-' . $activityRequest->id . '.pdf'
-                    : 'narrative-report-' . $activityRequest->id . '.pdf';
+                $fileName = match ($documentType) {
+                    'communication-letter' => 'communication-letter-' . $activityRequest->id . '.pdf',
+                    'attendance-sheet' => basename($path),
+                    default => 'narrative-report-' . $activityRequest->id . '.pdf',
+                };
 
-                return $disk->response($path, $fileName, ['Content-Type' => 'application/pdf']);
+                return $disk->response($path, $fileName, [
+                    'Content-Type' => str_ends_with(strtolower($fileName), '.pdf') ? 'application/pdf' : (mime_content_type($disk->path($path)) ?: 'application/octet-stream'),
+                    'Content-Disposition' => 'inline',
+                ]);
             }
         }
 
         abort(404, 'Document not found.');
+    }
+
+    public function showPhoto(ActivityRequest $activityRequest, ActivityReportPhoto $photo)
+    {
+        $this->authorize('view', $activityRequest);
+        abort_unless($activityRequest->report?->id === $photo->activity_report_id, 404, 'Photo not found.');
+
+        foreach (['private', 'public'] as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($photo->path)) {
+                return $disk->response($photo->path, basename($photo->path), [
+                    'Content-Type' => mime_content_type($disk->path($photo->path)) ?: 'application/octet-stream',
+                    'Content-Disposition' => 'inline',
+                ]);
+            }
+        }
+
+        abort(404, 'Photo not found.');
     }
 }

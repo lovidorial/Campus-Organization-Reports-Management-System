@@ -15,6 +15,9 @@
 
                 {{-- Organization Information (read-only reference) --}}
                 @php
+                    $prefill = $prefill ?? [];
+                    $fromPlannedActivity = $fromPlannedActivity ?? false;
+                    $programFlows = $programFlows ?? collect();
                     $org = $organization ?? auth()->user()->organization ?? null;
                     $limitObj = $activityLimitTemplate ?? $activityLimit ?? null;
                     $usedCount = $limitObj->used ?? $limitObj->used_count ?? $limitObj->usedActivities ?? null;
@@ -59,7 +62,7 @@
                     <p class="text-sm text-gray-500">Planning Activity Under</p>
                     <div class="inline-flex flex-wrap items-center gap-3 bg-slate-100 rounded-2xl px-4 py-3">
                         <span class="font-semibold text-slate-800">{{ $gpoa->college }} — {{ $gpoa->term }} / SY {{ $gpoa->school_year }}</span>
-                        @if($availableGpoas->count() > 1)
+                        @if(!$fromPlannedActivity && $availableGpoas->count() > 1)
                             <form id="switchGpoaForm" method="GET" action="{{ route('activity-requests.create') }}">
                                 <label class="sr-only">Select GPOA</label>
                                 <select name="gpoa" onchange="document.getElementById('switchGpoaForm').submit()"
@@ -83,20 +86,37 @@
                         </div>
                     </div>
 
-                    <input type="hidden" name="gpoa_id" value="{{ $gpoa->id }}">
+                    <input type="hidden" name="gpoa_id" value="{{ old('gpoa_id', $gpoa->id) }}">
 
                     <div class="form-group mt-6">
                         <label for="gpoa_activity_id">Planned activity *</label>
-                        <select id="gpoa_activity_id" name="gpoa_activity_id">
+                        @if($fromPlannedActivity)
+                            <input id="selectedPlannedActivityId" type="hidden" name="gpoa_activity_id" value="{{ old('gpoa_activity_id', $gpoaActivity->id) }}">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <span id="plannedActivityChip" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900">{{ $gpoaActivity->title }} <span class="font-normal text-sky-700">· {{ $gpoa->college }} / {{ $gpoa->term }} / SY {{ $gpoa->school_year }}</span></span>
+                                <button type="button" id="chooseDifferentActivity" class="text-sm font-semibold text-sky-700 underline">Choose a different activity</button>
+                            </div>
+                        @endif
+                        <select id="gpoa_activity_id" name="gpoa_activity_id" @if($fromPlannedActivity) class="mt-3 hidden" disabled @endif>
                             <option value="">Select a planned activity</option>
                             @foreach($gpoa->activities as $activity)
-                                <option value="{{ $activity->id }}" {{ old('gpoa_activity_id') == $activity->id ? 'selected' : '' }}>
+                                <option value="{{ $activity->id }}" {{ old('gpoa_activity_id', $selectedActivityId ?? null) == $activity->id ? 'selected' : '' }}>
                                     {{ $activity->title }} — {{ $activity->date ? $activity->date->format('M d, Y') : 'No date' }} @ {{ $activity->venue ?? 'Venue not set' }}
                                 </option>
                             @endforeach
                         </select>
                         @error('gpoa_activity_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
+
+                    @if($fromPlannedActivity)
+                        <div id="gpoaPrefillHint" class="mb-6 flex items-start justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900" role="status">
+                            <p>Prefilled from your GPOA. Review and edit anything that changed.</p>
+                            <button type="button" id="dismissPrefillHint" aria-label="Dismiss prefill hint" class="shrink-0 font-semibold text-sky-800">×</button>
+                        </div>
+                        <div class="mb-6">
+                            <button type="button" id="resetGpoaPrefill" class="rounded-md border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Reset to GPOA values</button>
+                        </div>
+                    @endif
 
                     <div class="mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                         <p class="text-xs text-slate-500 uppercase tracking-wide">Selected GPOA</p>
@@ -118,221 +138,80 @@
                     <div class="grid gap-6 md:grid-cols-2">
                         <div class="form-group">
                             <label for="title">Activity Title *</label>
-                            <input id="title" type="text" name="title" value="{{ old('title') }}" required>
+                            <input id="title" type="text" name="title" value="{{ old('title', $prefill['title'] ?? '') }}" required>
                             @error('title')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
                             <label for="category">Category *</label>
                             <select id="category" name="category" required>
                                 <option value="">Select category</option>
-                                @include('partials.category-options')
+                                @include('partials.category-options', ['prefillCategory' => $prefill['category'] ?? ''])
                             </select>
                             @error('category')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-1 mt-6">
-                        @include('partials.sdg-checkboxes', ['gpoa' => false])
-                        @if(false)
-                        <div class="form-group">
-                            <div class="sdg-label-row">
-                                <label for="sdgCheckboxes">SDGs *</label>
-                                <div id="sdgSummary" class="sdg-summary-badges" aria-live="polite" aria-atomic="true">
-                                    <span class="sdg-placeholder">No SDGs selected yet</span>
-                                </div>
-                            </div>
-
-                            @php
-                                $sdgList = [
-                                    1 => 'No Poverty',
-                                    2 => 'Zero Hunger',
-                                    3 => 'Good Health',
-                                    4 => 'Quality Education',
-                                    5 => 'Gender Equality',
-                                    6 => 'Clean Water',
-                                    7 => 'Affordable Energy',
-                                    8 => 'Decent Work',
-                                    9 => 'Industry, Innovation',
-                                    10 => 'Reduced Inequality',
-                                    11 => 'Sustainable Cities',
-                                    12 => 'Responsible Consumption',
-                                    13 => 'Climate Action',
-                                    14 => 'Life Below Water',
-                                    15 => 'Life on Land',
-                                    16 => 'Peace/Justice',
-                                    17 => 'Partnerships'
-                                ];
-                                $oldSdgs = old('sdgs');
-                                if (is_array($oldSdgs)) {
-                                    $oldNums = $oldSdgs;
-                                } else {
-                                    $oldSdgs = $oldSdgs ?: '';
-                                    preg_match_all('/\b(\d{1,2})\b/', $oldSdgs, $m);
-                                    $oldNums = $m[1] ?? [];
-                                }
-                            @endphp
-
-                            <style>
-                                .sdg-label-row {
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                    gap: 12px;
-                                    margin-bottom: 12px;
-                                }
-                                .sdg-label-row label {
-                                    margin: 0;
-                                    flex-shrink: 0;
-                                }
-                                .sdg-summary-badges {
-                                    display: flex;
-                                    gap: 6px;
-                                    flex-wrap: wrap;
-                                    flex: 1;
-                                    padding: 6px 8px;
-                                    background: #F3F4F6;
-                                    border-radius: 4px;
-                                    min-height: 24px;
-                                    align-items: center;
-                                }
-                                .sdg-badge {
-                                    padding: 2px 8px;
-                                    border-radius: 999px;
-                                    font-size: 0.75rem;
-                                    font-weight: 600;
-                                    display: inline-block;
-                                    white-space: nowrap;
-                                }
-                                .sdg-placeholder {
-                                    color: #9CA3AF;
-                                    font-size: 0.875rem;
-                                }
-                                .sdg-checkbox-list {
-                                    display: flex;
-                                    flex-direction: column;
-                                    gap: 8px;
-                                    max-height: 240px;
-                                    overflow-y: auto;
-                                    padding: 8px 0;
-                                    border: 1px solid #D1D5DB;
-                                    border-radius: 4px;
-                                    background: #FFFFFF;
-                                    padding: 8px;
-                                    margin-bottom: 8px;
-                                }
-                                .sdg-checkbox-item {
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                    padding: 4px;
-                                    cursor: pointer;
-                                    user-select: none;
-                                }
-                                .sdg-checkbox-item input[type="checkbox"] {
-                                    cursor: pointer;
-                                }
-                                .sdg-checkbox-item input[type="checkbox"]:disabled {
-                                    cursor: not-allowed;
-                                    opacity: 0.5;
-                                }
-                                .sdg-checkbox-item label {
-                                    cursor: pointer;
-                                    margin: 0;
-                                    font-size: 0.875rem;
-                                    flex: 1;
-                                }
-                                .sdg-checkbox-item input[type="checkbox"]:disabled + label {
-                                    opacity: 0.5;
-                                    cursor: not-allowed;
-                                }
-                                .sdg-count-message {
-                                    font-size: 0.75rem;
-                                    color: #6B7280;
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 500;
-                                }
-                                .sdg-helper-text {
-                                    font-size: 0.75rem;
-                                    color: #6B7280;
-                                    display: block;
-                                    margin-bottom: 8px;
-                                    font-weight: 500;
-                                }
-                                .sdg-validation-error {
-                                    color: #DC2626;
-                                    font-size: 0.875rem;
-                                    margin-top: 6px;
-                                    display: none;
-                                }
-                                .sdg-validation-error.show {
-                                    display: block;
-                                }
-                            </style>
-
-                            <div class="sdg-checkbox-list" id="sdgCheckboxes">
-                                @foreach($sdgList as $num => $label)
-                                    <div class="sdg-checkbox-item">
-                                             <input type="checkbox" id="sdg{{ $num }}" name="sdgs[]" value="{{ $num }}" style="accent-color: {{ config('sdg.' . $num . '.color') }}"
-                                               {{ in_array((string)$num, $oldNums) ? 'checked' : '' }}>
-                                             <span class="sdg-number" style="background-color: {{ config('sdg.' . $num . '.color') }}; color: {{ config('sdg.' . $num . '.text') }}" aria-hidden="true">{{ $num }}</span>
-                                        <label for="sdg{{ $num }}">SDG {{ $num }} - {{ $label }}</label>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div id="sdgHelperText" class="sdg-helper-text">Must select 1-8 SDGs aligned with the activity</div>
-                            <div id="sdgValidationError" class="sdg-validation-error"></div>
-
-                            @error('sdgs')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-                        @endif
+                        @include('partials.sdg-checkboxes', ['gpoa' => false, 'oldNums' => collect((array) old('sdgs', $prefill['sdgs'] ?? []))->map(fn ($value) => (string) $value)->all()])
                     </div>
 
                         <div class="form-group mt-6">
                             <label for="objectives">Objectives *</label>
-                            <textarea id="objectives" name="objectives" rows="4" required>{{ old('objectives') }}</textarea>
+                            <textarea id="objectives" name="objectives" rows="4" required>{{ old('objectives', $prefill['objectives'] ?? '') }}</textarea>
                         @error('objectives')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
 
                     <div class="form-group mt-6">
                         <label for="expected_outcome">Expected Outcome *</label>
-                        <textarea id="expected_outcome" name="expected_outcome" rows="4" required>{{ old('expected_outcome') }}</textarea>
+                        <textarea id="expected_outcome" name="expected_outcome" rows="4" required>{{ old('expected_outcome', $prefill['expected_outcome'] ?? '') }}</textarea>
                         @error('expected_outcome')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
 
                     <div class="form-group mt-6">
                         <label for="plan_key_strategy">Plan / Key Strategy *</label>
-                        <textarea id="plan_key_strategy" name="plan_key_strategy" rows="4" required>{{ old('plan_key_strategy') }}</textarea>
+                        <textarea id="plan_key_strategy" name="plan_key_strategy" rows="4" required>{{ old('plan_key_strategy', $prefill['plan_key_strategy'] ?? '') }}</textarea>
                         @error('plan_key_strategy')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-1 mt-6">
                         <div class="form-group">
                             <label for="date">Date *</label>
-                            <input id="date" type="date" name="date" value="{{ old('date') }}" min="{{ today()->toDateString() }}" required>
+                            <input id="date" type="date" name="date" value="{{ old('date', $prefill['date'] ?? '') }}" min="{{ old('date') && old('date') < today()->toDateString() ? old('date') : (!empty($prefill['date']) && $prefill['date'] < today()->toDateString() ? $prefill['date'] : today()->toDateString()) }}" required>
+                            <p id="plannedActivityPastDateWarning" class="mt-1 {{ old('date', $prefill['date'] ?? '') && old('date', $prefill['date'] ?? '') < today()->toDateString() ? '' : 'hidden' }} text-xs text-amber-700">This planned activity date is in the past. Choose today or a future date to submit the request.</p>
                             @error('date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
                             <label for="end_date">End Date (optional, for multi-day activities)</label>
-                            <input id="end_date" type="date" name="end_date" value="{{ old('end_date') }}">
+                            <input id="end_date" type="date" name="end_date" value="{{ old('end_date', $prefill['end_date'] ?? '') }}">
                             @error('end_date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
                             <label for="start_time">Start Time</label>
-                            <input id="start_time" type="time" name="start_time" value="{{ old('start_time') }}">
+                            <input id="start_time" type="time" name="start_time" value="{{ old('start_time', $prefill['start_time'] ?? '') }}">
                             @error('start_time')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
                             <label for="end_time">End Time (optional)</label>
-                            <input id="end_time" type="time" name="end_time" value="{{ old('end_time') }}">
+                            <input id="end_time" type="time" name="end_time" value="{{ old('end_time', $prefill['end_time'] ?? '') }}">
                             @error('end_time')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
 
                     <section class="mt-6 min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-4"
                              x-data="{
-                                rows: @js(old('program_flows', [])),
+                                rows: @js(old('program_flows', $programFlows ?: [['time' => '', 'flow' => '', 'person_in_charge' => '']])),
+                                normalizeFlows(flows) {
+                                    const normalizedRows = (flows || []).map(flow => ({
+                                        time: flow.time ?? '',
+                                        flow: flow.flow ?? '',
+                                        person_in_charge: flow.person_in_charge ?? '',
+                                    }));
+                                    return normalizedRows.length ? normalizedRows : [{ time: '', flow: '', person_in_charge: '' }];
+                                },
+                                init() {
+                                    window.addEventListener('reset-gpoa-prefill', event => { this.rows = this.normalizeFlows(event.detail.program_flows); });
+                                    window.addEventListener('planned-activity-changed', event => { this.rows = this.normalizeFlows(event.detail.program_flows); });
+                                },
                                 addRow() {
                                     this.rows.push({ time: '', flow: '', person_in_charge: '' });
                                 },
@@ -396,7 +275,7 @@
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
                         <div class="form-group">
                             <label for="venue">Venue *</label>
-                            <input id="venue" type="text" name="venue" value="{{ old('venue') }}" required>
+                            <input id="venue" type="text" name="venue" value="{{ old('venue', $prefill['venue'] ?? '') }}" required>
                             @error('venue')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
@@ -404,12 +283,12 @@
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
                         <div class="form-group">
                             <label for="target_participants">Target Participants *</label>
-                            <input id="target_participants" type="text" name="target_participants" value="{{ old('target_participants') }}" required>
+                            <input id="target_participants" type="text" name="target_participants" value="{{ old('target_participants', $prefill['target_participants'] ?? '') }}" required>
                             @error('target_participants')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
                             <label for="person_in_charge">Person in Charge *</label>
-                            <input id="person_in_charge" type="text" name="person_in_charge" value="{{ old('person_in_charge') }}" required>
+                            <input id="person_in_charge" type="text" name="person_in_charge" value="{{ old('person_in_charge', $prefill['person_in_charge'] ?? '') }}" required>
                             @error('person_in_charge')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
@@ -417,12 +296,12 @@
                     <div class="grid gap-6 md:grid-cols-2 mt-6">
                         <div class="form-group">
                             <label for="facilities_materials">Facilities / Materials *</label>
-                            <input id="facilities_materials" type="text" name="facilities_materials" value="{{ old('facilities_materials') }}" required>
+                            <input id="facilities_materials" type="text" name="facilities_materials" value="{{ old('facilities_materials', $prefill['facilities_materials'] ?? '') }}" required>
                             @error('facilities_materials')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
                             <label for="estimated_budget">Estimated Budget *</label>
-                            <input id="estimated_budget" type="number" step="0.01" name="estimated_budget" value="{{ old('estimated_budget') }}" required>
+                            <input id="estimated_budget" type="number" step="0.01" name="estimated_budget" value="{{ old('estimated_budget', $prefill['estimated_budget'] ?? '') }}" required>
                             @error('estimated_budget')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
@@ -432,12 +311,12 @@
                             <label for="source_of_funds">Source of Funds *</label>
                             <select id="source_of_funds" name="source_of_funds" required>
                                 <option value="">Select source of funds</option>
-                                <option value="Organization Funds" {{ old('source_of_funds') == 'Organization Funds' ? 'selected' : '' }}>Organization Funds</option>
-                                <option value="Student Council Funds" {{ old('source_of_funds') == 'Student Council Funds' ? 'selected' : '' }}>Student Council Funds</option>
-                                <option value="School-Generated Funds / MOOE" {{ old('source_of_funds') == 'School-Generated Funds / MOOE' ? 'selected' : '' }}>School-Generated Funds / MOOE</option>
-                                <option value="Sponsorship / Donations" {{ old('source_of_funds') == 'Sponsorship / Donations' ? 'selected' : '' }}>Sponsorship / Donations</option>
-                                <option value="Others" {{ old('source_of_funds') == 'UniFast' ? 'selected' : '' }}>UniFast</option>
-                                 <option value="Others" {{ old('source_of_funds') == 'Cash on Hand' ? 'selected' : '' }}>Cash on Hand</option>
+                                <option value="Organization Funds" {{ old('source_of_funds', $prefill['source_of_funds'] ?? '') === 'Organization Funds' ? 'selected' : '' }}>Organization Funds</option>
+                                <option value="Student Council Funds" {{ old('source_of_funds', $prefill['source_of_funds'] ?? '') === 'Student Council Funds' ? 'selected' : '' }}>Student Council Funds</option>
+                                <option value="School-Generated Funds / MOOE" {{ old('source_of_funds', $prefill['source_of_funds'] ?? '') === 'School-Generated Funds / MOOE' ? 'selected' : '' }}>School-Generated Funds / MOOE</option>
+                                <option value="Sponsorship / Donations" {{ old('source_of_funds', $prefill['source_of_funds'] ?? '') === 'Sponsorship / Donations' ? 'selected' : '' }}>Sponsorship / Donations</option>
+                                <option value="UniFast" {{ old('source_of_funds', $prefill['source_of_funds'] ?? '') === 'UniFast' ? 'selected' : '' }}>UniFast</option>
+                                <option value="Cash on Hand" {{ old('source_of_funds', $prefill['source_of_funds'] ?? '') === 'Cash on Hand' ? 'selected' : '' }}>Cash on Hand</option>
                             </select>
                             @error('source_of_funds')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
@@ -457,42 +336,178 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    const plannedActivities = @json($gpoa->activities->keyBy('id'));
+    const serverPrefill = @js($prefill);
+    const serverProgramFlows = @js($programFlows);
+    const plannedActivities = @js($gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
+        'title' => $activity->title,
+        'category' => $activity->category,
+        'sdgs' => $activity->sdgs ?? [],
+        'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
+        'date_is_month_only' => (bool) $activity->date_is_month_only,
+        'end_date' => $activity->end_date?->toDateString() ?? '',
+        'start_time' => $activity->start_time ? substr((string) $activity->start_time, 0, 5) : '',
+        'end_time' => $activity->end_time ? substr((string) $activity->end_time, 0, 5) : '',
+        'venue' => $activity->venue,
+        'objectives' => $activity->objectives,
+        'expected_outcome' => $activity->expected_outcome,
+        'plan_key_strategy' => $activity->plan_key_strategy,
+        'target_participants' => $activity->target_participants,
+        'person_in_charge' => $activity->person_in_charge,
+        'facilities_materials' => $activity->facilities_materials,
+        'estimated_budget' => $activity->estimated_budget,
+        'source_of_funds' => $activity->source_of_funds,
+        'program_flows' => $activity->getAttribute('program_flows') ?? [],
+    ]])->all());
     const plannedActivitySelect = document.getElementById('gpoa_activity_id');
     const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
     const sdgSummary = document.getElementById('sdgSummary');
     const sdgColors = @json(config('sdg'));
     const sdgValidationError = document.getElementById('sdgValidationError');
     const requestForm = document.getElementById('requestForm');
+    const hasOldInput = @json(session()->hasOldInput());
     const dateInput = document.getElementById('date');
     const endDateInput = document.getElementById('end_date');
     const targetParticipantsInput = document.getElementById('target_participants');
     const estimatedBudgetInput = document.getElementById('estimated_budget');
+    const plannedDateWarning = document.getElementById('plannedActivityPastDateWarning');
+    const resetPrefillButton = document.getElementById('resetGpoaPrefill');
+    const originalActivityId = @js($gpoaActivity->id ?? null);
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
 
-    function prefillFromPlannedActivity() {
+    function normalized(value) {
+        return String(value ?? '').trim().toLocaleLowerCase();
+    }
+
+    function selectValue(select, value, field) {
+        const wanted = normalized(value);
+        if (!wanted) {
+            select.value = '';
+            return;
+        }
+
+        const option = Array.from(select.options).find(candidate =>
+            normalized(candidate.value) === wanted || normalized(candidate.textContent) === wanted
+        );
+        if (option) {
+            select.value = option.value;
+            return;
+        }
+
+        select.value = '';
+        console.warn(`Could not match planned GPOA value for ${field}:`, value);
+    }
+
+    function setPastDateState(value) {
+        if (!dateInput) return;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const plannedDate = value ? new Date(`${value}T00:00:00`) : null;
+        const isPast = plannedDate && plannedDate < today;
+        plannedDateWarning?.classList.toggle('hidden', !isPast);
+        const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        dateInput.min = isPast ? value : localToday;
+    }
+
+    function updateChangedFields() {
+        const fields = ['title', 'category', 'objectives', 'expected_outcome', 'plan_key_strategy', 'date', 'end_date', 'start_time', 'end_time', 'venue', 'target_participants', 'person_in_charge', 'facilities_materials', 'estimated_budget', 'source_of_funds'];
+        fields.forEach(field => {
+            const element = document.getElementById(field);
+            if (!element || !(field in serverPrefill)) return;
+            const expected = normalized(serverPrefill[field]);
+            const current = normalized(element.value);
+            element.classList.toggle('border-amber-500', current !== expected);
+            element.classList.toggle('border-l-4', current !== expected);
+        });
+
+        const selectedSdgs = Array.from(sdgCheckboxContainer?.querySelectorAll('input[type="checkbox"]:checked') ?? []).map(input => input.value).sort();
+        const expectedSdgs = (serverPrefill.sdgs ?? []).map(String).sort();
+        sdgCheckboxContainer?.classList.toggle('border-l-4', JSON.stringify(selectedSdgs) !== JSON.stringify(expectedSdgs));
+        sdgCheckboxContainer?.classList.toggle('border-amber-500', JSON.stringify(selectedSdgs) !== JSON.stringify(expectedSdgs));
+    }
+
+    function prefillFromPlannedActivity(onlyEmpty = false) {
         const activity = plannedActivities[plannedActivitySelect?.value];
-        if (!activity) return;
+        const pastDateWarning = document.getElementById('plannedActivityPastDateWarning');
+        if (!activity) {
+            pastDateWarning?.classList.add('hidden');
+            return;
+        }
 
         ['title', 'category', 'objectives', 'expected_outcome', 'plan_key_strategy', 'date',
-            'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
+            'end_date', 'start_time', 'end_time', 'venue', 'target_participants', 'person_in_charge', 'facilities_materials',
             'estimated_budget', 'source_of_funds'].forEach(field => {
             const input = document.getElementById(field);
-            if (input && activity[field] !== null && activity[field] !== undefined) {
-                input.value = activity[field];
+            if (input && (!onlyEmpty || !input.value)) {
+                const value = activity[field] ?? '';
+                if (input instanceof HTMLSelectElement) selectValue(input, value, field);
+                else input.value = value;
             }
         });
 
-        sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = (activity.sdgs || []).map(String).includes(checkbox.value);
-        });
-        updateSdgSummary();
+        if (!onlyEmpty || !hasOldInput) {
+            sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = (activity.sdgs || []).map(String).includes(checkbox.value);
+            });
+            updateSdgSummary();
+        }
+
+        setPastDateState(activity.date);
+        window.dispatchEvent(new CustomEvent('planned-activity-changed', { detail: { program_flows: activity.program_flows || [] } }));
+        updateChangedFields();
     }
 
     if(!sdgCheckboxContainer) return;
 
-    plannedActivitySelect?.addEventListener('change', prefillFromPlannedActivity);
+    plannedActivitySelect?.addEventListener('change', () => {
+        const hiddenActivityId = document.getElementById('selectedPlannedActivityId');
+        if (hiddenActivityId) {
+            hiddenActivityId.disabled = true;
+            plannedActivitySelect.disabled = false;
+        }
+        prefillFromPlannedActivity(false);
+    });
+
+    document.getElementById('chooseDifferentActivity')?.addEventListener('click', () => {
+        const hiddenActivityId = document.getElementById('selectedPlannedActivityId');
+        if (hiddenActivityId) hiddenActivityId.disabled = false;
+        if (plannedActivitySelect) {
+            plannedActivitySelect.disabled = false;
+            plannedActivitySelect.classList.remove('hidden');
+            plannedActivitySelect.focus();
+        }
+    });
+
+    document.getElementById('dismissPrefillHint')?.addEventListener('click', () => {
+        document.getElementById('gpoaPrefillHint')?.remove();
+    });
+
+    resetPrefillButton?.addEventListener('click', () => {
+        Object.entries(serverPrefill).forEach(([field, value]) => {
+            const element = document.getElementById(field);
+            if (!element) return;
+            if (element instanceof HTMLSelectElement) selectValue(element, value, field);
+            else element.value = value ?? '';
+        });
+        sdgCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = (serverPrefill.sdgs ?? []).map(String).includes(checkbox.value);
+        });
+        if (plannedActivitySelect && originalActivityId) plannedActivitySelect.value = originalActivityId;
+        const hiddenActivityId = document.getElementById('selectedPlannedActivityId');
+        if (hiddenActivityId && originalActivityId) {
+            hiddenActivityId.value = originalActivityId;
+            hiddenActivityId.disabled = false;
+            plannedActivitySelect.disabled = true;
+            plannedActivitySelect.classList.add('hidden');
+        }
+        window.dispatchEvent(new CustomEvent('reset-gpoa-prefill', { detail: { program_flows: serverProgramFlows } }));
+        setPastDateState(serverPrefill.date);
+        updateSdgSummary();
+        updateChangedFields();
+    });
+
+    requestForm?.addEventListener('input', updateChangedFields);
+    requestForm?.addEventListener('change', updateChangedFields);
 
     /**
      * Update the summary badges area with currently selected SDGs
@@ -588,6 +603,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Initialize on page load - update badges to reflect any pre-checked checkboxes
     updateSdgSummary();
+    if (!hasOldInput && plannedActivitySelect?.value) {
+        prefillFromPlannedActivity(true);
+    } else {
+        updateChangedFields();
+    }
 
     window.addEventListener('pageshow', function(event) {
         updateSdgSummary();

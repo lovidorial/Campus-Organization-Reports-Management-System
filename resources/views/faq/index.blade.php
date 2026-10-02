@@ -19,11 +19,11 @@
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How does Activity Monitoring work, and what do the status filters mean?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Each planned activity is tracked by its signed communication letter and narrative report. Pending means the letter is missing or its request was rejected; Ongoing means the letter is present but the report is missing or needs revision; Completed means both are submitted. Late is a separate flag for a past activity date or a passed document deadline before completion. Filter by organization, category, college, term, school year, search text, or status (including Late).</p>
+                        <p class="mt-2 text-sm text-gray-600">Each planned activity is tracked by its signed communication letter and narrative report. Pending means the letter is missing or its request was rejected; Ongoing means the letter is present but the narrative report is missing, awaiting review, or needs revision; Completed means the report has been approved. Late is a separate flag for a past activity date or a passed document deadline before completion. Filter by organization, category, college, term, school year, search text, or status (including Late).</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I review a communication letter or narrative report?</summary>
-                        <p class="mt-2 text-sm text-gray-600">In <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, use the View links to open the uploaded communication letter or uploaded/generated narrative PDF. The current admin screen does not provide an action to mark a narrative report Needs Revision or enter feedback.</p>
+                        <p class="mt-2 text-sm text-gray-600">In <a class="text-amber-700 hover:underline" href="{{ route('admin.activities') }}">Activity Monitoring</a>, open the narrative report, photos, and attendance sheet as needed, then approve the report or request a revision with feedback.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I record a monitoring result?</summary>
@@ -77,7 +77,7 @@
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">What is a GPOA, and how do I submit or update it?</summary>
-                        <p class="mt-2 text-sm text-gray-600">A General Plan of Activities (GPOA) records your organization’s planned activities for a term and school year. Use <a class="text-amber-700 hover:underline" href="{{ route('gpoa.index') }}">My GPOA</a> to submit a plan or edit its planned activities.</p>
+                        <p class="mt-2 text-sm text-gray-600">A General Plan of Activities (GPOA) records your organization’s planned activities for a term and school year. After submission, a GPOA is locked. Finish all activities in the previous GPOA before submitting another plan. Contact your administrator if you need to request changes.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I submit an Activity Request?</summary>

@@ -4,9 +4,15 @@
         <h2 class="text-2xl font-bold text-gray-800">My GPOA</h2>
         <p class="text-sm text-gray-500">General Plan of Activities</p>
     </div>
-    <a href="{{ route('gpoa.create') }}"
-       class="px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90" style="background:#e89600;">+ Submit GPOA</a>
+    @if($canSubmitGpoa)
+        <a href="{{ route('gpoa.create') }}"
+           class="px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90" style="background:#e89600;">+ Submit GPOA</a>
+    @endif
 </div>
+
+@if(!$canSubmitGpoa && $submissionBlockMessage)
+    <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">{{ $submissionBlockMessage }}</div>
+@endif
 
 <div class="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
     <div class="mb-3 flex items-center justify-between gap-4">
@@ -50,14 +56,14 @@
                 <td class="px-4 py-4">
                     <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Approved</span>
                     @if($gpoa->document_path)
-                        <a href="{{ asset('storage/'.$gpoa->document_path) }}" target="_blank" class="ml-2 text-xs font-semibold text-emerald-700 hover:underline">View approved document</a>
+                        <a href="{{ route('gpoa.document', $gpoa) }}" data-file-viewer data-title="Approved GPOA Document" class="ml-2 text-xs font-semibold text-emerald-700 hover:underline">View approved document</a>
                     @endif
                 </td>
                 <td class="px-4 py-4 text-xs text-gray-500">{{ $gpoa->created_at->format('M d, Y') }}</td>
                 <td class="px-4 py-4 text-center">
                     <div class="flex justify-center gap-3">
                         <a href="{{ route('gpoa.show', $gpoa) }}" class="text-sky-600 hover:underline text-xs font-semibold">View Details</a>
-                        <a href="{{ route('gpoa.edit', $gpoa) }}" class="text-sky-600 hover:underline text-xs font-semibold">Edit</a>
+                        <span class="text-xs text-slate-500">Locked after submission</span>
                     </div>
                 </td>
             </tr>
@@ -65,7 +71,9 @@
             <tr>
                 <td colspan="6" class="px-4 py-10 text-center text-gray-400">
                     No GPOA submitted yet.
-                    <a href="{{ route('gpoa.create') }}" class="text-sky-600 hover:underline ml-1">Submit your GPOA →</a>
+                    @if($canSubmitGpoa)
+                        <a href="{{ route('gpoa.create') }}" class="text-sky-600 hover:underline ml-1">Submit your GPOA →</a>
+                    @endif
                 </td>
             </tr>
             @endforelse

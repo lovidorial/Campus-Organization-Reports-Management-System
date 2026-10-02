@@ -22,6 +22,16 @@ class GpoaActivityPolicy
         return $this->allowsOrganizationAccess($user, $gpoaActivity->gpoa?->user?->organization_id);
     }
 
+    public function archive(User $user, GpoaActivity $gpoaActivity): bool
+    {
+        return $this->allowsOrganizationAccess($user, $gpoaActivity->gpoa?->user?->organization_id);
+    }
+
+    public function restore(User $user, GpoaActivity $gpoaActivity): bool
+    {
+        return $this->allowsOrganizationAccess($user, $gpoaActivity->gpoa?->user?->organization_id);
+    }
+
     public function delete(User $user, GpoaActivity $gpoaActivity): bool
     {
         return $this->allowsOrganizationAccess($user, $gpoaActivity->gpoa?->user?->organization_id);

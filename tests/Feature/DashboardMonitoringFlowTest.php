@@ -63,11 +63,177 @@ class DashboardMonitoringFlowTest extends TestCase
         $response->assertOk();
         $response->assertSee('GPOA submitted');
         $response->assertSee('Monitoring Progress');
-        $response->assertSee('Completed');
+        $response->assertSee('Ongoing');
         $response->assertSee('Open Activity Monitor');
         $response->assertDontSee('Summary Report');
         $response->assertDontSee('Submit report');
         $response->assertDontSee('Awaiting GPOA approval');
         $response->assertDontSee('GPOA approved');
+    }
+
+    public function test_dashboard_status_cards_have_correct_counts_links_and_archived_note(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 2)->startOfDay());
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+
+        $pending = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Late pending activity',
+            'date' => '2026-10-01',
+            'venue' => 'Hall A',
+        ]);
+        $ongoing = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Late ongoing activity',
+            'date' => '2026-10-01',
+            'venue' => 'Hall B',
+        ]);
+        $ongoingRequest = ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $ongoing->id,
+            'title' => $ongoing->title,
+            'date' => $ongoing->date,
+            'venue' => $ongoing->venue,
+            'category' => 'Symposium',
+            'communication_letter' => 'letters/ongoing.pdf',
+            'status' => ActivityRequest::STATUS_APPROVED,
+        ]);
+        $ongoing->update(['activity_request_id' => $ongoingRequest->id]);
+
+        $completed = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Completed activity',
+            'date' => '2026-09-20',
+            'venue' => 'Hall C',
+        ]);
+        $completedRequest = ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $completed->id,
+            'title' => $completed->title,
+            'date' => $completed->date,
+            'venue' => $completed->venue,
+            'category' => 'Symposium',
+            'communication_letter' => 'letters/completed.pdf',
+            'status' => ActivityRequest::STATUS_APPROVED,
+        ]);
+        $completed->update(['activity_request_id' => $completedRequest->id]);
+        ActivityReport::create([
+            'activity_request_id' => $completedRequest->id,
+            'narrative_report' => 'reports/completed.pdf',
+            'narrative_source' => 'uploaded',
+            'submitted_at' => now(),
+            'status' => 'approved',
+        ]);
+        GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Archived activity',
+            'date' => '2026-09-10',
+            'archived_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Total')
+            ->assertSee('Pending')
+            ->assertSee('Ongoing')
+            ->assertSee('Completed')
+            ->assertSee('Late')
+            ->assertSee('Archived')
+            ->assertSee('text-3xl font-bold text-slate-700">3</p>', false)
+            ->assertSee('text-4xl font-bold text-amber-700">1</p>', false)
+            ->assertSee('text-3xl font-bold text-sky-700">1</p>', false)
+            ->assertSee('text-3xl font-bold text-emerald-700">1</p>', false)
+            ->assertSee('text-3xl font-bold text-rose-700">2</p>', false)
+            ->assertSee('text-3xl font-bold text-slate-600">1</p>', false)
+            ->assertSee('your planned activities')
+            ->assertSee('1 of 3')
+            ->assertSee('flag, not a separate status')
+            ->assertSee('not counted in Total')
+            ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted'])), false)
+            ->assertSee(e(route('activity-monitor.index', ['tab' => 'todo'])), false)
+            ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Ongoing'])), false)
+            ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Completed'])), false)
+            ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Late'])), false)
+            ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Archived'])), false);
+    }
+
+    public function test_dashboard_without_gpoa_shows_zero_status_cards_without_card_links(): void
+    {
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Action Required')
+            ->assertSee('Total')
+            ->assertSee('Pending')
+            ->assertSee('Ongoing')
+            ->assertSee('Completed')
+            ->assertSee('Late')
+            ->assertSee('Archived')
+            ->assertSee('not counted in Total')
+            ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'todo'])), false)
+            ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Ongoing'])), false)
+            ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Completed'])), false)
+            ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Late'])), false)
+            ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Archived'])), false);
+    }
+
+    public function test_dashboard_renders_uploaded_and_approved_document_pills_without_external_image_markup(): void
+    {
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Approved document activity',
+            'date' => '2026-10-01',
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+        ]);
+        $request = ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $activity->id,
+            'title' => $activity->title,
+            'date' => $activity->date,
+            'venue' => $activity->venue,
+            'category' => 'Symposium',
+            'communication_letter' => 'letters/approved-letter.pdf',
+            'status' => ActivityRequest::STATUS_APPROVED,
+        ]);
+        $activity->update(['activity_request_id' => $request->id]);
+        ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'reports/approved-report.pdf',
+            'narrative_source' => 'uploaded',
+            'submitted_at' => now(),
+            'status' => 'approved',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Communication Letter</th>', false)
+            ->assertSee('Narrative Report</th>', false)
+            ->assertSee('bg-emerald-100 text-emerald-800 ring-emerald-200', false)
+            ->assertSee('Uploaded')
+            ->assertSee('Approved')
+            ->assertDontSee('static.xx.fbcdn.net');
     }
 }

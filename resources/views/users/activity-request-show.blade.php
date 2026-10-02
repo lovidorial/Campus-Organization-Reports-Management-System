@@ -8,13 +8,16 @@
     @endphp
 
     <main class="mx-auto max-w-6xl space-y-3 p-0 sm:p-4">
+        @if($errors->has('activity_date'))
+            <div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>
+        @endif
         <header class="flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
                 <p class="text-[11px] text-slate-500">Activity Request #{{ $request->id }}</p>
                 <h1 class="truncate text-lg font-bold text-slate-900">{{ $request->title }}</h1>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('activity-requests.pdf', $request) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Download Activity Details PDF</a>
+                <a href="{{ route('activity-requests.pdf', $request) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Download PDF</a>
                 <a href="{{ route('activity-requests.index') }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Back to requests</a>
             </div>
         </header>
@@ -33,7 +36,6 @@
                 </div>
             </div>
 
-            @php($needsRevision = $request->report?->status === 'needs_revision')
             @php($narrativeSubmitted = $request->report && ($request->report->narrative_report || $request->report->narrative_content))
             <p class="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">Requirements</p>
             <div class="mt-2 space-y-2">
@@ -60,20 +62,23 @@
                         </span>
                         <div class="min-w-0">
                             <span class="text-sm text-slate-800">Narrative Report</span>
-                            @if($needsRevision && $request->report?->feedback)
+                            @if($request->report?->status === 'needs_revision' && $request->report?->feedback)
                                 <p class="mt-1 break-words text-xs text-rose-700">{{ $request->report->feedback }}</p>
                             @endif
                         </div>
                     </div>
-                    <x-status-pill :status="$needsRevision ? 'Needs Revision' : ($narrativeSubmitted ? 'Submitted' : 'Pending')" class="shrink-0" />
+                    <x-status-pill :status="$request->report?->reviewStatusLabel() ?? 'Pending'" class="shrink-0" />
                 </div>
+                @if($request->report?->status === 'approved')
+                    <p class="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Approved on {{ $request->report->reviewed_at?->format('M d, Y') ?? '—' }}</p>
+                @endif
             </div>
 
             <ol class="mt-5 space-y-0" aria-label="Activity timeline">
                 @foreach([
                     ['label' => 'Activity planned', 'complete' => (bool) $request->gpoaActivity, 'date' => $request->gpoaActivity?->date],
                     ['label' => 'Communication letter uploaded', 'complete' => filled($request->communication_letter), 'date' => $request->communication_letter_signed_at],
-                    ['label' => $narrativeSubmitted ? 'Narrative report submitted' : 'Narrative report completed', 'complete' => (bool) $narrativeSubmitted, 'date' => $request->report?->submitted_at],
+                    ['label' => $request->report?->status === 'approved' ? 'Narrative report approved' : 'Narrative report submitted', 'complete' => (bool) $narrativeSubmitted, 'date' => $request->report?->submitted_at],
                 ] as $step)
                     <li class="relative flex gap-3 pb-4 last:pb-0">
                         @if(!$loop->last)<span class="absolute left-[9px] top-5 h-full w-px {{ $step['complete'] ? 'bg-emerald-200' : 'bg-slate-200' }}" aria-hidden="true"></span>@endif
@@ -96,7 +101,7 @@
                 <svg aria-hidden="true" class="h-4 w-4 shrink-0 text-sky-600" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-11a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm1 2a1 1 0 1 0-2 0v4a1 1 0 1 0 2 0V9Z" clip-rule="evenodd" />
                 </svg>
-                <span>This activity will be marked as Completed once both requirements are submitted.</span>
+                <span>This activity will be marked as Completed after the narrative report is approved.</span>
             </p>
         </section>
 
@@ -104,6 +109,15 @@
             <div class="mb-2 flex flex-wrap items-center gap-1.5">
                 <span class="text-[10px] font-semibold text-slate-500">Monitoring:</span><x-status-pill :status="$monitoring['status'] ?? 'Pending'" />
             </div>
+
+            @if($reviewerRemarks)
+                <section class="mb-2 rounded border border-sky-200 bg-sky-50 p-3" aria-label="Reviewer remarks">
+                    <h2 class="text-xs font-bold text-slate-800">Reviewer remarks</h2>
+                    <p class="mt-1 text-xs font-semibold text-slate-700">{{ ['aligned' => 'Aligned', 'partial' => 'Partially aligned', 'not_aligned' => 'Not aligned'][$reviewerRemarks->compliance_status] ?? ucfirst($reviewerRemarks->compliance_status) }}</p>
+                    <p class="mt-1 whitespace-pre-wrap text-xs text-slate-700">{{ $reviewerRemarks->compliance_notes ?: 'No additional remark.' }}</p>
+                    @if($reviewerRemarks->recorded_at)<time class="mt-1 block text-[10px] text-slate-500">{{ $reviewerRemarks->recorded_at->format('M d, Y h:i A') }}</time>@endif
+                </section>
+            @endif
 
             <dl class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Title</dt><dd class="{{ $valueClass }}">{{ $request->title }}</dd></div>
@@ -119,12 +133,10 @@
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Expected Outcome</dt><dd class="{{ $valueClass }}">{{ $request->expected_outcome ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Plan / Key Strategy</dt><dd class="{{ $valueClass }}">{{ $request->plan_key_strategy ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Target Participants</dt><dd class="{{ $valueClass }}">{{ $request->target_participants ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Participants Count</dt><dd class="{{ $valueClass }}">{{ $request->participants_count ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Person in Charge</dt><dd class="{{ $valueClass }}">{{ $request->person_in_charge ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Facilities / Materials</dt><dd class="{{ $valueClass }}">{{ $request->facilities_materials ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Estimated Budget</dt><dd class="{{ $valueClass }}">{{ $request->estimated_budget !== null ? number_format((float) $request->estimated_budget, 2) : '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Source of Funds</dt><dd class="{{ $valueClass }}">{{ $request->source_of_funds ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Preceding Activity</dt><dd class="{{ $valueClass }}">{{ $request->preceding_activity ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Remarks</dt><dd class="{{ $valueClass }}">{{ $request->remarks ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Rejection Reason</dt><dd class="{{ $valueClass }}">{{ $request->reject_reason ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Created / Updated</dt><dd class="{{ $valueClass }}">{{ $request->created_at?->format('M d, Y H:i') ?? '—' }} / {{ $request->updated_at?->format('M d, Y H:i') ?? '—' }}</dd></div>
@@ -135,7 +147,7 @@
             <div class="rounded border border-slate-200 bg-white p-3">
                 <h2 class="mb-2 text-sm font-bold text-slate-800">Communication Letter</h2>
                 @if($request->communication_letter)
-                    <a href="{{ route('activity-requests.documents.show', [$request, 'communication-letter']) }}" class="text-xs font-semibold text-sky-700 underline">{{ basename($request->communication_letter) }}</a>
+                    <a href="{{ route('activity-requests.documents.show', [$request, 'communication-letter']) }}" data-file-viewer data-title="Communication Letter" class="text-xs font-semibold text-sky-700 underline">{{ basename($request->communication_letter) }}</a>
                 @else
                     <p class="mb-2 text-xs text-slate-500">No letter uploaded.</p>
                 @endif
@@ -157,10 +169,20 @@
                 @if($request->report)
                     <p class="mb-2 text-xs text-slate-600">{{ ucfirst($request->report->narrative_source ?? 'uploaded') }} report saved.</p>
                     @if($request->report->narrative_report)
-                        <a href="{{ route('activity-requests.documents.show', [$request, 'narrative-report']) }}" class="text-xs font-semibold text-sky-700 underline">View report PDF</a>
+                        <a href="{{ route('activity-requests.documents.show', [$request, 'narrative-report']) }}" data-file-viewer data-title="Narrative Report" class="text-xs font-semibold text-sky-700 underline">View report PDF</a>
                     @endif
                     @if(data_get($request->report->narrative_content, 'body'))
                         <div class="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-700">{{ data_get($request->report->narrative_content, 'body') }}</div>
+                    @endif
+                    @if($request->report->attendance_sheet_path)
+                        <a href="{{ route('activity-requests.documents.show', [$request, 'attendance-sheet']) }}" data-file-viewer data-title="Attendance Sheet" class="mt-2 inline-block text-xs font-semibold text-sky-700 underline">View attendance sheet</a>
+                    @endif
+                    @if($request->report->photos->isNotEmpty())
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach($request->report->photos as $photo)
+                                <a href="{{ route('activity-requests.report-photos.show', [$request, $photo]) }}" data-file-viewer data-title="Activity Photo {{ $loop->iteration }}" class="text-xs font-semibold text-sky-700 underline">Photo {{ $loop->iteration }}</a>
+                            @endforeach
+                        </div>
                     @endif
                 @else
                     <p class="mb-2 text-xs text-slate-500">No narrative report saved.</p>

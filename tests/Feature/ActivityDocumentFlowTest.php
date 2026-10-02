@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityReport;
+use App\Models\ActivityReportPhoto;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
@@ -50,6 +51,7 @@ class ActivityDocumentFlowTest extends TestCase
     public function test_narrative_report_can_be_uploaded_for_an_unapproved_activity_and_completes_monitoring(): void
     {
         Storage::fake('private');
+        Storage::fake('public');
         [$user, $request, $activity] = $this->createActivityRequest('letters/activity.pdf');
 
         $this->actingAs($user)->get(route('activity-reports.create', $request))->assertOk();
@@ -57,6 +59,7 @@ class ActivityDocumentFlowTest extends TestCase
         $response = $this->post(route('activity-reports.store', $request), $this->reportConfirmation([
             'narrative_source' => 'uploaded',
             'narrative_report' => UploadedFile::fake()->create('narrative.pdf', 40, 'application/pdf'),
+            'photos' => [UploadedFile::fake()->image('activity.jpg')],
         ]));
 
         $response->assertRedirect(route('activity-requests.show', $request));
@@ -65,7 +68,7 @@ class ActivityDocumentFlowTest extends TestCase
         $this->assertNull($report->narrative_content);
         $this->assertStringStartsWith('activity-documents/narrative-reports/', $report->narrative_report);
         Storage::disk('private')->assertExists($report->narrative_report);
-        $this->assertSame('Completed', $activity->monitoringStatus()['status']);
+        $this->assertSame('Ongoing', $activity->fresh()->monitoringStatus()['status']);
 
         $this->get(route('activity-requests.documents.show', [$request, 'narrative-report']))
             ->assertOk();
@@ -74,11 +77,13 @@ class ActivityDocumentFlowTest extends TestCase
     public function test_narrative_report_can_be_created_in_system_and_served_privately(): void
     {
         Storage::fake('private');
+        Storage::fake('public');
         [$user, $request, $activity] = $this->createActivityRequest('letters/activity.pdf');
 
         $response = $this->actingAs($user)->post(route('activity-reports.store', $request), $this->reportConfirmation([
             'narrative_source' => 'generated',
             'narrative_content' => 'The activity brought student volunteers together.',
+            'photos' => [UploadedFile::fake()->image('activity.jpg')],
         ]));
 
         $response->assertRedirect(route('activity-requests.show', $request));
@@ -86,7 +91,7 @@ class ActivityDocumentFlowTest extends TestCase
         $this->assertSame('generated', $report->narrative_source);
         $this->assertSame('The activity brought student volunteers together.', $report->narrative_content['body']);
         Storage::disk('private')->assertExists($report->narrative_report);
-        $this->assertSame('Completed', $activity->monitoringStatus()['status']);
+        $this->assertSame('Ongoing', $activity->fresh()->monitoringStatus()['status']);
 
         $this->get(route('activity-requests.documents.show', [$request, 'narrative-report']))
             ->assertOk();
@@ -104,6 +109,39 @@ class ActivityDocumentFlowTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_only_the_activity_owner_can_view_private_attendance_sheet_and_photo(): void
+    {
+        Storage::fake('private');
+        [$owner, $request] = $this->createActivityRequest();
+        $report = ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'activity-documents/narrative-reports/report.pdf',
+            'narrative_source' => 'generated',
+            'narrative_content' => ['body' => 'Report text'],
+            'attendance_sheet_path' => 'activity-documents/attendance-sheets/attendance.pdf',
+            'submitted_at' => now(),
+        ]);
+        $photo = ActivityReportPhoto::create([
+            'activity_report_id' => $report->id,
+            'path' => 'activity-documents/activity-photos/proof.jpg',
+            'sort_order' => 0,
+        ]);
+        Storage::disk('private')->put($report->attendance_sheet_path, 'attendance');
+        Storage::disk('private')->put($photo->path, 'photo');
+
+        $this->actingAs($owner)
+            ->get(route('activity-requests.documents.show', [$request, 'attendance-sheet']))
+            ->assertOk();
+        $this->get(route('activity-requests.report-photos.show', [$request, $photo]))->assertOk();
+
+        $otherUser = User::factory()->create();
+        $this->actingAs($otherUser)
+            ->get(route('activity-requests.documents.show', [$request, 'attendance-sheet']))
+            ->assertForbidden();
+        $this->get(route('activity-requests.report-photos.show', [$request, $photo]))
+            ->assertForbidden();
+    }
+
     private function createActivityRequest(?string $communicationLetter = null): array
     {
         $user = User::factory()->create();
@@ -117,7 +155,7 @@ class ActivityDocumentFlowTest extends TestCase
         $activity = GpoaActivity::create([
             'gpoa_id' => $gpoa->id,
             'title' => 'Student Leadership Seminar',
-            'date' => '2027-03-10',
+            'date' => '2025-03-10',
             'venue' => 'Main Hall',
             'category' => 'Seminar',
         ]);

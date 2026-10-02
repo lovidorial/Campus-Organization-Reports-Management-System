@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GpoaActivity extends Model
@@ -36,6 +35,7 @@ class GpoaActivity extends Model
         'facilities_materials',
         'remarks',
         'activity_level',
+        'archived_at',
     ];
 
     protected $casts = [
@@ -44,6 +44,7 @@ class GpoaActivity extends Model
         'start_time' => 'string',
         'end_time' => 'string',
         'date_is_month_only' => 'boolean',
+        'archived_at' => 'datetime',
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
     ];
@@ -58,11 +59,6 @@ class GpoaActivity extends Model
         return $this->belongsTo(ActivityRequest::class);
     }
 
-    public function activityRequests(): HasMany
-    {
-        return $this->hasMany(ActivityRequest::class);
-    }
-
     public function monitoringResult(): HasOne
     {
         return $this->hasOne(MonitoringResult::class);
@@ -72,26 +68,27 @@ class GpoaActivity extends Model
     {
         return $query->with([
             'gpoa',
-            'activityRequest.report',
+            'activityRequest.report.photos',
+            'activityRequest.programFlows',
+            'activityRequest.monitoringResult',
+            'monitoringResult',
         ]);
-    }
-
-    public static function withMonitoringDataLoaded(): Builder
-    {
-        return static::query()->withMonitoringData();
     }
 
     public function monitoringStatus(): array
     {
+        if ($this->archived_at) {
+            return ['status' => 'Archived', 'late' => false];
+        }
+
         $letterPresent = filled($this->activityRequest?->communication_letter);
         $report = $this->activityRequest?->report;
         $reportPresent = filled($report?->narrative_report) || filled($report?->narrative_content);
-        $needsRevision = $report?->status === 'needs_revision';
         $requestRejected = $this->activityRequest?->status === 'rejected';
 
         $status = $requestRejected || ! $letterPresent
             ? 'Pending'
-            : ($reportPresent && ! $needsRevision ? 'Completed' : 'Ongoing');
+            : ($reportPresent && $report?->status === 'approved' ? 'Completed' : 'Ongoing');
 
         return [
             'status' => $status,
@@ -102,7 +99,7 @@ class GpoaActivity extends Model
     public function letterStatusLabel(): string
     {
         return filled($this->activityRequest?->communication_letter)
-            ? 'Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)'
+            ? 'Uploaded'
             : 'Pending';
     }
 
@@ -110,46 +107,23 @@ class GpoaActivity extends Model
     {
         $report = $this->activityRequest?->report;
 
-        if ($report?->status === 'needs_revision') {
-            return 'Needs Revision';
-        }
-
         if (! $report) {
             return 'Pending';
         }
 
+        if (in_array($report->status, ['approved', 'needs_revision', 'rejected'], true)) {
+            return $report->reviewStatusLabel();
+        }
+
         if (filled($report->narrative_report) && ($report->narrative_source === 'generated' || $report->narrative_source === 'uploaded')) {
-            return $report->narrative_source === 'generated'
-                ? 'Created ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)'
-                : 'Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)';
+            return 'For Review';
         }
 
         if (filled($report->narrative_content)) {
-            return 'Created ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)';
+            return 'For Review';
         }
 
         return 'Pending';
-    }
-
-    public function getDisplayDateAttribute(): string
-    {
-        if (! $this->date) {
-            return '—';
-        }
-
-        if ($this->date_is_month_only) {
-            return $this->date->format('F Y');
-        }
-
-        if ($this->time_frame === 'date_range' && $this->end_date && $this->end_date->ne($this->date)) {
-            if ($this->date->format('M Y') === $this->end_date->format('M Y')) {
-                return $this->date->format('M j') . '-' . $this->end_date->format('j, Y');
-            }
-
-            return $this->date->format('M j, Y') . ' - ' . $this->end_date->format('M j, Y');
-        }
-
-        return $this->date->format('M d, Y');
     }
 
     protected function isLateForMonitoring(): bool

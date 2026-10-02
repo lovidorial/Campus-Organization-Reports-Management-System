@@ -25,13 +25,14 @@ class SummaryReportExport implements WithMultipleSheets
         private readonly Collection $organizationSummary,
         private readonly Collection $categorySummary,
         private readonly Collection $statusSummary,
+        private readonly array $filters = [],
         private readonly bool $includeSummaries = true,
     ) {
     }
 
     public function sheets(): array
     {
-        $sheets = [new SummaryReportDataSheet($this->activities)];
+        $sheets = [new SummaryReportDataSheet($this->activities, $this->filters)];
 
         if ($this->includeSummaries) {
             $sheets[] = new OrganizationSummarySheet($this->organizationSummary);
@@ -45,8 +46,10 @@ class SummaryReportExport implements WithMultipleSheets
 
 class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
-    public function __construct(private readonly Collection $activities)
-    {
+    public function __construct(
+        private readonly Collection $activities,
+        private readonly array $filters = [],
+    ) {
     }
 
     public function collection(): Collection
@@ -58,13 +61,13 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
     {
         return [
             'Organization',
-            'Term / School Year',
+            'Term / SY',
             'Activity # / Title',
             'Category',
             'Date',
             'Venue',
             'Status',
-            'Late',
+            'Assessment',
             'Communication Letter',
             'Narrative Report',
             'Estimated Budget',
@@ -75,20 +78,25 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
     {
         $request = $activity->activityRequest;
         $report = $request?->report;
+        $statusLabel = $activity->monitoring_status === 'Pending' ? 'Not Started' : $activity->monitoring_status;
+        $assessment = match ($activity->monitoringResult?->compliance_status ?? '') {
+            'aligned' => 'Aligned',
+            'partial' => 'Partially Aligned',
+            'not_aligned' => 'Not Aligned',
+            default => '',
+        };
 
         return [
             $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—',
-            ($activity->gpoa?->term ?? '—') . ' / ' . ($activity->gpoa?->school_year ?? '—'),
+            trim(($activity->gpoa?->term ?? '—') . ' / ' . ($activity->gpoa?->school_year ?? '—'), ' / '),
             'Activity #' . ($activity->activity_number ?? '—') . ': ' . $activity->title,
             $activity->category ?: '—',
             $activity->date?->format('M d, Y') ?? '—',
             $activity->venue ?: '—',
-            $activity->monitoring_status,
-            $activity->monitoring_late ? 'Late' : '—',
+            $statusLabel,
+            $assessment,
             filled($request?->communication_letter) ? 'Uploaded' : 'Pending',
-            $report?->status === 'needs_revision'
-                ? 'Needs Revision'
-                : ((filled($report?->narrative_report) || filled($report?->narrative_content)) ? 'Submitted' : 'Pending'),
+            (filled($report?->narrative_report) || filled($report?->narrative_content)) ? 'Submitted' : 'Pending',
             (float) ($activity->estimated_budget ?? 0),
         ];
     }
@@ -116,17 +124,35 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
         return [
             AfterSheet::class => function (AfterSheet $event): void {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->freezePane('A2');
+                $sheet->insertNewRowBefore(1, 1);
+
+                $filterText = 'Filters: Organization=' . ($this->filters['organization'] ?: 'All')
+                    . ' | Category=' . ($this->filters['category'] ?: 'All')
+                    . ' | College=' . ($this->filters['college'] ?: 'All')
+                    . ' | Term=' . ($this->filters['term'] ?: 'All')
+                    . ' | School Year=' . ($this->filters['school_year'] ?: 'All')
+                    . ' | Status=' . ($this->filters['status'] ?: 'All')
+                    . ' | Assessment=' . ($this->filters['assessment'] ?: 'All')
+                    . ' | Date=' . (($this->filters['date_from'] ?: 'Any') . ' to ' . ($this->filters['date_to'] ?: 'Any'))
+                    . ' | Generated=' . now()->format('M d, Y h:i A');
+
+                $sheet->fromArray([$filterText], null, 'A1');
+                $sheet->mergeCells('A1:K1');
+                $sheet->getStyle('A1')->getFont()->setBold(true);
+                $sheet->freezePane('A3');
 
                 foreach ($this->activities->values() as $index => $activity) {
-                    $row = $index + 2;
+                    $row = $index + 3;
                     $statusColor = match ($activity->monitoring_status) {
                         'Pending' => 'FFFFEDD5',
                         'Ongoing' => 'FFE0F2FE',
                         'Completed' => 'FFD1FAE5',
+                        'Archived' => 'FFE2E8F0',
                         default => 'FFF3F4F6',
                     };
+
                     $sheet->getStyle("G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($statusColor);
+
                     if ($activity->monitoring_late) {
                         $sheet->getStyle("H{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFE4E6');
                         $sheet->getStyle("H{$row}")->getFont()->getColor()->setARGB('FF9F1239');
@@ -136,7 +162,7 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
                     if (filled($request?->communication_letter)) {
                         $this->setHyperlink($sheet->getCell("I{$row}"), route('admin.file.view', [$request->id, 'communication']));
                     }
-                    if (filled($request?->report?->narrative_report)) {
+                    if (filled($request?->report?->narrative_report) || filled($request?->report?->narrative_content)) {
                         $this->setHyperlink($sheet->getCell("J{$row}"), route('admin.file.view', [$request->id, 'narrative']));
                     }
                 }
@@ -164,12 +190,23 @@ class OrganizationSummarySheet implements FromCollection, ShouldAutoSize, WithHe
 
     public function headings(): array
     {
-        return ['Organization', 'Total Activities', 'Completed', 'Ongoing', 'Pending', 'Progress %'];
+        return ['Organization', 'Term / SY', 'Total Activities', 'Finished', 'Archived', 'Late', 'Ongoing', 'Pending', 'GPOA finished?', 'Progress %'];
     }
 
     public function map($summary): array
     {
-        return [$summary['organization'], $summary['activity_count'], $summary['completed'], $summary['ongoing'], $summary['pending'], $summary['progress']];
+        return [
+            $summary['organization'],
+            $summary['term_sy'],
+            $summary['activity_count'],
+            $summary['completed'],
+            $summary['archived'],
+            $summary['late'],
+            $summary['ongoing'],
+            $summary['pending'],
+            $summary['gpoa_finished'],
+            $summary['progress'],
+        ];
     }
 
     public function title(): string
@@ -182,9 +219,9 @@ class OrganizationSummarySheet implements FromCollection, ShouldAutoSize, WithHe
         $lastRow = max(1, $sheet->getHighestRow());
 
         return [
-            "A1:F{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
+            "A1:J{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
             '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
-            'F' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT], 'numberFormat' => ['formatCode' => '0"%"']],
+            'J' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT], 'numberFormat' => ['formatCode' => '0"%"']],
         ];
     }
 }
@@ -202,12 +239,12 @@ class CategorySummarySheet implements FromCollection, ShouldAutoSize, WithHeadin
 
     public function headings(): array
     {
-        return ['Category', 'Activity Count', 'Completed'];
+        return ['Category', 'Activity Count', 'Finished', 'Archived', 'Late'];
     }
 
     public function map($summary): array
     {
-        return [$summary['category'], $summary['activity_count'], $summary['completed']];
+        return [$summary['category'], $summary['activity_count'], $summary['completed'], $summary['archived'], $summary['late']];
     }
 
     public function title(): string
@@ -220,13 +257,13 @@ class CategorySummarySheet implements FromCollection, ShouldAutoSize, WithHeadin
         $lastRow = max(1, $sheet->getHighestRow());
 
         return [
-            "A1:C{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
+            "A1:E{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
             '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
         ];
     }
 }
 
-class StatusSummarySheet implements FromCollection, ShouldAutoSize, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
+class StatusSummarySheet implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     public function __construct(private readonly Collection $statusSummary)
     {
@@ -261,24 +298,5 @@ class StatusSummarySheet implements FromCollection, ShouldAutoSize, WithEvents, 
             '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
         ];
     }
-
-    public function registerEvents(): array
-    {
-        return [
-            AfterSheet::class => function (AfterSheet $event): void {
-                $sheet = $event->sheet->getDelegate();
-                foreach ($this->statusSummary->values() as $index => $summary) {
-                    $color = match ($summary['status']) {
-                        'Pending' => 'FFFFEDD5',
-                        'Ongoing' => 'FFE0F2FE',
-                        'Completed' => 'FFD1FAE5',
-                        'Late' => 'FFFFE4E6',
-                        default => 'FFFFFFFF',
-                    };
-                    $row = $index + 2;
-                    $sheet->getStyle("A{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($color);
-                }
-            },
-        ];
-    }
 }
+

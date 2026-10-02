@@ -3,11 +3,14 @@
     <a href="{{ route('activity-requests.show', $activityRequest) }}" class="text-sky-600 text-sm hover:underline">← Back to Activity</a>
     <h2 class="text-2xl font-bold text-gray-800 mt-2">Narrative Report</h2>
     <p class="text-sm text-gray-500">{{ $activityRequest->title }} — {{ $activityRequest->date->format('M d, Y') }}</p>
+    @error('activity_date')<p class="mt-2 text-sm font-medium text-red-700">{{ $message }}</p>@enderror
 </div>
 
 @php
     $selectedSource = old('narrative_source', $existingReport?->narrative_source ?? ($existingReport?->narrative_report ? 'uploaded' : 'generated'));
     $hasExistingUpload = $existingReport?->narrative_source === 'uploaded' && filled($existingReport?->narrative_report);
+    $existingPhotoCount = $existingReport?->photos->count() ?? 0;
+    $remainingPhotoCount = max(0, 10 - $existingPhotoCount);
 @endphp
 
 <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-8 max-w-xl">
@@ -38,7 +41,7 @@
         <div id="narrativeUploadSection">
             <label class="mb-2 block text-sm font-semibold text-gray-700">Narrative Report PDF {{ $hasExistingUpload ? '(optional replacement)' : '*' }}</label>
             @if($hasExistingUpload)
-                <p class="mb-2 text-xs text-gray-500">Current file: <a class="text-sky-700 underline" href="{{ route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) }}">View narrative report</a></p>
+                <p class="mb-2 text-xs text-gray-500">Current file: <a class="text-sky-700 underline" data-file-viewer data-title="Narrative Report" href="{{ route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) }}">View narrative report</a></p>
             @endif
             <input id="narrativeReportFile" type="file" name="narrative_report" accept=".pdf" {{ $hasExistingUpload ? '' : 'required' }} class="w-full rounded-lg border border-gray-300 px-3 py-2">
             <p class="mt-1 text-xs text-gray-500">PDF, up to 20 MB.</p>
@@ -81,13 +84,23 @@
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Upload photos of the finished activity (optional, up to 10)</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Photos of the finished activity {{ $existingPhotoCount > 0 ? '(optional, ' . $remainingPhotoCount . ' more allowed)' : '(at least 1 required, up to 10)' }}</label>
             <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple
                    class="w-full border border-gray-300 rounded-lg px-3 py-2">
-            <p class="text-xs text-gray-500 mt-1">Add supporting images for your final report.</p>
+            <p class="text-xs text-gray-500 mt-1">Previously submitted photos are kept when you resubmit.</p>
             @error('photos')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             @error('photos.*')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             <div id="photoPreview" class="grid grid-cols-3 gap-3 mt-3"></div>
+        </div>
+
+        <div>
+            <label for="attendance_sheet" class="mb-2 block text-sm font-semibold text-gray-700">Attendance sheet (optional)</label>
+            @if(filled($existingReport?->attendance_sheet_path))
+                <p class="mb-2 text-xs text-gray-500">An attendance sheet is already on file. Uploading another replaces it.</p>
+            @endif
+            <input id="attendance_sheet" type="file" name="attendance_sheet" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" class="w-full rounded-lg border border-gray-300 px-3 py-2">
+            <p class="mt-1 text-xs text-gray-500">PDF or image, up to 10 MB.</p>
+            @error('attendance_sheet')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
         </div>
 
         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg">

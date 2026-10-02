@@ -19,7 +19,7 @@ class GpoaPolicy
 
     public function update(User $user, Gpoa $gpoa): bool
     {
-        return $this->allowsOrganizationAccess($user, $gpoa->user?->organization_id);
+        return $user->isAdmin();
     }
 
     public function delete(User $user, Gpoa $gpoa): bool

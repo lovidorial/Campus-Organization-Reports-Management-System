@@ -35,9 +35,9 @@ class StorageUsageService
             $this->addPath($pathsByUser, (int) $row->user_id, $row->narrative_report);
         }
         foreach (DB::table('activity_reports')->join('activity_requests', 'activity_requests.id', '=', 'activity_reports.activity_request_id')
-            ->whereNotNull('activity_reports.narrative_report')
-            ->get(['activity_requests.user_id', 'activity_reports.narrative_report']) as $row) {
+            ->get(['activity_requests.user_id', 'activity_reports.narrative_report', 'activity_reports.attendance_sheet_path']) as $row) {
             $this->addPath($pathsByUser, (int) $row->user_id, $row->narrative_report);
+            $this->addPath($pathsByUser, (int) $row->user_id, $row->attendance_sheet_path);
         }
         foreach (DB::table('activity_report_photos')->join('activity_reports', 'activity_reports.id', '=', 'activity_report_photos.activity_report_id')
             ->join('activity_requests', 'activity_requests.id', '=', 'activity_reports.activity_request_id')
@@ -108,8 +108,9 @@ class StorageUsageService
             }
 
             foreach (DB::table('activity_reports')->join('activity_requests', 'activity_requests.id', '=', 'activity_reports.activity_request_id')
-                ->whereIn('activity_requests.user_id', $userIds)->get(['activity_reports.narrative_report']) as $row) {
+                ->whereIn('activity_requests.user_id', $userIds)->get(['activity_reports.narrative_report', 'activity_reports.attendance_sheet_path']) as $row) {
                 $paths[] = $row->narrative_report;
+                $paths[] = $row->attendance_sheet_path;
             }
             foreach (DB::table('activity_report_photos')->join('activity_reports', 'activity_reports.id', '=', 'activity_report_photos.activity_report_id')
                 ->join('activity_requests', 'activity_requests.id', '=', 'activity_reports.activity_request_id')

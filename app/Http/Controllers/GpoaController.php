@@ -10,12 +10,14 @@ use App\Services\GpoaImportParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class GpoaController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
         $gpoas = Gpoa::where('user_id', auth()->id())
             ->withCount('activities')
             ->latest()
@@ -25,6 +27,7 @@ class GpoaController extends Controller
             'Pending' => 0,
             'Ongoing' => 0,
             'Completed' => 0,
+            'Archived' => 0,
         ];
 
         $activities = GpoaActivity::query()
@@ -40,12 +43,23 @@ class GpoaController extends Controller
             ? 0
             : (int) round(($monitoringCounts['Completed'] / $activities->count()) * 100);
 
-        return view('gpoa.index', compact('gpoas', 'monitoringCounts', 'completionPercent'));
+        $submissionStatus = $user->gpoaSubmissionStatus();
+        $duplicateCurrentGpoa = $user->term && $user->school_year
+            ? $user->gpoas()->where('term', $user->term)->where('school_year', $user->school_year)->exists()
+            : false;
+        $canSubmitGpoa = $user->isAdmin() || ($submissionStatus['allowed'] && ! $duplicateCurrentGpoa);
+        $submissionBlockMessage = $this->submissionBlockMessage($user, $submissionStatus);
+
+        return view('gpoa.index', compact('gpoas', 'monitoringCounts', 'completionPercent', 'canSubmitGpoa', 'submissionBlockMessage'));
     }
 
     public function create()
     {
         $user = auth()->user();
+        $blockMessage = $this->submissionBlockMessage($user);
+        if ($blockMessage && ! $user->isAdmin()) {
+            return redirect()->route('gpoa.index')->with('error', $blockMessage);
+        }
 
         $detectedCollege = $this->detectCollegeFromOrganization($user);
 
@@ -54,6 +68,12 @@ class GpoaController extends Controller
 
     public function importPreview(Request $request, GpoaImportParser $parser)
     {
+        $user = $request->user();
+        $blockMessage = $this->submissionBlockMessage($user);
+        if ($blockMessage && ! $user->isAdmin()) {
+            return redirect()->route('gpoa.index')->with('error', $blockMessage);
+        }
+
         $validated = $request->validate([
             'file' => 'required|file|mimes:docx,xlsx|max:10240',
             'school_year' => 'required|string|max:20',
@@ -153,9 +173,24 @@ class GpoaController extends Controller
 
     public function store(Request $request)
     {
+        $user = $request->user();
+        if (! $user->isAdmin()) {
+            $submissionStatus = $user->gpoaSubmissionStatus();
+            if (! $submissionStatus['allowed']) {
+                throw ValidationException::withMessages([
+                    'gpoa' => $this->submissionBlockMessage($user, $submissionStatus),
+                ]);
+            }
+        }
+
+        foreach (['term', 'school_year'] as $lockedField) {
+            if (filled($user->{$lockedField})) {
+                $request->merge([$lockedField => $user->{$lockedField}]);
+            }
+        }
+
         $this->validatePlannedActivityEntries($request);
 
-        $user = $request->user();
         $validated = $request->validate([
             'colleges'            => 'required|string|max:100',
             'term'                => 'required|string|max:50',
@@ -169,7 +204,16 @@ class GpoaController extends Controller
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
 
-        $documentPath = $request->file('document_path')->store('uploads/gpoa', 'public');
+        if (Gpoa::where('user_id', $user->id)
+            ->where('term', $validated['term'])
+            ->where('school_year', $validated['school_year'])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'term' => "A GPOA for {$validated['term']} / SY {$validated['school_year']} has already been submitted.",
+            ]);
+        }
+
+        $documentPath = $request->file('document_path')->store('uploads/gpoa', 'private');
 
         $gpoa = Gpoa::create([
             'user_id'       => auth()->id(),
@@ -223,9 +267,10 @@ class GpoaController extends Controller
 
         if ($request->hasFile('document_path')) {
             if ($gpoa->document_path) {
+                Storage::disk('private')->delete($gpoa->document_path);
                 Storage::disk('public')->delete($gpoa->document_path);
             }
-            $gpoa->document_path = $request->file('document_path')->store('uploads/gpoa', 'public');
+            $gpoa->document_path = $request->file('document_path')->store('uploads/gpoa', 'private');
         }
 
         $gpoa->update([
@@ -247,6 +292,44 @@ class GpoaController extends Controller
         $gpoa->load('activities.activityRequest.report');
 
         return view('gpoa.show', compact('gpoa'));
+    }
+
+    private function submissionBlockMessage(User $user, ?array $submissionStatus = null): ?string
+    {
+        $submissionStatus ??= $user->gpoaSubmissionStatus();
+        if (! $submissionStatus['allowed']) {
+            $blockingGpoa = $submissionStatus['blockingGpoa'];
+            $termAndYear = $blockingGpoa->term . ' SY ' . $blockingGpoa->school_year;
+
+            return "Finish all activities in {$termAndYear} first. {$submissionStatus['unfinishedCount']} remaining.";
+        }
+
+        if ($user->term && $user->school_year && $user->gpoas()
+            ->where('term', $user->term)
+            ->where('school_year', $user->school_year)
+            ->exists()) {
+            return "A GPOA for {$user->term} / SY {$user->school_year} has already been submitted.";
+        }
+
+        return null;
+    }
+
+    public function document(Gpoa $gpoa)
+    {
+        $this->authorize('view', $gpoa);
+        abort_unless($gpoa->document_path, 404, 'GPOA document not found.');
+
+        foreach (['private', 'public'] as $diskName) {
+            $disk = Storage::disk($diskName);
+            if ($disk->exists($gpoa->document_path)) {
+                return $disk->response($gpoa->document_path, basename($gpoa->document_path), [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline',
+                ]);
+            }
+        }
+
+        abort(404, 'GPOA document not found.');
     }
 
     private function syncPlannedActivities(Gpoa $gpoa, array $plannedActivities): void
