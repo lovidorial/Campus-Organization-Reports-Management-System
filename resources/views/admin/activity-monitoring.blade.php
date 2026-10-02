@@ -4,11 +4,12 @@
         unset($tabQuery['status'], $tabQuery['page']);
         $recentUrl = route('admin.activities', array_merge($tabQuery, ['tab' => 'recent']));
         $todoUrl = route('admin.activities', array_merge($tabQuery, ['tab' => 'todo']));
+        $backToMonitorUrl = route('admin.activities', request()->query());
         $statusFilter = request('status', '');
         $sort = request('sort', 'latest');
     @endphp
 
-    <main class="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+    <main class="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8" x-data="{ activityDetailsOpen: false, activityDetails: {} }" @show-activity-details="activityDetails = $event.detail; activityDetailsOpen = true" @keydown.escape.window="activityDetailsOpen = false">
         <header class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Activity Monitoring</h1>
@@ -88,7 +89,10 @@
                                 $activityRequest = $activity->activityRequest;
                                 $letterPresent = filled($activityRequest?->communication_letter);
                                 $reportPresent = $activityRequest?->report && (filled($activityRequest->report->narrative_report) || filled($activityRequest->report->narrative_content));
-                                $viewUrl = $activityRequest ? route('activity-requests.show', $activityRequest) : route('admin.gpoa.show', $activity->gpoa_id);
+                                $reportFilePresent = filled($activityRequest?->report?->narrative_report);
+                                $viewUrl = $activityRequest
+                                    ? route('admin.activity-requests.show', [$activityRequest, 'back' => $backToMonitorUrl])
+                                    : route('admin.gpoa.show', $activity->gpoa_id);
                             @endphp
                             <tr>
                                 <td class="px-4 py-3">
@@ -106,17 +110,22 @@
                                                 </ul>
                                             </div>
                                         @endif
-                                        @if($activity->monitoring_status === 'Completed')<form method="POST" action="{{ route('activities.archive', $activity) }}" class="mt-2">@csrf<button type="submit" class="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700">Archive</button></form>@elseif($activity->monitoring_status === 'Archived')<form method="POST" action="{{ route('activities.restore', $activity) }}" class="mt-2">@csrf<button type="submit" class="rounded border border-sky-300 px-2 py-1 text-xs font-semibold text-sky-800">Restore</button></form>@endif
-                                        @if($activity->monitoring_status !== 'Archived')<form method="POST" action="{{ route('admin.monitoring.record', $activity->id) }}" class="mt-2 grid gap-2 sm:grid-cols-[180px_1fr_auto]">@csrf<select name="compliance_status" required class="rounded border-slate-300 text-xs"><option value="">Assessment</option>@foreach(['aligned' => 'Aligned', 'partial' => 'Partially Aligned', 'not_aligned' => 'Not Aligned'] as $value => $label)<option value="{{ $value }}" @selected($activity->monitoringResult?->compliance_status === $value)>{{ $label }}</option>@endforeach</select><input name="compliance_notes" maxlength="1000" value="{{ $activity->monitoringResult?->compliance_notes }}" placeholder="Optional remark" class="rounded border-slate-300 text-xs"><button class="rounded bg-slate-700 px-2 py-1 text-xs font-semibold text-white">Save</button></form>@endif
+                                        <form method="POST" action="{{ route('admin.monitoring.record', $activity->id) }}" class="mt-3 grid gap-2 sm:grid-cols-[180px_1fr_auto]">@csrf
+                                            <select name="compliance_status" required class="rounded border-slate-300 text-xs"><option value="">Assessment</option>@foreach(['aligned' => 'Aligned', 'partial' => 'Partially Aligned', 'not_aligned' => 'Not Aligned'] as $value => $label)<option value="{{ $value }}" @selected($activity->monitoringResult?->compliance_status === $value)>{{ $label }}</option>@endforeach</select>
+                                            <input name="compliance_notes" maxlength="1000" value="{{ $activity->monitoringResult?->compliance_notes }}" placeholder="Optional remark" class="rounded border-slate-300 text-xs">
+                                            <button type="submit" class="rounded bg-slate-700 px-2 py-1 text-xs font-semibold text-white">Save assessment</button>
+                                        </form>
                                     </div></details>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</td>
                                 <td class="px-4 py-3"><div class="flex gap-2">
-                                    <a @if($letterPresent) href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" @else aria-disabled="true" @endif title="Communication letter{{ $letterPresent ? ' uploaded' : ' not uploaded' }}" class="inline-flex h-8 w-8 items-center justify-center rounded border {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400' }}">
+                                    <a @if($letterPresent) href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter – {{ $activity->title }}" @else aria-disabled="true" @endif title="Communication letter{{ $letterPresent ? ' uploaded' : ' not uploaded' }}" class="inline-flex h-8 w-8 items-center justify-center rounded border {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400' }}">
                                         <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75ZM14 4v4h4M8.5 13h7m-7 3.5h7"/></svg><span class="sr-only">Communication letter</span>
                                     </a>
-                                    <a @if($reportPresent) href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" @else aria-disabled="true" @endif title="Narrative report{{ $reportPresent ? ' submitted' : ' not submitted' }}" class="inline-flex h-8 w-8 items-center justify-center rounded border {{ $reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400' }}">
-                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75ZM14 4v4h4M8.5 13h7m-7 3.5h7"/></svg><span class="sr-only">Narrative report</span>
+                                    <a @if($reportFilePresent) href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report – {{ $activity->title }}" @else aria-disabled="true" @endif title="Narrative report: {{ $activityRequest?->report?->reviewStatusLabel() ?? 'not submitted' }}" class="relative inline-flex h-8 w-8 items-center justify-center rounded border {{ $reportFilePresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400' }}">
+                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75ZM14 4v4h4M8.5 13h7m-7 3.5h7"/></svg>
+                                        @if($activityRequest?->report?->status === 'approved')<span class="absolute -right-1 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-emerald-600 text-[9px] font-bold leading-none text-white" aria-label="Approved">✓</span>@elseif($reportPresent)<span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" aria-label="Pending review"></span>@endif
+                                        <span class="sr-only">Narrative report</span>
                                     </a>
                                 </div></td>
                                 <td class="px-4 py-3"><x-status-pill :status="$activity->monitoring_status" /> @if($activity->monitoring_late)<span class="ml-1"><x-status-pill status="Late" /></span>@endif</td>
@@ -133,17 +142,91 @@
                         $activityRequest = $activity->activityRequest;
                         $letterPresent = filled($activityRequest?->communication_letter);
                         $reportPresent = $activityRequest?->report && (filled($activityRequest->report->narrative_report) || filled($activityRequest->report->narrative_content));
-                        $viewUrl = $activityRequest ? route('activity-requests.show', $activityRequest) : route('admin.gpoa.show', $activity->gpoa_id);
+                        $reportFilePresent = filled($activityRequest?->report?->narrative_report);
+                        $viewUrl = $activityRequest
+                            ? route('admin.activity-requests.show', [$activityRequest, 'back' => $backToMonitorUrl])
+                            : route('admin.gpoa.show', $activity->gpoa_id);
                     @endphp
                     <article class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
                         <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activity->title }}</h2><p class="text-xs text-slate-500">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitoring_status" /></div>
                         <p class="text-sm text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</p>
-                        <div class="flex items-center justify-between"><div class="flex gap-2"><span title="Communication letter" class="text-xs {{ $letterPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $letterPresent ? '●' : '○' }} Letter</span><span title="Narrative report" class="text-xs {{ $reportPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $reportPresent ? '●' : '○' }} Report</span></div><a href="{{ $viewUrl }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</a></div>
-                        <details class="text-xs text-slate-600"><summary class="cursor-pointer text-sky-700">Details / remark</summary><p class="mt-2">{{ $activity->category ?: 'Category not set' }} · {{ $activity->venue ?: 'Venue not set' }} · {{ $activity->gpoa?->term }} / {{ $activity->gpoa?->school_year }}</p>@if($activity->monitoringResult)<p class="mt-1">{{ $activity->monitoringResult->compliance_notes }}</p>@endif</details>
+                        <div class="flex items-center justify-between">
+                            <div class="flex gap-2">
+                                @if($letterPresent)<a href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter – {{ $activity->title }}" class="text-xs font-semibold text-emerald-700 underline">Letter</a>@else<span class="text-xs text-slate-400">Letter missing</span>@endif
+                                @if($reportFilePresent)<a href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report – {{ $activity->title }}" class="relative text-xs font-semibold text-sky-700 underline">Report @if($activityRequest->report->status === 'approved')<span class="text-emerald-700" aria-label="Approved">✓</span>@elseif($reportPresent)<span class="text-amber-600" aria-label="Pending review">●</span>@endif</a>@elseif($reportPresent)<span class="text-xs text-slate-600">Report <span class="text-amber-600" aria-label="Pending review">●</span></span>@else<span class="text-xs text-slate-400">Report missing</span>@endif
+                            </div>
+                            <a href="{{ $viewUrl }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</a>
+                        </div>
+                        <details class="text-xs text-slate-600"><summary class="cursor-pointer text-sky-700">More details and quick remark</summary><p class="mt-2">{{ $activity->category ?: 'Category not set' }} · {{ $activity->venue ?: 'Venue not set' }} · {{ $activity->gpoa?->term }} / {{ $activity->gpoa?->school_year }}</p>@if($activity->monitoringResult)<p class="mt-1">{{ $activity->monitoringResult->compliance_notes }}</p>@endif
+                            <form method="POST" action="{{ route('admin.monitoring.record', $activity->id) }}" class="mt-3 grid gap-2">@csrf<select name="compliance_status" required class="rounded border-slate-300 text-xs"><option value="">Assessment</option>@foreach(['aligned' => 'Aligned', 'partial' => 'Partially Aligned', 'not_aligned' => 'Not Aligned'] as $value => $label)<option value="{{ $value }}" @selected($activity->monitoringResult?->compliance_status === $value)>{{ $label }}</option>@endforeach</select><input name="compliance_notes" maxlength="1000" value="{{ $activity->monitoringResult?->compliance_notes }}" placeholder="Optional remark" class="rounded border-slate-300 text-xs"><button type="submit" class="w-fit rounded bg-slate-700 px-2 py-1 text-xs font-semibold text-white">Save assessment</button></form>
+                        </details>
                     </article>
                 @endforeach
             </div>
         @endif
         <div>{{ $activities->links() }}</div>
+
+        <div x-cloak x-show="activityDetailsOpen" x-transition.opacity class="fixed inset-0 z-[90] overflow-y-auto bg-slate-950/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="adminActivityDetailsTitle" @click.self="activityDetailsOpen = false">
+            <section class="mx-auto my-4 max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-2xl sm:my-8" @click.stop>
+                <header class="sticky top-0 z-10 flex items-start gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+                    <div class="min-w-0 flex-1"><h2 id="adminActivityDetailsTitle" class="text-lg font-bold text-slate-900" x-text="activityDetails.title"></h2><p class="mt-0.5 text-sm text-slate-500" x-text="activityDetails.organization"></p></div>
+                    <button type="button" @click="activityDetailsOpen = false" class="rounded border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700">Close</button>
+                </header>
+                <div class="space-y-5 p-4 sm:p-6">
+                    <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                        <div><dt class="text-xs font-semibold uppercase text-slate-500">College</dt><dd class="mt-1 text-slate-900" x-text="activityDetails.college"></dd></div>
+                        <div><dt class="text-xs font-semibold uppercase text-slate-500">Category</dt><dd class="mt-1 text-slate-900" x-text="activityDetails.category"></dd></div>
+                        <div><dt class="text-xs font-semibold uppercase text-slate-500">Venue</dt><dd class="mt-1 text-slate-900" x-text="activityDetails.venue"></dd></div>
+                        <div><dt class="text-xs font-semibold uppercase text-slate-500">Date</dt><dd class="mt-1 text-slate-900" x-text="activityDetails.date"></dd></div>
+                        <div><dt class="text-xs font-semibold uppercase text-slate-500">Status</dt><dd class="mt-1 text-slate-900" x-text="activityDetails.status"></dd></div>
+                        <div><dt class="text-xs font-semibold uppercase text-slate-500">Term / School year</dt><dd class="mt-1 text-slate-900"><span x-text="activityDetails.term"></span> / <span x-text="activityDetails.schoolYear"></span></dd></div>
+                    </dl>
+
+                    <section>
+                        <h3 class="text-sm font-semibold text-slate-900">Documents</h3>
+                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                            <template x-if="activityDetails.letterUrl"><a :href="activityDetails.letterUrl" data-file-viewer :data-title="'Communication Letter – ' + activityDetails.title" class="font-semibold text-sky-700 underline">Communication Letter</a></template>
+                            <span x-show="!activityDetails.letterUrl" class="text-slate-500">Communication Letter missing</span>
+                            <template x-if="activityDetails.reportUrl"><a :href="activityDetails.reportUrl" data-file-viewer :data-title="'Narrative Report – ' + activityDetails.title" class="font-semibold text-sky-700 underline">Narrative Report</a></template>
+                            <span x-show="!activityDetails.reportUrl" class="text-slate-500">Narrative Report missing</span>
+                            <template x-if="activityDetails.attendanceUrl"><a :href="activityDetails.attendanceUrl" data-file-viewer :data-title="'Attendance Sheet – ' + activityDetails.title" class="font-semibold text-sky-700 underline">Attendance Sheet</a></template>
+                            <template x-for="(photo, index) in activityDetails.photos || []" :key="photo.url"><a :href="photo.url" data-file-viewer :data-title="photo.title + ' – ' + activityDetails.title" class="font-semibold text-sky-700 underline" x-text="photo.title + ' ' + (index + 1)"></a></template>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-600">Communication letter: <span class="font-medium" x-text="activityDetails.letterStatus"></span> · Narrative report: <span class="font-medium" x-text="activityDetails.reportStatus"></span></p>
+                    </section>
+
+                    <section>
+                        <h3 class="text-sm font-semibold text-slate-900">Program flow</h3>
+                        <ol class="mt-2 space-y-1 text-sm text-slate-700"><template x-for="(flow, index) in activityDetails.programFlows || []" :key="index"><li><span class="font-medium" x-text="flow.time"></span> · <span x-text="flow.flow"></span><template x-if="flow.person"><span> (<span x-text="flow.person"></span>)</span></template></li></template></ol>
+                        <p x-show="!activityDetails.programFlows || activityDetails.programFlows.length === 0" class="mt-2 text-sm text-slate-500">No program flow added.</p>
+                    </section>
+
+                    <section><h3 class="text-sm font-semibold text-slate-900">Monitoring remark</h3><p class="mt-1 whitespace-pre-wrap text-sm text-slate-700" x-text="activityDetails.remark"></p></section>
+
+                    <div class="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2">
+                        <form method="POST" :action="activityDetails.monitoringUrl" class="space-y-2">@csrf
+                            <h3 class="text-sm font-semibold text-slate-900">Assessment / remark</h3>
+                            <select name="compliance_status" x-model="activityDetails.complianceStatus" required class="w-full rounded-md border-slate-300 text-sm"><option value="">Assessment</option><option value="aligned">Aligned</option><option value="partial">Partially Aligned</option><option value="not_aligned">Not Aligned</option></select>
+                            <textarea name="compliance_notes" maxlength="1000" x-model="activityDetails.remarkInput" placeholder="Optional remark" class="w-full rounded-md border-slate-300 text-sm"></textarea>
+                            <button type="submit" class="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-white">Save assessment</button>
+                        </form>
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap gap-2">
+                                <form x-show="activityDetails.archived" method="POST" :action="activityDetails.restoreUrl">@csrf<button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Restore</button></form>
+                                <form x-show="!activityDetails.archived && activityDetails.canArchive" method="POST" :action="activityDetails.archiveUrl">@csrf<button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Archive</button></form>
+                                <a :href="activityDetails.fullPageUrl" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Open full page</a>
+                            </div>
+                            <template x-if="activityDetails.reportReview === 'For Review'">
+                                <div class="space-y-3 rounded-md border border-slate-200 p-3">
+                                    <p class="text-sm font-semibold text-slate-900">Narrative report awaiting review</p>
+                                    <form method="POST" :action="activityDetails.approveUrl">@csrf<button type="submit" class="rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
+                                    <details><summary class="cursor-pointer text-sm font-semibold text-amber-800">Request revision</summary><form method="POST" :action="activityDetails.revisionUrl" class="mt-2 space-y-2">@csrf<textarea name="feedback" required maxlength="1000" placeholder="Required revision feedback" class="w-full rounded-md border-slate-300 text-sm"></textarea><button type="submit" class="rounded-md bg-amber-700 px-3 py-2 text-sm font-semibold text-white">Send revision request</button></form></details>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
     </main>
 </x-app-layout>

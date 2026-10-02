@@ -47,7 +47,7 @@ class GpoaActivityMonitoringStatusTest extends TestCase
 
         $this->assertSame('Completed', $status['status']);
         $this->assertFalse($status['late']);
-        $this->assertSame('Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)', $activity->letterStatusLabel());
+        $this->assertSame('Uploaded', $activity->letterStatusLabel());
         $this->assertSame('Approved', $activity->narrativeStatusLabel());
     }
 

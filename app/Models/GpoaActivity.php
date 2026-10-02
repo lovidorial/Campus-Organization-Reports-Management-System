@@ -68,7 +68,10 @@ class GpoaActivity extends Model
     {
         return $query->with([
             'gpoa',
-            'activityRequest.report',
+            'activityRequest.report.photos',
+            'activityRequest.programFlows',
+            'activityRequest.monitoringResult',
+            'monitoringResult',
         ]);
     }
 
@@ -96,7 +99,7 @@ class GpoaActivity extends Model
     public function letterStatusLabel(): string
     {
         return filled($this->activityRequest?->communication_letter)
-            ? 'Uploaded ![✔](https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/16/2714.png)'
+            ? 'Uploaded'
             : 'Pending';
     }
 

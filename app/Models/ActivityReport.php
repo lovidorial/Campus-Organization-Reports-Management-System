@@ -29,6 +29,11 @@ class ActivityReport extends Model
         return $this->belongsTo(ActivityRequest::class);
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
     public function photos(): HasMany
     {
         return $this->hasMany(ActivityReportPhoto::class)->orderBy('sort_order');

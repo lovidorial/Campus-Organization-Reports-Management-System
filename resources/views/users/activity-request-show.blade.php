@@ -69,6 +69,9 @@
                     </div>
                     <x-status-pill :status="$request->report?->reviewStatusLabel() ?? 'Pending'" class="shrink-0" />
                 </div>
+                @if($request->report?->status === 'approved')
+                    <p class="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Approved on {{ $request->report->reviewed_at?->format('M d, Y') ?? '—' }}</p>
+                @endif
             </div>
 
             <ol class="mt-5 space-y-0" aria-label="Activity timeline">
@@ -107,6 +110,15 @@
                 <span class="text-[10px] font-semibold text-slate-500">Monitoring:</span><x-status-pill :status="$monitoring['status'] ?? 'Pending'" />
             </div>
 
+            @if($reviewerRemarks)
+                <section class="mb-2 rounded border border-sky-200 bg-sky-50 p-3" aria-label="Reviewer remarks">
+                    <h2 class="text-xs font-bold text-slate-800">Reviewer remarks</h2>
+                    <p class="mt-1 text-xs font-semibold text-slate-700">{{ ['aligned' => 'Aligned', 'partial' => 'Partially aligned', 'not_aligned' => 'Not aligned'][$reviewerRemarks->compliance_status] ?? ucfirst($reviewerRemarks->compliance_status) }}</p>
+                    <p class="mt-1 whitespace-pre-wrap text-xs text-slate-700">{{ $reviewerRemarks->compliance_notes ?: 'No additional remark.' }}</p>
+                    @if($reviewerRemarks->recorded_at)<time class="mt-1 block text-[10px] text-slate-500">{{ $reviewerRemarks->recorded_at->format('M d, Y h:i A') }}</time>@endif
+                </section>
+            @endif
+
             <dl class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Title</dt><dd class="{{ $valueClass }}">{{ $request->title }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Category</dt><dd class="{{ $valueClass }}">{{ $request->category ?? '—' }}</dd></div>
@@ -121,12 +133,10 @@
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Expected Outcome</dt><dd class="{{ $valueClass }}">{{ $request->expected_outcome ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Plan / Key Strategy</dt><dd class="{{ $valueClass }}">{{ $request->plan_key_strategy ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Target Participants</dt><dd class="{{ $valueClass }}">{{ $request->target_participants ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Participants Count</dt><dd class="{{ $valueClass }}">{{ $request->participants_count ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Person in Charge</dt><dd class="{{ $valueClass }}">{{ $request->person_in_charge ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Facilities / Materials</dt><dd class="{{ $valueClass }}">{{ $request->facilities_materials ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Estimated Budget</dt><dd class="{{ $valueClass }}">{{ $request->estimated_budget !== null ? number_format((float) $request->estimated_budget, 2) : '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Source of Funds</dt><dd class="{{ $valueClass }}">{{ $request->source_of_funds ?? '—' }}</dd></div>
-                <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Preceding Activity</dt><dd class="{{ $valueClass }}">{{ $request->preceding_activity ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Remarks</dt><dd class="{{ $valueClass }}">{{ $request->remarks ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Rejection Reason</dt><dd class="{{ $valueClass }}">{{ $request->reject_reason ?? '—' }}</dd></div>
                 <div class="{{ $fieldClass }}"><dt class="{{ $labelClass }}">Created / Updated</dt><dd class="{{ $valueClass }}">{{ $request->created_at?->format('M d, Y H:i') ?? '—' }} / {{ $request->updated_at?->format('M d, Y H:i') ?? '—' }}</dd></div>
@@ -177,12 +187,7 @@
                 @else
                     <p class="mb-2 text-xs text-slate-500">No narrative report saved.</p>
                 @endif
-                @php($reportDate = $request->end_date ?? $request->gpoaActivity?->end_date ?? $request->date)
-                @if($reportDate && $reportDate->lte(today()))
-                    <a href="{{ route('activity-reports.create', $request) }}" class="mt-3 inline-flex rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800">{{ $request->report ? 'Update Narrative Report' : 'Add Narrative Report' }}</a>
-                @else
-                    <button type="button" disabled class="mt-3 inline-flex cursor-not-allowed rounded bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400">Available after the activity end date</button>
-                @endif
+                <a href="{{ route('activity-reports.create', $request) }}" class="mt-3 inline-flex rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800">{{ $request->report ? 'Update Narrative Report' : 'Add Narrative Report' }}</a>
             </div>
         </section>
 

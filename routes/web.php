@@ -78,6 +78,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
         Route::post('/activities/{gpoaActivity}/archive', [AdminController::class, 'archiveActivity'])->name('activities.archive');
         Route::post('/activities/{gpoaActivity}/restore', [AdminController::class, 'restoreActivity'])->name('activities.restore');
         Route::get('/activity-requests/statuses', [ActivityRequestController::class, 'statuses'])->name('activity-requests.statuses');
+        Route::get('/activity-requests/create/from-activity/{gpoaActivity}', [ActivityRequestController::class, 'createFromActivity'])->name('activity-requests.create-from-activity');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
         Route::get('/activity-requests/{activityRequest}', [ActivityRequestController::class, 'show'])->name('activity-requests.show');
@@ -113,6 +114,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit:
 
         Route::get('/dashboard', [AdminController::class, 'monitoringDashboard'])->name('dashboard');
         Route::get('/activities', [AdminController::class, 'monitor'])->name('activities');
+        Route::get('/activity-requests/{activityRequest}', [AdminController::class, 'showRequest'])->name('activity-requests.show');
         Route::get('/activities/statuses', [AdminController::class, 'activityStatuses'])->name('activities.statuses');
         Route::get('/summary-report', [AdminSummaryReportController::class, 'index'])->name('summary-report');
         Route::get('/summary-report/pdf', [AdminSummaryReportController::class, 'downloadPdf'])->name('summary-report.pdf');

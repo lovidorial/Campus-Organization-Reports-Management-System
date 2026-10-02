@@ -18,30 +18,31 @@ class ActivityReportReviewFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_early_activity_report_is_blocked_on_form_and_submission(): void
+    public function test_report_can_be_created_and_submitted_for_a_future_activity(): void
     {
         $this->travelTo(now()->setDate(2026, 10, 1)->startOfDay());
         $user = User::factory()->create(['role' => 'user']);
-        [, , $activityRequest] = $this->activityFixture($user, '2026-09-30', '2026-10-02');
+        [, , $activityRequest] = $this->activityFixture($user, '2026-10-03', '2026-10-04');
 
         $this->actingAs($user)
             ->from(route('activity-monitor.index'))
             ->get(route('activity-reports.create', $activityRequest))
-            ->assertRedirect(route('activity-monitor.index'))
-            ->assertSessionHasErrors('activity_date');
+            ->assertOk()
+            ->assertSee('Narrative Report');
 
         $this->actingAs($user)
-            ->from(route('activity-monitor.index'))
             ->post(route('activity-reports.store', $activityRequest), $this->reportPayload([
                 'photos' => [UploadedFile::fake()->image('proof.jpg')],
             ]))
-            ->assertRedirect(route('activity-monitor.index'))
-            ->assertSessionHasErrors('activity_date');
+            ->assertRedirect(route('activity-requests.show', $activityRequest));
 
-        $this->assertDatabaseCount('activity_reports', 0);
+        $this->assertDatabaseHas('activity_reports', [
+            'activity_request_id' => $activityRequest->id,
+            'status' => 'pending',
+        ]);
     }
 
-    public function test_activity_monitor_disables_report_action_until_the_end_date(): void
+    public function test_activity_monitor_offers_report_submission_before_the_end_date(): void
     {
         $this->travelTo(now()->setDate(2026, 10, 1)->startOfDay());
         $user = User::factory()->create([
@@ -54,8 +55,9 @@ class ActivityReportReviewFlowTest extends TestCase
         $this->actingAs($user)
             ->get(route('activity-monitor.index'))
             ->assertOk()
-            ->assertSee('Report unavailable')
-            ->assertSee('Available after the activity end date');
+            ->assertSee('Submit report')
+            ->assertDontSee('Report unavailable')
+            ->assertDontSee('Available after the activity end date');
     }
 
     public function test_initial_report_requires_at_least_one_photo(): void
@@ -77,9 +79,11 @@ class ActivityReportReviewFlowTest extends TestCase
         [, $plannedActivity, $activityRequest] = $this->activityFixture($user, '2026-09-30');
         $report = $this->createReport($activityRequest, ['feedback' => 'Previously marked.']);
 
+        $reviewUrl = route('admin.activity-requests.show', $activityRequest);
         $this->actingAs($admin)
+            ->from($reviewUrl)
             ->post(route('admin.reports.approve', $report))
-            ->assertRedirect(route('admin.activities', absolute: false));
+            ->assertRedirect($reviewUrl);
 
         $this->assertDatabaseHas('activity_reports', [
             'id' => $report->id,
@@ -113,8 +117,9 @@ class ActivityReportReviewFlowTest extends TestCase
 
         $feedback = 'Please include a clearer participant count.';
         $this->actingAs($admin)
+            ->from(route('admin.activity-requests.show', $activityRequest))
             ->post(route('admin.reports.request-revision', $report), ['feedback' => $feedback])
-            ->assertRedirect(route('admin.activities', absolute: false));
+            ->assertRedirect(route('admin.activity-requests.show', $activityRequest));
 
         $this->assertDatabaseHas('activity_reports', [
             'id' => $report->id,

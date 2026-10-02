@@ -14,6 +14,7 @@ class DashboardController extends Controller
         }
 
         $user = auth()->user();
+        $submissionStatus = $user->gpoaSubmissionStatus();
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
 
@@ -53,19 +54,34 @@ class DashboardController extends Controller
         }
 
         $completedCount = $counts['Completed'];
+        $totalCount = $visibleActivities->count();
         $overallPercent = $visibleActivities->isEmpty() ? 0 : (int) round(($completedCount / $visibleActivities->count()) * 100);
         $unreadCount = $user->unreadNotificationsCount();
         $activities = $visibleActivities;
+        $duplicateCurrentGpoa = $user->term && $user->school_year
+            ? $user->gpoas()->where('term', $user->term)->where('school_year', $user->school_year)->exists()
+            : false;
+        $canSubmitGpoa = $user->isAdmin() || ($submissionStatus['allowed'] && ! $duplicateCurrentGpoa);
+        $submissionBlockMessage = null;
+        if (! $submissionStatus['allowed']) {
+            $blockingGpoa = $submissionStatus['blockingGpoa'];
+            $submissionBlockMessage = "Finish all activities in {$blockingGpoa->term} SY {$blockingGpoa->school_year} first. {$submissionStatus['unfinishedCount']} remaining.";
+        } elseif ($duplicateCurrentGpoa) {
+            $submissionBlockMessage = "A GPOA for {$user->term} / SY {$user->school_year} has already been submitted.";
+        }
 
         return view('dashboard', compact(
             'gpoa',
             'activities',
             'counts',
+            'totalCount',
             'completedCount',
             'overallPercent',
             'term',
             'schoolYear',
-            'unreadCount'
+            'unreadCount',
+            'canSubmitGpoa',
+            'submissionBlockMessage'
         ));
     }
 }

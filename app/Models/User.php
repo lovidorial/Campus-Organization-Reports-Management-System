@@ -64,6 +64,30 @@ class User extends Authenticatable
         return $this->hasMany(Gpoa::class);
     }
 
+    public function gpoaSubmissionStatus(): array
+    {
+        if ($this->isAdmin()) {
+            return ['allowed' => true, 'blockingGpoa' => null, 'unfinishedCount' => 0];
+        }
+
+        $gpoas = $this->gpoas()
+            ->with(['activities' => fn ($query) => $query->withMonitoringData()])
+            ->orderBy('created_at')
+            ->get();
+
+        foreach ($gpoas as $gpoa) {
+            $unfinishedCount = $gpoa->activities
+                ->filter(fn ($activity) => ! in_array($activity->monitoringStatus()['status'], ['Completed', 'Archived'], true))
+                ->count();
+
+            if ($unfinishedCount > 0) {
+                return ['allowed' => false, 'blockingGpoa' => $gpoa, 'unfinishedCount' => $unfinishedCount];
+            }
+        }
+
+        return ['allowed' => true, 'blockingGpoa' => null, 'unfinishedCount' => 0];
+    }
+
     public function activityRequests()
     {
         return $this->hasMany(ActivityRequest::class);

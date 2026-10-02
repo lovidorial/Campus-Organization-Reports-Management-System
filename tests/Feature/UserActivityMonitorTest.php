@@ -69,6 +69,58 @@ class UserActivityMonitorTest extends TestCase
         $response->assertDontSee('You must have an approved GPOA');
     }
 
+    public function test_user_monitor_view_opens_details_with_uploaded_document_viewer_links(): void
+    {
+        $user = User::factory()->create([
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'org_name' => 'CICS Student Council',
+        ]);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Popup Preview Activity',
+            'date' => '2025-10-15',
+            'venue' => 'Main Hall',
+            'category' => 'Education',
+        ]);
+        $request = ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $activity->id,
+            'title' => 'Popup Preview Activity',
+            'date' => '2025-10-15',
+            'venue' => 'Main Hall',
+            'category' => 'Education',
+            'communication_letter' => 'letters/popup-preview.pdf',
+            'status' => 'pending',
+        ]);
+        $activity->update(['activity_request_id' => $request->id]);
+        ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'reports/popup-preview.pdf',
+            'narrative_source' => 'uploaded',
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-monitor.index'))
+            ->assertOk()
+            ->assertSee('Popup Preview Activity')
+            ->assertSee('data-file-viewer', false)
+            ->assertSee('Open full page')
+            ->assertSee('Program flow')
+            ->assertSee('Communication letter:')
+            ->assertSee('Narrative report:');
+    }
+
     public function test_archived_activities_are_hidden_by_default_and_shown_by_status_filter(): void
     {
         $user = User::factory()->create([

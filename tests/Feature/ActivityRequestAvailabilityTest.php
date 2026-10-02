@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityRequest;
+use App\Models\ActivityReport;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
@@ -46,7 +47,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             'preceding_activity' => null,
         ]);
 
-        ActivityRequest::create([
+        $completedRequest = ActivityRequest::create([
             'user_id' => $user->id,
             'gpoa_activity_id' => $completedActivity->id,
             'title' => 'Leadership Seminar',
@@ -57,6 +58,13 @@ class ActivityRequestAvailabilityTest extends TestCase
             'participants_count' => 80,
             'communication_letter' => 'uploads/comm/sample.pdf',
             'status' => ActivityRequest::STATUS_REPORT_SUBMITTED,
+        ]);
+        ActivityReport::create([
+            'activity_request_id' => $completedRequest->id,
+            'narrative_content' => ['body' => 'Leadership seminar report.'],
+            'narrative_source' => 'generated',
+            'submitted_at' => now(),
+            'status' => 'pending',
         ]);
 
         GpoaActivity::create([
@@ -80,6 +88,120 @@ class ActivityRequestAvailabilityTest extends TestCase
         $createResponse = $this->actingAs($user)->get(route('activity-requests.create'));
         $createResponse->assertOk();
         $createResponse->assertSee('Community Outreach');
+    }
+
+    public function test_past_activity_without_narrative_report_blocks_new_requests_and_shows_report_link(): void
+    {
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('New Planned Event', '2026-10-10', 'Main Hall');
+        $outstanding = $this->createExistingRequest($user, $gpoa, 'Past Activity Needs Report', '2026-09-30');
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create'))
+            ->assertRedirect(route('activity-monitor.index'))
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Past Activity Needs Report'));
+
+        $this->get(route('activity-requests.create-from-activity', $plannedActivity))
+            ->assertRedirect(route('activity-monitor.index'));
+
+        $this->get(route('activity-monitor.index'))
+            ->assertOk()
+            ->assertSee('You have 1 activity report to submit before requesting a new activity')
+            ->assertSee(route('activity-reports.create', $outstanding), false)
+            ->assertSee('Submit pending report first')
+            ->assertDontSee('Request activity');
+    }
+
+    public function test_store_cannot_be_used_to_bypass_the_outstanding_report_guard(): void
+    {
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Direct Post Event', '2026-10-10', 'Main Hall');
+        $this->createExistingRequest($user, $gpoa, 'Outstanding Before Direct Post', '2026-10-01');
+
+        $this->actingAs($user)
+            ->from(route('activity-monitor.index'))
+            ->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity))
+            ->assertRedirect(route('activity-monitor.index'))
+            ->assertSessionHasErrors('activity_request');
+
+        $this->assertDatabaseMissing('activity_requests', ['title' => 'Direct Post Event']);
+    }
+
+    public function test_new_requests_are_allowed_after_the_previous_narrative_report_is_submitted(): void
+    {
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('After Report Event', '2026-10-10', 'Main Hall');
+        $previousRequest = $this->createExistingRequest($user, $gpoa, 'Past Activity Reported', '2026-09-30');
+        $previousRequest->update(['venue' => 'Previous Hall']);
+        ActivityReport::create([
+            'activity_request_id' => $previousRequest->id,
+            'narrative_content' => ['body' => 'Submitted before the new request.'],
+            'narrative_source' => 'generated',
+            'submitted_at' => now(),
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create'))
+            ->assertOk();
+        $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity))
+            ->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
+    }
+
+    public function test_earlier_future_activity_without_a_report_does_not_block_new_requests(): void
+    {
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        [$user, $gpoa] = $this->makeRequestContext('Future Existing Planned', '2026-10-20', 'Main Hall');
+        $this->createExistingRequest($user, $gpoa, 'Future Existing Request', '2026-10-20');
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create'))
+            ->assertOk();
+    }
+
+    public function test_needs_revision_report_remains_outstanding(): void
+    {
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        [$user, $gpoa] = $this->makeRequestContext('Needs Revision New Event', '2026-10-10', 'Main Hall');
+        $previousRequest = $this->createExistingRequest($user, $gpoa, 'Past Report Needs Revision', '2026-09-30');
+        ActivityReport::create([
+            'activity_request_id' => $previousRequest->id,
+            'narrative_content' => ['body' => 'Needs edits.'],
+            'narrative_source' => 'generated',
+            'submitted_at' => now(),
+            'status' => 'needs_revision',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create'))
+            ->assertRedirect(route('activity-monitor.index'))
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Past Report Needs Revision'));
+    }
+
+    public function test_admin_is_not_blocked_by_organization_outstanding_report_rule(): void
+    {
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        $admin = User::factory()->create(['role' => 'admin', 'term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $admin->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $this->createExistingRequest($admin, $gpoa, 'Admin Past Activity', '2026-09-30');
+        GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Admin New Activity',
+            'date' => '2026-10-10',
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('activity-requests.create'))
+            ->assertOk()
+            ->assertDontSee('Submit the pending report');
     }
 
     public function test_activity_request_creation_page_shows_allowed_activities_count(): void
@@ -140,9 +262,12 @@ class ActivityRequestAvailabilityTest extends TestCase
 
         $monitor = $this->actingAs($user)->get(route('activity-monitor.index'));
         $monitor->assertOk()
-            ->assertSee(route('activity-requests.create', ['gpoa' => $gpoa->id, 'activity' => $plannedActivity->id]));
+            ->assertSee(route('activity-requests.create-from-activity', $plannedActivity));
 
-        $form = $this->get(route('activity-requests.create', ['gpoa' => $gpoa->id, 'activity' => $plannedActivity->id]));
+        $this->get(route('activity-requests.create', ['gpoa' => $gpoa->id, 'activity' => $plannedActivity->id]))
+            ->assertRedirect(route('activity-requests.create-from-activity', $plannedActivity));
+
+        $form = $this->get(route('activity-requests.create-from-activity', $plannedActivity));
         $form->assertOk()
             ->assertSee('<option value="' . $plannedActivity->id . '" selected>', false)
             ->assertSee('\\u0022category\\u0022:\\u0022Symposium\\u0022', false)
@@ -160,7 +285,10 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->assertSee('\\u0022facilities_materials\\u0022:\\u0022Sound system\\u0022', false)
             ->assertSee('\\u0022estimated_budget\\u0022:\\u00222500.00\\u0022', false)
             ->assertSee('\\u0022source_of_funds\\u0022:\\u0022Organization Funds\\u0022', false)
-            ->assertSee("plannedActivitySelect?.addEventListener('change', prefillFromPlannedActivity)", false)
+            ->assertSee("plannedActivitySelect?.addEventListener('change', () =>", false)
+            ->assertSee('prefillFromPlannedActivity(false)', false)
+            ->assertSee('Prefilled from your GPOA. Review and edit anything that changed.')
+            ->assertSee('Reset to GPOA values')
             ->assertDontSee('!!};', false)
             ->assertSee('<option value="UniFast"', false)
             ->assertSee('<option value="Cash on Hand"', false);
@@ -174,6 +302,108 @@ class ActivityRequestAvailabilityTest extends TestCase
             'gpoa_activity_id' => $plannedActivity->id,
             'title' => "Teachers' Day",
         ]);
+    }
+
+    public function test_activity_prefill_uses_its_own_gpoa_even_outside_the_users_current_term(): void
+    {
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '2nd Term',
+            'school_year' => '2027-2028',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Cross Term Planned Activity',
+            'category' => 'Symposium',
+            'sdgs' => [4, 8],
+            'date' => today()->addMonths(3)->startOfMonth()->toDateString(),
+            'date_is_month_only' => true,
+            'end_date' => today()->addMonths(3)->startOfMonth()->addDay()->toDateString(),
+            'start_time' => '09:30:00',
+            'end_time' => '15:45:00',
+            'venue' => 'Main Hall',
+            'objectives' => 'Cross-term objectives',
+            'expected_outcome' => 'Cross-term outcome',
+            'plan_key_strategy' => 'Cross-term strategy',
+            'target_participants' => 'Students',
+            'person_in_charge' => 'Council',
+            'facilities_materials' => 'Projector',
+            'estimated_budget' => 2400,
+            'source_of_funds' => 'Organization Funds',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create-from-activity', $activity))
+            ->assertOk()
+            ->assertSee('Cross Term Planned Activity')
+            ->assertSee('value="Cross Term Planned Activity"', false)
+            ->assertSee('name="gpoa_id" value="' . $gpoa->id . '"', false)
+            ->assertSee('name="gpoa_activity_id" value="' . $activity->id . '"', false)
+            ->assertSee('value="' . $activity->date->format('Y-m-01') . '"', false)
+            ->assertSee('value="09:30"', false)
+            ->assertSee('Cross-term objectives')
+            ->assertSee('Prefilled from your GPOA. Review and edit anything that changed.');
+
+        $this->withSession(['_old_input' => [
+            'title' => 'Manually edited title',
+            'category' => 'Convocation',
+            'date' => today()->addMonths(4)->toDateString(),
+        ]])->get(route('activity-requests.create-from-activity', $activity))
+            ->assertOk()
+            ->assertSee('value="Manually edited title"', false)
+            ->assertSee('<option value="Convocation" selected>', false)
+            ->assertSee('value="' . today()->addMonths(4)->toDateString() . '"', false);
+    }
+
+    public function test_activity_prefill_is_owner_scoped_and_handles_archived_or_requested_activities(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Protected Planned Activity',
+            'date' => today()->addDay()->toDateString(),
+        ]);
+
+        $this->actingAs($otherUser)
+            ->get(route('activity-requests.create-from-activity', $activity))
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->get(route('activity-requests.create-from-activity', $activity))
+            ->assertOk();
+
+        $activity->update(['archived_at' => now()]);
+        $this->get(route('activity-requests.create-from-activity', $activity))
+            ->assertRedirect(route('activity-monitor.index'))
+            ->assertSessionHas('error');
+        $activity->update(['archived_at' => null]);
+
+        $activityRequest = ActivityRequest::create([
+            'user_id' => $owner->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $activity->id,
+            'title' => $activity->title,
+            'date' => $activity->date,
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+            'status' => ActivityRequest::STATUS_PENDING,
+        ]);
+        $activity->update(['activity_request_id' => $activityRequest->id]);
+
+        $this->get(route('activity-requests.create-from-activity', $activity))
+            ->assertRedirect(route('activity-requests.show', $activityRequest))
+            ->assertSessionHas('info');
     }
 
     public function test_activity_request_dated_tomorrow_is_accepted(): void
@@ -427,6 +657,19 @@ class ActivityRequestAvailabilityTest extends TestCase
         ]);
 
         return [$user, $gpoa, $plannedActivity];
+    }
+
+    private function createExistingRequest(User $user, Gpoa $gpoa, string $title, string $date): ActivityRequest
+    {
+        return ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'title' => $title,
+            'date' => $date,
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+            'status' => ActivityRequest::STATUS_APPROVED,
+        ]);
     }
 
     private function createApprovedActivity(string $title, string $date, string $venue, ?string $startTime = null, ?string $endTime = null): void

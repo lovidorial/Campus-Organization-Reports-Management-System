@@ -17,7 +17,6 @@ class ActivityReportController extends Controller
     public function create(ActivityRequest $activityRequest)
     {
         $this->authorize('update', $activityRequest);
-        $this->ensureActivityHasPassed($activityRequest);
         $existingReport = $activityRequest->report;
         $existingReport?->loadMissing('photos');
 
@@ -27,7 +26,6 @@ class ActivityReportController extends Controller
     public function store(Request $request, ActivityRequest $activityRequest)
     {
         $this->authorize('update', $activityRequest);
-        $this->ensureActivityHasPassed($activityRequest);
 
         $existingReport = $activityRequest->report;
         $existingPhotoCount = $existingReport?->photos()->count() ?? 0;
@@ -152,20 +150,6 @@ class ActivityReportController extends Controller
 
         return redirect()->route('activity-requests.show', $activityRequest)
             ->with('success', 'Narrative report saved.');
-    }
-
-    private function ensureActivityHasPassed(ActivityRequest $activityRequest): void
-    {
-        $activityDate = $activityRequest->end_date
-            ?? $activityRequest->gpoaActivity?->end_date
-            ?? $activityRequest->date
-            ?? $activityRequest->gpoaActivity?->date;
-
-        if ($activityDate && $activityDate->gt(today())) {
-            throw ValidationException::withMessages([
-                'activity_date' => 'You can submit an activity report only after the activity end date has passed.',
-            ]);
-        }
     }
 
 }

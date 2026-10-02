@@ -116,10 +116,11 @@ class AdminActivityMonitoringTest extends TestCase
         ]);
         $activity = $this->plannedActivity($gpoa, 'Remark Without Request', '2026-10-15');
 
-        $this->actingAs($admin)->post(route('admin.monitoring.record', $activity->id), [
+        $reviewUrl = route('admin.activities');
+        $this->actingAs($admin)->from($reviewUrl)->post(route('admin.monitoring.record', $activity->id), [
             'compliance_status' => 'partial',
             'compliance_notes' => 'Confirm the participant count during the next check.',
-        ])->assertRedirect(route('admin.activities', absolute: false));
+        ])->assertRedirect($reviewUrl);
 
         $this->assertDatabaseHas('monitoring_results', [
             'activity_request_id' => null,
@@ -133,6 +134,74 @@ class AdminActivityMonitoringTest extends TestCase
             'causer_id' => $admin->id,
         ]);
         $this->assertSame('Pending', $activity->fresh()->monitoringStatus()['status']);
+    }
+
+    public function test_admin_can_open_request_review_page_and_non_admin_is_forbidden(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $owner = User::factory()->create(['org_name' => 'CICS Student Council']);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = $this->plannedActivity($gpoa, 'Admin Review Page Activity', '2026-10-15');
+        $request = $this->createRequest($owner, $gpoa, $activity, 'letters/review.pdf');
+        $activity->update(['activity_request_id' => $request->id]);
+        $report = ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'reports/review.pdf',
+            'narrative_source' => 'uploaded',
+            'submitted_at' => now(),
+            'status' => 'pending',
+        ]);
+        $request->programFlows()->create(['time' => '9:00 AM', 'flow' => 'Opening', 'person_in_charge' => 'Chair', 'sort_order' => 0]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.activity-requests.show', [$request, 'back' => route('admin.activities', ['tab' => 'recent', 'status' => 'Pending'])]))
+            ->assertOk()
+            ->assertSee('Admin Review Page Activity')
+            ->assertSee('CICS Student Council')
+            ->assertSee('Program flow')
+            ->assertSee('Opening')
+            ->assertSee('admin/activities?tab=recent&amp;status=Pending', false)
+            ->assertSee(route('admin.reports.approve', $report), false)
+            ->assertSee(route('admin.reports.request-revision', $report), false)
+            ->assertSee('data-file-viewer', false);
+
+        $this->actingAs($owner)
+            ->get(route('admin.activity-requests.show', $request))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_open_letter_narrative_attendance_and_photo_evidence(): void
+    {
+        Storage::fake('private');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $owner = User::factory()->create();
+        $gpoa = Gpoa::create(['user_id' => $owner->id, 'term' => '1st Term', 'school_year' => '2026-2027', 'college' => 'CICS', 'status' => 'approved']);
+        $activity = $this->plannedActivity($gpoa, 'Evidence Review Activity', '2026-10-15');
+        $request = $this->createRequest($owner, $gpoa, $activity, 'review/letter.pdf');
+        $activity->update(['activity_request_id' => $request->id]);
+        $report = ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'review/narrative.pdf',
+            'attendance_sheet_path' => 'review/attendance.pdf',
+            'narrative_source' => 'uploaded',
+            'submitted_at' => now(),
+            'status' => 'pending',
+        ]);
+        $photo = $report->photos()->create(['path' => 'review/photo.png', 'sort_order' => 0]);
+        foreach (['review/letter.pdf', 'review/narrative.pdf', 'review/attendance.pdf', 'review/photo.png'] as $path) {
+            Storage::disk('private')->put($path, 'file contents');
+        }
+
+        $this->actingAs($admin)->get(route('admin.file.view', [$request->id, 'communication']))->assertOk()->assertHeader('Content-Disposition', 'inline; filename=letter.pdf');
+        $this->get(route('admin.file.view', [$request->id, 'narrative']))->assertOk()->assertHeader('Content-Disposition', 'inline; filename=narrative.pdf');
+        $this->get(route('admin.reports.evidence', [$report, 'attendance']))->assertOk()->assertHeader('Content-Disposition', 'inline; filename=attendance.pdf');
+        $this->get(route('admin.reports.evidence', [$report, 'photo-' . $photo->id]))->assertOk()->assertHeader('Content-Disposition', 'inline; filename=photo.png');
     }
 
     public function test_admin_can_download_private_activity_documents_from_monitoring(): void
@@ -156,6 +225,53 @@ class AdminActivityMonitoringTest extends TestCase
             ->get(route('admin.file.download', [$request->id, 'communication']))
             ->assertOk()
             ->assertDownload('Communication-Letter-' . $request->id . '.pdf');
+    }
+
+    public function test_admin_document_preview_uses_inline_mime_headers_and_attendance_keeps_its_extension(): void
+    {
+        Storage::fake('private');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['org_name' => 'CICS Student Council']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'pending',
+        ]);
+        $activity = $this->plannedActivity($gpoa, 'Modal Preview Activity', '2026-10-15');
+        $request = $this->createRequest($user, $gpoa, $activity, 'letters/letter.txt');
+        $activity->update(['activity_request_id' => $request->id]);
+        Storage::disk('private')->put('letters/letter.txt', 'letter contents');
+        Storage::disk('private')->put('reports/attendance.csv', 'name,signature');
+        ActivityReport::create([
+            'activity_request_id' => $request->id,
+            'narrative_report' => 'reports/narrative.pdf',
+            'narrative_source' => 'uploaded',
+            'status' => 'pending',
+            'submitted_at' => now(),
+            'attendance_sheet_path' => 'reports/attendance.csv',
+        ]);
+
+        $preview = $this->actingAs($admin)
+            ->get(route('admin.file.view', [$request->id, 'communication']))
+            ->assertOk()
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $this->assertStringStartsWith('text/plain', $preview->headers->get('Content-Type'));
+        $this->assertStringContainsString('inline', $preview->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('letter.txt', $preview->headers->get('Content-Disposition'));
+
+        $this->get(route('admin.file.download', [$request->id, 'attendance']))
+            ->assertOk()
+            ->assertDownload('Attendance-Sheet-' . $request->id . '.csv');
+
+        $this->get(route('admin.activities'))
+            ->assertOk()
+            ->assertSee('data-file-viewer', false)
+            ->assertSee('Communication Letter – Modal Preview Activity', false)
+            ->assertSee('Open full page')
+            ->assertSee('Narrative report awaiting review')
+            ->assertSee('Request revision');
     }
 
     public function test_admin_dashboard_uses_monitoring_counts(): void

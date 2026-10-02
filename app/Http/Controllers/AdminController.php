@@ -84,6 +84,33 @@ class AdminController extends Controller
         ]);
     }
 
+    public function showRequest(Request $request, ActivityRequest $activityRequest)
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Unauthorized access.');
+
+        $activityRequest->load([
+            'user',
+            'gpoa',
+            'gpoaActivity.monitoringResult.admin',
+            'report.photos',
+            'report.reviewer',
+            'monitoringResult.admin',
+            'programFlows',
+        ]);
+
+        $monitoringResult = $activityRequest->monitoringResult ?? $activityRequest->gpoaActivity?->monitoringResult;
+        $requestedBack = (string) $request->query('back', '');
+        $backPath = parse_url($requestedBack, PHP_URL_PATH);
+        $activitiesPath = parse_url(route('admin.activities'), PHP_URL_PATH);
+        $backQuery = [];
+        if ($backPath === $activitiesPath) {
+            parse_str((string) parse_url($requestedBack, PHP_URL_QUERY), $backQuery);
+        }
+        $backUrl = route('admin.activities', $backQuery);
+
+        return view('admin.activity-request-show', compact('activityRequest', 'monitoringResult', 'backUrl'));
+    }
+
     public function recordMonitoring(Request $request, $id)
     {
         $activity = GpoaActivity::with('activityRequest')->findOrFail($id);
@@ -110,7 +137,7 @@ class AdminController extends Controller
             ->withProperties(['gpoa_activity_id' => $activity->id])
             ->log('monitoring.remark_recorded');
 
-        return redirect()->route('admin.activities')
+        return redirect()->back()
             ->with('success', 'Monitoring remark saved.');
     }
 
@@ -164,7 +191,7 @@ class AdminController extends Controller
 
         $this->notifyReportOrganization($activityReport, 'activity_report_approved', 'Activity Report Approved', 'Your activity report has been approved.');
 
-        return redirect()->route('admin.activities')->with('success', 'Activity report approved.');
+        return redirect()->back()->with('success', 'Activity report approved.');
     }
 
     public function requestReportRevision(Request $request, ActivityReport $activityReport)
@@ -192,7 +219,7 @@ class AdminController extends Controller
 
         $this->notifyReportOrganization($activityReport, 'activity_report_revision_requested', 'Activity Report Needs Revision', $validated['feedback']);
 
-        return redirect()->route('admin.activities')->with('success', 'Revision requested for the activity report.');
+        return redirect()->back()->with('success', 'Revision requested for the activity report.');
     }
 
     public function viewReportEvidence(ActivityReport $activityReport, string $evidence)
@@ -216,7 +243,9 @@ class AdminController extends Controller
         foreach ($disks as $diskName) {
             $disk = Storage::disk($diskName);
             if ($disk->exists($filePath)) {
-                return $disk->response($filePath, basename($filePath), ['Content-Disposition' => 'inline']);
+                return $disk->response($filePath, basename($filePath), [
+                    'Content-Type' => mime_content_type($disk->path($filePath)) ?: 'application/octet-stream',
+                ], 'inline');
             }
         }
 
@@ -292,6 +321,7 @@ class AdminController extends Controller
         $filePath = match ($fileType) {
             'communication' => $activity->communication_letter,
             'narrative'     => $activity->report?->narrative_report,
+            'attendance'   => $activity->report?->attendance_sheet_path,
             default         => null,
         };
         abort_unless($filePath, 404, 'File not found');
@@ -299,7 +329,13 @@ class AdminController extends Controller
         foreach (['private', 'public'] as $diskName) {
             $disk = Storage::disk($diskName);
             if ($disk->exists($filePath)) {
-                return $disk->response($filePath, null, ['Content-Type' => 'application/pdf']);
+                $fileName = basename($filePath);
+                $mimeType = mime_content_type($disk->path($filePath)) ?: 'application/octet-stream';
+
+                return $disk->response($filePath, $fileName, [
+                    'Content-Type' => $mimeType,
+                    'X-Frame-Options' => 'SAMEORIGIN',
+                ], 'inline');
             }
         }
 
@@ -313,19 +349,26 @@ class AdminController extends Controller
         $filePath = match ($fileType) {
             'communication' => $activity->communication_letter,
             'narrative'     => $activity->report?->narrative_report,
+            'attendance'   => $activity->report?->attendance_sheet_path,
             default         => null,
         };
 
         abort_unless($filePath, 404, 'File not found');
 
-        $fileName = $fileType === 'communication'
-            ? 'Communication-Letter-' . $activity->id . '.pdf'
-            : 'Narrative-Report-' . $activity->id . '.pdf';
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $fileNamePrefix = match ($fileType) {
+            'communication' => 'Communication-Letter-',
+            'attendance' => 'Attendance-Sheet-',
+            default => 'Narrative-Report-',
+        };
+        $fileName = $fileNamePrefix . $activity->id . ($extension !== '' ? '.' . $extension : '');
 
         foreach (['private', 'public'] as $diskName) {
             $disk = Storage::disk($diskName);
             if ($disk->exists($filePath)) {
-                return $disk->download($filePath, $fileName);
+                return response()->download($disk->path($filePath), $fileName, [
+                    'Content-Type' => mime_content_type($disk->path($filePath)) ?: 'application/octet-stream',
+                ]);
             }
         }
 

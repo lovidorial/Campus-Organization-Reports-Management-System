@@ -155,7 +155,7 @@ class GpoaDocumentRequiredTest extends TestCase
         $this->assertDatabaseCount('gpoas', 0);
     }
 
-    public function test_gpoa_update_keeps_existing_document_when_no_new_file_is_uploaded(): void
+    public function test_officer_cannot_update_a_submitted_gpoa(): void
     {
         $organization = \App\Models\Organization::create([
             'name' => 'CICS SC',
@@ -195,8 +195,49 @@ class GpoaDocumentRequiredTest extends TestCase
             ]],
         ]);
 
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertForbidden();
         $this->assertSame('uploads/gpoa/original.pdf', $gpoa->fresh()->document_path);
+        $this->assertSame('Jane Doe', $gpoa->fresh()->prepared_by);
+    }
+
+    public function test_admin_can_still_update_a_gpoa(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'terms_accepted_at' => now()]);
+        $owner = User::factory()->create();
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'prepared_by' => 'Original Officer',
+            'document_path' => 'uploads/gpoa/existing.pdf',
+            'status' => 'approved',
+        ]);
+        $activity = $gpoa->activities()->create([
+            'title' => 'Existing planned activity',
+            'time_frame' => 'exact_date',
+            'date' => '2026-10-01',
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+            'sdgs' => [4],
+        ]);
+
+        $this->actingAs($admin)->get(route('gpoa.edit', $gpoa))->assertOk();
+        $this->put(route('gpoa.update', $gpoa), [
+            'colleges' => 'CICS',
+            'prepared_by' => 'Admin Updated',
+            'planned_activities' => [[
+                'id' => $activity->id,
+                'title' => $activity->title,
+                'time_frame' => 'exact_date',
+                'date' => '2026-10-01',
+                'venue' => 'Main Hall',
+                'category' => 'Symposium',
+                'sdgs' => [4],
+            ]],
+        ])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertSame('Admin Updated', $gpoa->fresh()->prepared_by);
     }
 
     public function test_org_gpoa_document_route_is_owner_scoped_and_private(): void

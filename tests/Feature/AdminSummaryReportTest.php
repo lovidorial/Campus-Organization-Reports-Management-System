@@ -6,16 +6,18 @@ use App\Models\ActivityReport;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
+use App\Models\MonitoringResult;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class AdminSummaryReportTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_summary_reports_completed_and_unrequested_pending_gpoa_activities(): void
+    public function test_report_includes_archived_activities_in_progress_and_term_sy_summary(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $organization = Organization::create([
@@ -30,6 +32,7 @@ class AdminSummaryReportTest extends TestCase
             'org_name' => $organization->name,
             'college' => 'CICS',
         ]);
+
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
             'term' => '1st Term',
@@ -37,96 +40,144 @@ class AdminSummaryReportTest extends TestCase
             'college' => 'CICS',
             'status' => 'submitted',
         ]);
-        $completedActivity = $gpoa->activities()->create([
+
+        $completed = $gpoa->activities()->create([
             'title' => 'Completed Outreach',
             'date' => '2027-01-10',
             'venue' => 'Main Hall',
             'category' => 'Outreach',
             'estimated_budget' => 1200,
         ]);
-        $pendingActivity = $gpoa->activities()->create([
-            'title' => 'Unrequested Symposium',
-            'date' => '2027-02-10',
-            'venue' => 'Auditorium',
-            'category' => 'Symposium',
-            'estimated_budget' => 800,
-        ]);
-        $archivedActivity = $gpoa->activities()->create([
+        $archived = $gpoa->activities()->create([
             'title' => 'Archived Orientation',
             'date' => '2027-03-10',
             'venue' => 'Lecture Hall',
             'category' => 'Orientation',
+            'estimated_budget' => 900,
             'archived_at' => now(),
         ]);
+        $pending = $gpoa->activities()->create([
+            'title' => 'Pending Symposium',
+            'date' => '2027-05-10',
+            'venue' => 'Auditorium',
+            'category' => 'Symposium',
+            'estimated_budget' => 800,
+        ]);
 
-        $activityRequest = ActivityRequest::create([
+        $request = ActivityRequest::create([
             'user_id' => $user->id,
             'gpoa_id' => $gpoa->id,
-            'gpoa_activity_id' => $completedActivity->id,
-            'title' => $completedActivity->title,
-            'date' => $completedActivity->date,
-            'venue' => $completedActivity->venue,
-            'category' => $completedActivity->category,
+            'gpoa_activity_id' => $completed->id,
+            'title' => $completed->title,
+            'date' => $completed->date,
+            'venue' => $completed->venue,
+            'category' => $completed->category,
             'communication_letter' => 'letters/completed.pdf',
             'status' => ActivityRequest::STATUS_PENDING,
         ]);
-        $completedActivity->update(['activity_request_id' => $activityRequest->id]);
+        $completed->update(['activity_request_id' => $request->id]);
         ActivityReport::create([
-            'activity_request_id' => $activityRequest->id,
+            'activity_request_id' => $request->id,
             'narrative_report' => 'reports/completed.pdf',
             'narrative_source' => 'uploaded',
             'status' => 'approved',
             'submitted_at' => now(),
         ]);
 
-        $filters = [
+        $page = $this->actingAs($admin)->get(route('admin.summary-report', [
             'organization' => $user->id,
             'college' => 'CICS',
             'term' => '1st Term',
             'school_year' => '2026-2027',
-            'date_from' => '2027-01-01',
-            'date_to' => '2027-12-31',
-        ];
-        $page = $this->actingAs($admin)->get(route('admin.summary-report', $filters));
+        ]));
 
-        $page->assertOk()
-            ->assertSee('Organization Summary')
-            ->assertSee('CICS Student Council')
-            ->assertSee('Category Summary')
-            ->assertSee('Monitoring Status Summary')
-            ->assertSee('Completed Outreach')
-            ->assertSee('Unrequested Symposium')
-            ->assertDontSee('Archived Orientation')
-            ->assertSee('Activity #1')
-            ->assertSee('Activity #2')
-            ->assertSee('Completed')
-            ->assertSee('Pending')
-            ->assertSee('Uploaded')
-            ->assertSee('Approved')
-            ->assertSee('Total Activities')
-            ->assertSee('Progress');
+        $page->assertOk();
+        $page->assertSee('Term / SY');
+        $page->assertSee('1st Term / 2026-2027');
+        $page->assertSee('Archived Orientation');
+        $page->assertSee('No (1 left)');
+        $this->assertStringContainsString('1st Term / 2026-2027', $page->getContent());
+    }
 
-        $filteredPage = $this->actingAs($admin)->get(route('admin.summary-report', array_merge($filters, ['status' => 'Pending'])));
-        $filteredPage->assertOk()
-            ->assertSee('Unrequested Symposium')
-            ->assertDontSee('Completed Outreach');
+    public function test_summary_report_shows_narrative_content_link_and_late_status_details(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $organization = Organization::create(['name' => 'CICS Student Council', 'type' => 'Major Student Organization', 'college' => 'CICS', 'is_active' => true]);
+        $user = User::factory()->create(['role' => 'user', 'organization_id' => $organization->id, 'org_name' => $organization->name, 'college' => 'CICS']);
+        $gpoa = Gpoa::create(['user_id' => $user->id, 'term' => '1st Term', 'school_year' => '2026-2027', 'college' => 'CICS', 'status' => 'submitted']);
+        $activity = $gpoa->activities()->create(['title' => 'Late activity', 'date' => '2026-01-10', 'venue' => 'Hall', 'category' => 'Outreach', 'estimated_budget' => 200, 'archived_at' => null]);
+        $request = ActivityRequest::create(['user_id' => $user->id, 'gpoa_id' => $gpoa->id, 'gpoa_activity_id' => $activity->id, 'title' => $activity->title, 'date' => $activity->date, 'venue' => $activity->venue, 'category' => $activity->category, 'communication_letter' => 'letters/report.pdf', 'status' => ActivityRequest::STATUS_PENDING]);
+        $activity->update(['activity_request_id' => $request->id]);
+        ActivityReport::create(['activity_request_id' => $request->id, 'narrative_content' => ['body' => 'Narrative text'], 'narrative_source' => 'generated', 'status' => 'pending', 'submitted_at' => now()]);
 
-        $archivedPage = $this->actingAs($admin)->get(route('admin.summary-report', array_merge($filters, ['status' => 'Archived'])));
-        $archivedPage->assertOk()
-            ->assertSee('Archived Orientation')
-            ->assertDontSee('Completed Outreach')
-            ->assertDontSee('Unrequested Symposium');
+        $response = $this->actingAs($admin)->get(route('admin.summary-report'));
 
-        $archivedExcel = $this->actingAs($admin)->get(route('admin.summary-report.download', array_merge($filters, ['status' => 'Archived'])));
-        $archivedExcel->assertOk();
-        $this->assertStringContainsString('summary-report.xlsx', $archivedExcel->headers->get('content-disposition'));
+        $response->assertOk();
+        $response->assertSee('Late (overlaps with Pending/Ongoing)');
+        $response->assertSee('View');
+        $response->assertSee('href="' . route('admin.file.view', [$request->id, 'narrative']) . '"', false);
 
-        $excel = $this->actingAs($admin)->get(route('admin.summary-report.download', $filters));
-        $excel->assertOk();
-        $this->assertStringContainsString('summary-report.xlsx', $excel->headers->get('content-disposition'));
+        $statusCardResponse = $this->actingAs($admin)->get(route('admin.summary-report', ['status' => 'Ongoing']));
+        $statusCardResponse->assertOk();
+        $statusCardResponse->assertSee('status=Ongoing', false);
+    }
 
-        $pdf = $this->actingAs($admin)->get(route('admin.summary-report.pdf', $filters));
-        $pdf->assertOk();
-        $this->assertStringContainsString('summary-report.pdf', $pdf->headers->get('content-disposition'));
+    public function test_report_tracks_assessment_and_pagination_summary_totals(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $organization = Organization::create(['name' => 'Student Org', 'type' => 'Student Organization', 'college' => 'CICS', 'is_active' => true]);
+        $user = User::factory()->create(['role' => 'user', 'organization_id' => $organization->id, 'org_name' => $organization->name, 'college' => 'CICS']);
+        $gpoa = Gpoa::create(['user_id' => $user->id, 'term' => '2nd Term', 'school_year' => '2026-2027', 'college' => 'CICS', 'status' => 'submitted']);
+
+        for ($i = 1; $i <= 30; $i++) {
+            $activity = $gpoa->activities()->create([
+                'title' => "Activity {$i}",
+                'date' => "2027-03-{$i}",
+                'venue' => 'Hall',
+                'category' => 'Outreach',
+                'estimated_budget' => 100,
+            ]);
+            if ($i <= 28) {
+                $request = ActivityRequest::create([
+                    'user_id' => $user->id,
+                    'gpoa_id' => $gpoa->id,
+                    'gpoa_activity_id' => $activity->id,
+                    'title' => $activity->title,
+                    'date' => $activity->date,
+                    'venue' => $activity->venue,
+                    'category' => $activity->category,
+                    'communication_letter' => 'letters/letter.pdf',
+                    'status' => ActivityRequest::STATUS_PENDING,
+                ]);
+                $activity->update(['activity_request_id' => $request->id]);
+                MonitoringResult::create([
+                    'activity_request_id' => $request->id,
+                    'gpoa_activity_id' => $activity->id,
+                    'admin_id' => $admin->id,
+                    'compliance_status' => $i % 2 === 0 ? 'partial' : 'aligned',
+                    'recorded_at' => now(),
+                ]);
+            }
+        }
+
+        $response = $this->actingAs($admin)->get(route('admin.summary-report', ['assessment' => 'partial', 'page' => 2]));
+
+        $response->assertOk();
+        $response->assertSee('Partially Aligned');
+        $response->assertSee('assessment=partial', false);
+        $response->assertSee('page=2', false);
+        $response->assertSee('>Total</th>', false);
+
+        $exportResponse = $this->actingAs($admin)->get(route('admin.summary-report.download', ['assessment' => 'partial']));
+        $exportResponse->assertOk();
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'summary-report-');
+        file_put_contents($temporaryFile, $exportResponse->streamedContent());
+
+        try {
+            $workbook = IOFactory::createReader('Xlsx')->load($temporaryFile);
+            $this->assertStringContainsString('Assessment=partial', $workbook->getSheetByName('Activities')->getCell('A1')->getValue());
+        } finally {
+            unlink($temporaryFile);
+        }
     }
 }

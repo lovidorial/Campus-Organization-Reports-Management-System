@@ -54,7 +54,6 @@
                         <tr>
                             <th class="p-3 text-left font-semibold text-slate-600">Title</th>
                             <th class="p-3 text-left font-semibold text-slate-600">Category</th>
-                            <th class="p-3 text-left font-semibold text-slate-600">Activity Level</th>
                             <th class="p-3 text-left font-semibold text-slate-600">Date</th>
                             <th class="p-3 text-left font-semibold text-slate-600">Budget</th>
                             <th class="p-3 text-left font-semibold text-slate-600">Status</th>
@@ -74,7 +73,6 @@
                             <tr class="border-b border-slate-200 align-top">
                                 <td class="p-3 font-medium text-slate-800">{{ $activity->title }}</td>
                                 <td class="p-3 text-slate-700">{{ $activity->category ?? '—' }}</td>
-                                <td class="p-3 text-slate-700">{{ $activity->activity_level ?? '—' }}</td>
                                 <td class="p-3 text-slate-700">{{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</td>
                                 <td class="p-3 text-slate-700">₱ {{ number_format((float) ($activity->estimated_budget ?? 0), 2) }}</td>
                                 <td class="p-3 text-slate-700"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ $statusClass }}">{{ $monitoring['status'] }}</span>@if($monitoring['late'])<span class="ml-1 text-xs font-semibold text-rose-700">Late</span>@endif</td>
@@ -88,7 +86,7 @@
                                 </td>
                             </tr>
                             <tr class="hidden border-b border-slate-200 bg-slate-50">
-                                <td colspan="7" class="p-6">
+                                <td colspan="6" class="p-6">
                                     @php
                                         $sdgs = $activity->sdgs ?? [];
                                         if (!is_array($sdgs)) {
@@ -171,7 +169,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="p-8 text-center text-sm text-slate-500">No legacy activities recorded</td>
+                                <td colspan="6" class="p-8 text-center text-sm text-slate-500">No legacy activities recorded</td>
                             </tr>
                         @endforelse
                     </tbody>
