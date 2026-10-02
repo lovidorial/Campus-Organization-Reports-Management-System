@@ -139,90 +139,105 @@
                     </a>
                 </li>
                 @else
-                <!-- ADMIN MENU -->
-                <li class="pb-1">
+                <li>
+                    <div class="px-3 pb-1 pt-1">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">MAIN</p>
+                    </div>
                     <a href="{{ route('admin.dashboard') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.dashboard') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Admin Dashboard
+                       class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}"
+                       style="{{ request()->routeIs('admin.dashboard') ? 'border-left-color: #f59e0b;' : '' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12.75V21h6.75v-6.75h4.5V21H21v-8.25M4.5 9.75 12 3l7.5 6.75"/></svg>
+                        <span>Dashboard</span>
                     </a>
                 </li>
+
+                <li x-data="{ open: {{ request()->routeIs('admin.gpoa.*') || request()->routeIs('admin.activities') || request()->routeIs('activities.calendar') || request()->routeIs('admin.document-deadlines.*') ? 'true' : 'false' }} }">
+                    <div class="px-3 pb-1 pt-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">DOCUMENTS &amp; ACTIVITIES</p>
+                    </div>
+                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/5 hover:text-white" :class="open ? 'bg-white/5 text-white' : 'text-slate-300'">
+                        <span class="flex items-center gap-3">
+                            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5h7.5L19.5 8.25v9.75A2.25 2.25 0 0 1 17.25 20.25h-10.5A2.25 2.25 0 0 1 4.5 18V6.75A2.25 2.25 0 0 1 6.75 4.5h1.5Zm7.5 0v3.75h3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12h7.5M8.25 15.75h5.25"/></svg>
+                            Documents &amp; Activities
+                        </span>
+                        <svg class="h-4 w-4 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :class="open ? 'rotate-90' : ''" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+
+                    <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
+                        <a href="{{ route('admin.gpoa.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.gpoa.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.gpoa.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 19.5h13.5M7.5 16.5V8.25h9v8.25M9 11.25h6"/></svg>
+                            <span>GPOA Monitoring</span>
+                        </a>
+                        <a href="{{ route('admin.activities') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.activities') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.activities') ? 'border-left-color: #f59e0b;' : '' }}">
+                            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 18.75V7.5A1.5 1.5 0 0 1 6 6h12a1.5 1.5 0 0 1 1.5 1.5v11.25M7.5 10.5h9M7.5 14.25h6"/></svg>
+                            <span>Activity Monitoring</span>
+                        </a>
+                        <a href="{{ route('activities.calendar') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('activities.calendar') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('activities.calendar') ? 'border-left-color: #f59e0b;' : '' }}">
+                            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.25M16.5 3.75v2.25M4.5 8.25h15M6 20.25h12A1.5 1.5 0 0 0 19.5 18.75V8.25H4.5v10.5A1.5 1.5 0 0 0 6 20.25Z"/></svg>
+                            <span>Activity Calendar</span>
+                        </a>
+                        <a href="{{ route('admin.document-deadlines.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.document-deadlines.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.document-deadlines.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 5.25h9L18.75 9v9.75A1.5 1.5 0 0 1 17.25 20.25h-9A1.5 1.5 0 0 1 6.75 18.75V6.75A1.5 1.5 0 0 1 8.25 5.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v3.75h3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6M9 15.75h6"/></svg>
+                            <span>Document Deadlines</span>
+                        </a>
+                    </div>
+                </li>
+
                 <li>
-                                        <a href="{{ route('admin.gpoa.index') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                                             style="background-color: {{ request()->routeIs('admin.gpoa.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                                 GPOA Monitoring
+                    <div class="px-3 pb-1 pt-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">ORGANIZATION</p>
+                    </div>
+                    <a href="{{ route('admin.officers.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.officers.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75v-1.5A3 3 0 0 0 13.5 14.25H10.5a3 3 0 0 0-3 3v1.5M12 11.25a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25Z"/></svg>
+                        <span>Officer Directory</span>
+                    </a>
+                    <a href="{{ route('admin.officers.index', ['tab' => 'members']) }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? 'border-left-color: #f59e0b;' : '' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 18.75v-1.5A3.75 3.75 0 0 1 7.5 13.5h.75M15.75 13.5h.75A3.75 3.75 0 0 1 20.25 17.25v1.5M12 11.25a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/></svg>
+                        <span>Org Chart</span>
+                    </a>
+                    <a href="{{ route('admin.summary-report') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.summary-report*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.summary-report*') ? 'border-left-color: #f59e0b;' : '' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 5.25h9L18.75 9v9.75A1.5 1.5 0 0 1 17.25 20.25h-9A1.5 1.5 0 0 1 6.75 18.75V6.75A1.5 1.5 0 0 1 8.25 5.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v3.75h3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6M9 15.75h6"/></svg>
+                        <span>Activity Overview Report</span>
+                    </a>
+                    <a href="{{ route('admin.organizations.index') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.organizations.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.organizations.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 14.25V6.75A1.5 1.5 0 0 1 6 5.25h12a1.5 1.5 0 0 1 1.5 1.5v7.5M4.5 14.25h15M18.75 19.5h-13.5v-5.25h13.5v5.25Z"/></svg>
+                        <span>Organizations</span>
                     </a>
                 </li>
+
                 <li>
-                    <a href="{{ route('admin.activities') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.activities') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Activity Monitoring
+                    <div class="px-3 pb-1 pt-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">ACCOUNT &amp; SUPPORT</p>
+                    </div>
+                    <a href="{{ route('faq') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('faq') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('faq') ? 'border-left-color: #f59e0b;' : '' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75A2.25 2.25 0 0 1 12 7.5a2.25 2.25 0 1 1 2.25 3.75c-.96.59-1.5 1.29-1.5 2.25M12 17.25h.01M20.25 12a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z"/></svg>
+                        <span>FAQ</span>
                     </a>
-                </li>
-                <li>
-                    <a href="{{ route('activities.calendar') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('activities.calendar') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                        Activity Calendar
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('admin.officers.index') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.officers.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Officer Directory
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('admin.officers.index', ['tab' => 'members']) }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Org Chart
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('admin.summary-report') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.summary-report*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                                 Activity Overview Report
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('admin.backups.index') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.backups.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Backup & Restore
-                    </a>
-                </li>
-                                <li>
-                                        <a href="{{ route('admin.maintenance.index') }}"
-                                             class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                                             style="background-color: {{ request()->routeIs('admin.maintenance.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                                 System Maintenance
-                                        </a>
-                                </li>
-                                        <li>
-                                            <a href="{{ route('admin.activity-logs.index') }}"
-                                               class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                                               style="background-color: {{ request()->routeIs('admin.activity-logs.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                                 Activity Logs
-                                            </a>
-                                        </li>
-                <li class="mt-3">
-                    <a href="{{ route('admin.organizations.index') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('admin.organizations.*') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                         Organization account
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('faq') }}"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/10"
-                       style="background-color: {{ request()->routeIs('faq') ? '#b45309' : 'rgba(0,0,0,0.12)' }}; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                        FAQ
-                    </a>
+
+                    <div x-data="{ open: {{ request()->routeIs('admin.backups.*') || request()->routeIs('admin.maintenance.*') || request()->routeIs('admin.activity-logs.*') ? 'true' : 'false' }} }" class="mt-1">
+                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/5 hover:text-white" :class="open ? 'bg-white/5 text-white' : 'text-slate-300'">
+                            <span class="flex items-center gap-3">
+                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.55 2.55l-.1-.1a1.8 1.8 0 0 0-3.07 1.27v.18a1.8 1.8 0 0 1-3.6 0v-.15a1.8 1.8 0 0 0-3.07-1.27l-.1.1A1.8 1.8 0 0 1 4.46 15.1l.1-.1a1.8 1.8 0 0 0-1.27-3.07H3.1a1.8 1.8 0 0 1 0-3.6h.15a1.8 1.8 0 0 0 1.27-3.07l-.1-.1a1.8 1.8 0 0 1 2.55-2.55l.1.1a1.8 1.8 0 0 0 3.07-1.27V1.4a1.8 1.8 0 0 1 3.6 0v.15a1.8 1.8 0 0 0 3.07 1.27l.1-.1a1.8 1.8 0 0 1 2.55 2.55l-.1.1a1.8 1.8 0 0 0 1.27 3.07h.18a1.8 1.8 0 0 1 0 3.6h-.15A1.8 1.8 0 0 0 19.4 15Z"/></svg>
+                                <span>Settings</span>
+                            </span>
+                            <svg class="h-4 w-4 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :class="open ? 'rotate-90' : ''" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+
+                        <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
+                            <a href="{{ route('admin.backups.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.backups.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.backups.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25V7.5A4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 4.5 4.5v.75M5.25 10.5h13.5v9h-13.5z"/></svg>
+                                <span>Backup &amp; Restore</span>
+                            </a>
+                            <a href="{{ route('admin.maintenance.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.maintenance.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.maintenance.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75v4.5M12 15.75v4.5M3.75 12h4.5M15.75 12h4.5M6.75 6.75l3.18 3.18M14.07 14.07l3.18 3.18M17.25 6.75 14.07 9.93M9.93 14.07 6.75 17.25"/></svg>
+                                <span>System Maintenance</span>
+                            </a>
+                            <a href="{{ route('admin.activity-logs.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.activity-logs.*') ? 'border-l-[3px] bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}" style="{{ request()->routeIs('admin.activity-logs.*') ? 'border-left-color: #f59e0b;' : '' }}">
+                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.75h9M7.5 16.5h6M8.25 4.5h7.5L19.5 8.25v9.75A2.25 2.25 0 0 1 17.25 20.25h-10.5A2.25 2.25 0 0 1 4.5 18V6.75A2.25 2.25 0 0 1 6.75 4.5h1.5Zm7.5 0v3.75h3.75"/></svg>
+                                <span>Activity Logs</span>
+                            </a>
+                        </div>
+                    </div>
                 </li>
                 @endif
 
