@@ -22,22 +22,9 @@
             </div>
         @endif
 
-        @php
-            $plannedActivitySeed = $gpoa->activities->map(fn ($activity) => [
-                'id' => $activity->id,
-                '_key' => 'activity-' . $activity->id,
-                'title' => $activity->title,
-                'time_frame' => $activity->time_frame ?? ($activity->end_date ? 'date_range' : ($activity->date_is_month_only ? 'month_only' : 'exact_date')),
-                'date' => $activity->date_is_month_only ? $activity->date?->format('Y-m') : ($activity->date ? $activity->date->format('Y-m-d') : ''),
-                'end_date' => $activity->end_date ? $activity->end_date->format('Y-m-d') : '',
-                'start_time' => $activity->start_time ?? '',
-                'end_time' => $activity->end_time ?? '',
-                'venue' => $activity->venue ?? '',
-                'category' => $activity->category ?? '',
-                'sdgs' => is_array($activity->sdgs) ? array_values($activity->sdgs) : [],
-            ])->values()->all();
-        @endphp
-        <script type="application/json" id="planned-activities-seed">@json(old('planned_activities', $plannedActivitySeed))</script>
+        <script type="application/json" id="planned-activities-seed">
+            @json($plannedActivitySeed)
+        </script>
 
         <form action="{{ route('gpoa.update', $gpoa) }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm">
             @csrf
