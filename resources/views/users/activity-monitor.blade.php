@@ -65,16 +65,26 @@
             @if($tab === 'submitted' && $pendingActivities->isNotEmpty())
                 <section class="rounded-lg border border-dashed border-slate-300 bg-white px-5 py-8">
                     <h2 class="font-semibold text-slate-900">No submissions yet</h2>
-                    <p class="mt-1 text-sm text-slate-500">Start one of these planned activities to begin monitoring.</p>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        @foreach($pendingActivities as $activity)
-                            @if($outstandingReports->isNotEmpty())
-                                <button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="cursor-not-allowed rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500">Submit pending report first</button>
-                            @else
-                                <a href="{{ route('activity-requests.create-from-activity', $activity) }}" class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100">{{ $activity->title }}</a>
-                            @endif
-                        @endforeach
-                    </div>
+                    <p class="mt-1 text-sm text-slate-500">Start a planned activity from your To do list to begin monitoring.</p>
+                    @if($outstandingReports->isNotEmpty())
+                        <div class="mt-4">
+                            <button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="cursor-not-allowed rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500">Submit your pending report first</button>
+                            <p class="mt-2 text-sm text-slate-600">{{ $outstandingReports->first()['title'] }}@if(!empty($outstandingReports->first()['url'])) <a href="{{ $outstandingReports->first()['url'] }}" class="font-semibold text-sky-700 underline">Submit report</a>@endif</p>
+                        </div>
+                    @else
+                        <ul class="mt-4 space-y-2">
+                            @foreach($pendingActivities->sortBy('date')->take(5) as $activity)
+                                <li class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2">
+                                    <div class="flex min-w-0 flex-1 items-center justify-between gap-3">
+                                        <span class="truncate text-sm font-medium text-slate-800">{{ $activity->title }}</span>
+                                        <span class="shrink-0 text-xs text-slate-500">{{ $activity->date?->format('M d, Y') ?? '—' }}</span>
+                                    </div>
+                                    <a href="{{ route('activity-requests.create-from-activity', $activity) }}" class="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100">Start request</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                        <a href="{{ $todoUrl }}" class="mt-3 inline-block text-sm font-semibold text-sky-700 hover:text-sky-800">View all {{ $pendingActivities->count() }} planned activities in To do &rarr;</a>
+                    @endif
                 </section>
             @else
                 <section class="rounded-lg border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
@@ -86,7 +96,7 @@
         @else
             <div class="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
                 <table class="w-full text-sm">
-                    <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Activity</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Documents</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Next action</th></tr></thead>
+                    <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Activity</th><th class="px-4 py-3">Date</th><th class="whitespace-nowrap px-4 py-3">Documents</th><th class="px-4 py-3">Status</th><th class="min-w-[170px] px-4 py-3 text-right">Next action</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($activities as $activity)
                             @php
@@ -99,25 +109,26 @@
                             @endphp
                             <tr>
                                 <td class="px-4 py-3"><div class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }}</div>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" datetime="{{ $activity->last_submitted_at->toIso8601String() }}" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block text-xs text-slate-500">to {{ $activity->end_date->format('M j, Y') }}</span>@endif</td>
-                                <td class="px-4 py-3"><div class="flex gap-2"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="text-xs {{ $letterPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $letterPresent ? '●' : '○' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="text-xs {{ $reportPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $reportPresent ? '●' : '○' }} Report</span></div></td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block whitespace-nowrap text-sm text-slate-500">to {{ $activity->end_date->format('M d, Y') }}</span>@endif</td>
+                                <td class="whitespace-nowrap px-4 py-3"><div class="flex gap-2 whitespace-nowrap"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500' }}">{{ $letterPresent ? '✓' : '–' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $activityRequest?->report?->status === 'needs_revision' ? 'border-amber-200 bg-amber-50 text-amber-700' : ($reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">{{ $activityRequest?->report?->status === 'needs_revision' ? '!' : ($reportPresent ? '✓' : '–') }} Report</span></div></td>
                                 <td class="px-4 py-3"><x-status-pill :status="$activity->monitor_status" /> @if($activity->monitor_late)<span class="ml-1"><x-status-pill status="Late" /></span>@endif</td>
-                                <td class="px-4 py-3 text-right">
+                                <td class="min-w-[170px] px-4 py-3 text-right">
+                                    <div class="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
                                     @if($activityRequest)
-                                        <a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="mr-2 rounded border border-rose-200 px-2 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">PDF</a>
+                                        <a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">PDF</a>
                                     @endif
                                     @if($activity->archived_at)
-                                        <form method="POST" action="{{ route('activities.restore', $activity) }}">@csrf<button class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Restore</button></form>
+                                        <form method="POST" action="{{ route('activities.restore', $activity) }}" class="inline-flex">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Restore</button></form>
                                     @elseif($activity->monitor_status === 'Completed')
-                                        <form method="POST" action="{{ route('activities.archive', $activity) }}">@csrf<button class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Archive</button></form>
+                                        <form method="POST" action="{{ route('activities.archive', $activity) }}" class="inline-flex" data-confirm data-confirm-title="Archive this activity?" data-confirm-message="Archived activities are excluded from the totals. You can restore it later." data-confirm-label="Archive" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Archive</button></form>
                                     @elseif(!$activityRequest)
-                                        @if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="cursor-not-allowed rounded bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Request activity</a>@endif
+                                        @if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="inline-flex items-center justify-center whitespace-nowrap cursor-not-allowed rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Start request</a>@endif
                                     @elseif(!$letterPresent)
-                                        <a href="{{ $createFromActivityUrl }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
+                                        <a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
                                     @elseif($activityRequest->report?->status === 'needs_revision')
-                                        <a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
+                                        <a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
                                     @elseif(!$reportPresent)
-                                        <a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
+                                        <a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                                     @else
                                         <button type="button" @click="$dispatch('show-activity-details', @js([
                                             'title' => $activityRequest->title ?? $activity->title,
@@ -139,8 +150,9 @@
                                             'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
                                             'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
                                             'fullPageUrl' => $viewUrl,
-                                        ]))" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</button>
+                                        ]))" class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</button>
                                     @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -158,14 +170,14 @@
                         $createFromActivityUrl = route('activity-requests.create-from-activity', $activity);
                     @endphp
                     <article class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-                        <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }}</h2><p class="text-sm text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitor_status" /></div>
-                        <div class="flex items-center justify-between"><div class="flex gap-2"><span class="text-xs {{ $letterPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $letterPresent ? '●' : '○' }} Letter</span><span class="text-xs {{ $reportPresent ? 'text-emerald-700' : 'text-slate-400' }}">{{ $reportPresent ? '●' : '○' }} Report</span></div><div class="flex gap-2">@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="rounded border border-rose-200 px-2 py-1.5 text-xs font-semibold text-rose-700">PDF</a>@endif
-                            @if($activity->archived_at)<form method="POST" action="{{ route('activities.restore', $activity) }}">@csrf<button class="rounded border px-3 py-1.5 text-xs font-semibold">Restore</button></form>
-                            @elseif($activity->monitor_status === 'Completed')<form method="POST" action="{{ route('activities.archive', $activity) }}">@csrf<button class="rounded border px-3 py-1.5 text-xs font-semibold">Archive</button></form>
-                            @elseif(!$activityRequest)@if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="cursor-not-allowed rounded bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Request activity</a>@endif
-                            @elseif(!$letterPresent)<a href="{{ $createFromActivityUrl }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
-                            @elseif($activityRequest->report?->status === 'needs_revision')<a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
-                            @elseif(!$reportPresent)<a href="{{ route('activity-reports.create', $activityRequest) }}" class="rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
+                        <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }}</h2><p class="whitespace-nowrap text-sm text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block whitespace-nowrap text-sm text-slate-500">to {{ $activity->end_date->format('M d, Y') }}</span>@endif</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitor_status" /></div>
+                        <div class="flex items-center justify-between gap-2"><div class="flex flex-nowrap gap-2 whitespace-nowrap"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500' }}">{{ $letterPresent ? '✓' : '–' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $activityRequest?->report?->status === 'needs_revision' ? 'border-amber-200 bg-amber-50 text-amber-700' : ($reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">{{ $activityRequest?->report?->status === 'needs_revision' ? '!' : ($reportPresent ? '✓' : '–') }} Report</span></div><div class="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">PDF</a>@endif
+                            @if($activity->archived_at)<form method="POST" action="{{ route('activities.restore', $activity) }}" class="inline-flex">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">Restore</button></form>
+                            @elseif($activity->monitor_status === 'Completed')<form method="POST" action="{{ route('activities.archive', $activity) }}" class="inline-flex" data-confirm data-confirm-title="Archive this activity?" data-confirm-message="Archived activities are excluded from the totals. You can restore it later." data-confirm-label="Archive" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">Archive</button></form>
+                            @elseif(!$activityRequest)@if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="inline-flex items-center justify-center whitespace-nowrap cursor-not-allowed rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Start request</a>@endif
+                            @elseif(!$letterPresent)<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
+                            @elseif($activityRequest->report?->status === 'needs_revision')<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
+                            @elseif(!$reportPresent)<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                             @else
                                 <button type="button" @click="$dispatch('show-activity-details', @js([
                                     'title' => $activityRequest->title ?? $activity->title,
@@ -187,7 +199,7 @@
                                     'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
                                     'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
                                     'fullPageUrl' => route('activity-requests.show', $activityRequest),
-                                ]))" class="rounded border px-3 py-1.5 text-xs font-semibold">View</button>
+                                ]))" class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">View</button>
                             @endif
                         </div>
                     </article>

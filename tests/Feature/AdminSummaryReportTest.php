@@ -168,7 +168,26 @@ class AdminSummaryReportTest extends TestCase
         $response->assertSee('page=2', false);
         $response->assertSee('>Total</th>', false);
 
-        $exportResponse = $this->actingAs($admin)->get(route('admin.summary-report.download', ['assessment' => 'partial']));
+        $paginatedResponse = $this->actingAs($admin)->get(route('admin.summary-report', [
+            'sort' => 'date',
+            'direction' => 'desc',
+            'page' => 2,
+        ]));
+        $paginatedResponse->assertOk();
+        $paginatedResponse->assertSee('Showing 26 to 30 of 30 activities');
+        $paginatedResponse->assertSee('Activity 5');
+        $paginatedResponse->assertSee('sort=date', false);
+        $paginatedResponse->assertSee('direction=desc', false);
+        preg_match('/<a id="generateExcelReport" href="([^"]+)"/', $paginatedResponse->getContent(), $excelLink);
+        preg_match('/<a id="generatePdfReport" href="([^"]+)"/', $paginatedResponse->getContent(), $pdfLink);
+        $this->assertNotEmpty($excelLink[1] ?? null);
+        $this->assertNotEmpty($pdfLink[1] ?? null);
+        parse_str((string) parse_url(html_entity_decode($excelLink[1]), PHP_URL_QUERY), $excelQuery);
+        parse_str((string) parse_url(html_entity_decode($pdfLink[1]), PHP_URL_QUERY), $pdfQuery);
+        $this->assertArrayNotHasKey('page', $excelQuery);
+        $this->assertArrayNotHasKey('page', $pdfQuery);
+
+        $exportResponse = $this->actingAs($admin)->get(route('admin.summary-report.download', ['assessment' => 'partial', 'page' => 2]));
         $exportResponse->assertOk();
         $temporaryFile = tempnam(sys_get_temp_dir(), 'summary-report-');
         file_put_contents($temporaryFile, $exportResponse->streamedContent());
@@ -176,6 +195,7 @@ class AdminSummaryReportTest extends TestCase
         try {
             $workbook = IOFactory::createReader('Xlsx')->load($temporaryFile);
             $this->assertStringContainsString('Assessment=partial', $workbook->getSheetByName('Activities')->getCell('A1')->getValue());
+            $this->assertSame(16, $workbook->getSheetByName('Activities')->getHighestRow());
         } finally {
             unlink($temporaryFile);
         }

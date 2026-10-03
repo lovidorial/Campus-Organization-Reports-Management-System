@@ -120,16 +120,24 @@
         </section>
 
         @if($report)
-            <section class="rounded-lg border border-slate-200 bg-white p-4">
+            <section class="rounded-lg border border-slate-200 bg-white p-4" x-data="{ revisionOpen: {{ $errors->has('feedback') ? 'true' : 'false' }}, feedbackLength: {{ strlen(old('feedback', '')) }} }">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2 class="text-sm font-bold text-slate-900">Report review</h2>
-                        <p class="mt-2 text-sm text-slate-700">Status: <span class="font-semibold">{{ $reportStatus }}</span></p>
+                        @php
+                            $reviewBadgeClass = match ($report->reviewStatusLabel()) {
+                                'For Review' => 'bg-sky-50 text-sky-700 ring-sky-200',
+                                'Needs Revision' => 'bg-amber-50 text-amber-800 ring-amber-200',
+                                'Approved' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                                default => 'bg-slate-100 text-slate-700 ring-slate-200',
+                            };
+                        @endphp
+                        <span class="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $reviewBadgeClass }}">{{ $report->reviewStatusLabel() }}</span>
                         @if($report->reviewed_at)
                             <p class="mt-1 text-xs text-slate-500">Reviewed by {{ $report->reviewer?->name ?? 'Admin' }} on {{ $report->reviewed_at->format('M j, Y g:i A') }}</p>
                         @endif
                         @if($report->status === 'needs_revision' && filled($report->feedback))
-                            <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><span class="font-semibold">Previous feedback:</span> {{ $report->feedback }}</div>
+                            <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><span class="font-semibold">Last revision request:</span> {{ $report->feedback }} <span class="text-xs">({{ $report->reviewed_at?->format('M d, Y') ?? '—' }})</span></div>
                         @endif
                     </div>
                     @if($report->status === 'approved')
@@ -138,23 +146,50 @@
                 </div>
 
                 @if(in_array($report->status, ['pending', 'needs_revision'], true))
-                    <div class="mt-4 flex flex-wrap items-start gap-3 border-t border-slate-200 pt-4">
-                        <form method="POST" action="{{ route('admin.reports.approve', $report) }}">@csrf<button type="submit" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Approve</button></form>
-                        <form method="POST" action="{{ route('admin.reports.request-revision', $report) }}" class="min-w-0 flex-1 space-y-2 sm:max-w-xl">@csrf
-                            <label for="feedback" class="block text-sm font-semibold text-slate-700">Request revision</label>
-                            <textarea id="feedback" name="feedback" required maxlength="1000" rows="3" class="w-full rounded-md border-slate-300 text-sm" placeholder="Explain what needs to be revised">{{ old('feedback') }}</textarea>
-                            @error('feedback')<p class="text-xs text-rose-700">{{ $message }}</p>@enderror
-                            <button type="submit" class="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Send revision request</button>
-                        </form>
+                    <div class="mt-4 border-t border-slate-200 pt-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                            <form method="POST" action="{{ route('admin.reports.approve', $report) }}" data-confirm data-confirm-title="Approve narrative report?" data-confirm-message="The activity will be marked Completed." data-confirm-label="Approve" data-confirm-variant="primary">@csrf<button type="submit" class="min-h-10 w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 sm:w-auto">Approve</button></form>
+                            <button type="button" @click="revisionOpen = !revisionOpen" :aria-expanded="revisionOpen.toString()" aria-controls="revision-panel-{{ $report->id }}" class="min-h-10 w-full rounded-md border border-amber-600 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 sm:w-auto">Return for revision</button>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">Returning a report sends your feedback to the organization so they can fix and resubmit.</p>
+                        <div id="revision-panel-{{ $report->id }}" x-show="revisionOpen" x-cloak x-transition class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                            <form method="POST" action="{{ route('admin.reports.request-revision', $report) }}" class="space-y-3" @submit="const button = $el.querySelector('[data-revision-submit]'); button.disabled = true; button.textContent = 'Sending…'">@csrf
+                                <label for="feedback" class="block text-sm font-semibold text-slate-800">Reason for revision (sent to the organization)</label>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach(['Incomplete content', 'Needs correction', 'Missing photos or attachments', 'Wrong format'] as $reason)
+                                        <button type="button" @click="const separator = $refs.feedback.value.trim() ? '\n' : ''; $refs.feedback.value += separator + '{{ $reason }}'; feedbackLength = $refs.feedback.value.length; $refs.feedback.dispatchEvent(new Event('input', { bubbles: true }));" class="min-h-10 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100">{{ $reason }}</button>
+                                    @endforeach
+                                </div>
+                                <textarea id="feedback" x-ref="feedback" name="feedback" required minlength="10" maxlength="1000" rows="4" @input="feedbackLength = $event.target.value.length" class="w-full rounded-md border-slate-300 text-sm" placeholder="Explain what needs to be revised">{{ old('feedback') }}</textarea>
+                                <div class="flex items-start justify-between gap-3">
+                                    @error('feedback')<p class="text-xs text-rose-700" role="alert">{{ $message }}</p>@else<p></p>@enderror
+                                    <span class="shrink-0 text-xs tabular-nums text-slate-500"><span x-text="feedbackLength">{{ strlen(old('feedback', '')) }}</span> / 1000</span>
+                                </div>
+                                <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                    <button type="button" @click="revisionOpen = false" class="min-h-10 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                                    <button type="submit" data-revision-submit class="min-h-10 rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Return to organization</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 @elseif($report->status === 'approved')
-                    <details class="mt-4 border-t border-slate-200 pt-4">
-                        <summary class="cursor-pointer text-sm font-semibold text-amber-800">Reopen / request revision</summary>
-                        <form method="POST" action="{{ route('admin.reports.request-revision', $report) }}" class="mt-3 space-y-2 sm:max-w-xl">@csrf
-                            <label for="reopen-feedback" class="block text-sm font-semibold text-slate-700">Required feedback</label>
-                            <textarea id="reopen-feedback" name="feedback" required maxlength="1000" rows="3" class="w-full rounded-md border-slate-300 text-sm" placeholder="Explain why the report needs revision">{{ old('feedback') }}</textarea>
-                            @error('feedback')<p class="text-xs text-rose-700">{{ $message }}</p>@enderror
-                            <button type="submit" class="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Request revision</button>
+                    <details class="mt-4 border-t border-slate-200 pt-4" @if($errors->has('feedback')) open @endif>
+                        <summary class="cursor-pointer text-sm font-semibold text-amber-800">Reopen for revision</summary>
+                        <form method="POST" action="{{ route('admin.reports.request-revision', $report) }}" class="mt-3 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4" @submit="const button = $el.querySelector('[data-revision-submit]'); button.disabled = true; button.textContent = 'Sending…'">@csrf
+                            <label for="reopen-feedback" class="block text-sm font-semibold text-slate-800">Reason for revision (sent to the organization)</label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(['Incomplete content', 'Needs correction', 'Missing photos or attachments', 'Wrong format'] as $reason)
+                                    <button type="button" @click="const separator = $refs.reopenFeedback.value.trim() ? '\n' : ''; $refs.reopenFeedback.value += separator + '{{ $reason }}'; feedbackLength = $refs.reopenFeedback.value.length; $refs.reopenFeedback.dispatchEvent(new Event('input', { bubbles: true }));" class="min-h-10 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100">{{ $reason }}</button>
+                                @endforeach
+                            </div>
+                            <textarea id="reopen-feedback" x-ref="reopenFeedback" name="feedback" required minlength="10" maxlength="1000" rows="4" @input="feedbackLength = $event.target.value.length" class="w-full rounded-md border-slate-300 text-sm" placeholder="Explain what needs to be revised">{{ old('feedback') }}</textarea>
+                            <div class="flex items-start justify-between gap-3">
+                                @error('feedback')<p class="text-xs text-rose-700" role="alert">{{ $message }}</p>@else<p></p>@enderror
+                                <span class="shrink-0 text-xs tabular-nums text-slate-500"><span x-text="feedbackLength">{{ strlen(old('feedback', '')) }}</span> / 1000</span>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" data-revision-submit class="min-h-10 rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Return to organization</button>
+                            </div>
                         </form>
                     </details>
                 @endif

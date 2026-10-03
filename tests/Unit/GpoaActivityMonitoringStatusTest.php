@@ -15,14 +15,22 @@ class GpoaActivityMonitoringStatusTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_reports_not_started_when_no_letter_or_report_exists(): void
+    protected function setUp(): void
     {
-        $activity = $this->createActivity();
+        parent::setUp();
+
+        $deadlineCache = new \ReflectionProperty(GpoaActivity::class, 'monitoringDeadlineCache');
+        $deadlineCache->setValue(null, []);
+    }
+
+    public function test_no_deadline_settings_means_a_past_activity_is_not_late(): void
+    {
+        $activity = $this->createActivity(date: '2024-01-15');
 
         $status = $activity->monitoringStatus();
 
         $this->assertSame('Pending', $status['status']);
-        $this->assertTrue($status['late']);
+        $this->assertFalse($status['late']);
     }
 
     public function test_it_reports_ongoing_when_only_one_document_exists(): void
@@ -32,7 +40,7 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         $status = $activity->monitoringStatus();
 
         $this->assertSame('Ongoing', $status['status']);
-        $this->assertTrue($status['late']);
+        $this->assertFalse($status['late']);
     }
 
     public function test_it_reports_completed_when_both_documents_exist(): void
@@ -42,6 +50,7 @@ class GpoaActivityMonitoringStatusTest extends TestCase
             reportPath: 'reports/report.pdf',
             reportStatus: 'approved'
         );
+        $this->createDeadline(deadlineDate: '2026-10-02');
 
         $status = $activity->monitoringStatus();
 
@@ -84,16 +93,11 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         $this->assertSame('Pending', $status['status']);
     }
 
-    public function test_it_marks_activity_late_when_not_completed_after_deadline(): void
+    public function test_grace_period_expired_with_no_narrative_report_is_late(): void
     {
-        $activity = $this->createActivity(date: '2024-01-15', letterPath: 'letters/letter.pdf');
-
-        DocumentDeadline::create([
-            'document_type' => DocumentDeadline::TYPE_ACTIVITY_REPORT,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-            'deadline_date' => '2024-01-20',
-        ]);
+        $this->travelTo('2026-10-03 12:00:00');
+        $activity = $this->createActivity(date: '2026-10-01', letterPath: 'letters/letter.pdf');
+        $this->createDeadline(graceDays: 1);
 
         $status = $activity->monitoringStatus();
 
@@ -101,34 +105,98 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         $this->assertTrue($status['late']);
     }
 
-    public function test_it_keeps_month_only_activity_from_being_late_until_the_last_day_of_its_month(): void
+    public function test_activity_within_grace_period_is_not_late(): void
     {
-        $activity = GpoaActivity::create([
-            'gpoa_id' => Gpoa::create([
-                'user_id' => User::factory()->create()->id,
-                'term' => '1st Semester',
-                'school_year' => '2025-2026',
-                'college' => 'College of Arts and Sciences',
-            ])->id,
-            'title' => 'Month Activity',
-            'date' => '2024-11-01',
-            'date_is_month_only' => true,
-            'venue' => 'Main Hall',
-            'category' => 'Education',
-        ]);
+        $this->travelTo('2026-10-03 12:00:00');
+        $activity = $this->createActivity(date: '2026-10-02', letterPath: 'letters/letter.pdf');
+        $this->createDeadline(graceDays: 2);
 
-        $this->travelTo('2024-11-20');
         $this->assertFalse($activity->monitoringStatus()['late']);
+    }
 
-        $this->travelTo('2024-12-01');
+    public function test_term_cutoff_passed_with_no_narrative_report_is_late(): void
+    {
+        $this->travelTo('2026-10-03 12:00:00');
+        $activity = $this->createActivity(date: '2026-10-15', letterPath: 'letters/letter.pdf');
+        $this->createDeadline(deadlineDate: '2026-10-02');
+
         $this->assertTrue($activity->monitoringStatus()['late']);
     }
 
+    public function test_submitted_narrative_reports_are_never_late(): void
+    {
+        $this->travelTo('2026-10-03 12:00:00');
+        $this->createDeadline(graceDays: 0, deadlineDate: '2026-10-02');
+
+        foreach (['pending', 'needs_revision'] as $reportStatus) {
+            $activity = $this->createActivity(
+                date: '2026-09-01',
+                letterPath: 'letters/letter.pdf',
+                reportPath: 'reports/'.$reportStatus.'.pdf',
+                reportStatus: $reportStatus
+            );
+
+            $this->assertFalse($activity->monitoringStatus()['late']);
+        }
+
+        $contentOnlyActivity = $this->createActivity(date: '2026-09-01', letterPath: 'letters/content-only.pdf');
+        $contentOnlyActivity->activityRequest->report()->create([
+            'narrative_content' => ['body' => 'Submitted narrative'],
+            'narrative_source' => 'generated',
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $this->assertFalse($contentOnlyActivity->fresh()->monitoringStatus()['late']);
+    }
+
+    public function test_activity_request_deadline_does_not_mark_activity_late(): void
+    {
+        $this->travelTo('2026-10-03 12:00:00');
+        $activity = $this->createActivity(date: '2026-10-15', letterPath: 'letters/letter.pdf');
+        DocumentDeadline::create([
+            'document_type' => DocumentDeadline::TYPE_ACTIVITY_REQUEST,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'deadline_date' => '2026-10-02',
+        ]);
+
+        $this->assertFalse($activity->monitoringStatus()['late']);
+    }
+
+    public function test_grace_period_uses_month_only_and_date_range_end_dates(): void
+    {
+        $this->travelTo('2026-10-03 12:00:00');
+        $monthOnly = $this->createActivity(date: '2026-09-01', letterPath: 'letters/month.pdf', monthOnly: true);
+        $dateRange = $this->createActivity(date: '2026-09-29', letterPath: 'letters/range.pdf', endDate: '2026-10-01', timeFrame: 'date_range');
+        $this->createDeadline(graceDays: 2);
+
+        $this->assertTrue($monthOnly->monitoringStatus()['late']);
+        $this->assertFalse($dateRange->monitoringStatus()['late']);
+
+        $this->travelTo('2026-10-04 12:00:00');
+        $this->assertTrue($monthOnly->fresh()->monitoringStatus()['late']);
+        $this->assertTrue($dateRange->fresh()->monitoringStatus()['late']);
+    }
+
+    public function test_grace_period_without_an_activity_date_is_skipped(): void
+    {
+        $this->travelTo('2026-10-03 12:00:00');
+        $activity = $this->createActivity(letterPath: 'letters/no-date.pdf');
+        $activity->setAttribute('date', null);
+        $this->createDeadline(graceDays: 0);
+
+        $this->assertFalse($activity->monitoringStatus()['late']);
+    }
+
     private function createActivity(
-        string $date = '2026-09-29',
+        ?string $date = '2026-09-29',
         ?string $letterPath = null,
         ?string $reportPath = null,
-        string $reportStatus = 'pending'
+        string $reportStatus = 'pending',
+        ?string $endDate = null,
+        string $timeFrame = 'exact',
+        bool $monthOnly = false
     ): GpoaActivity {
         $user = User::factory()->create();
 
@@ -142,7 +210,10 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         $activity = GpoaActivity::create([
             'gpoa_id' => $gpoa->id,
             'title' => 'Activity 1',
+            'time_frame' => $timeFrame,
             'date' => $date,
+            'end_date' => $endDate,
+            'date_is_month_only' => $monthOnly,
             'venue' => 'Main Hall',
             'category' => 'Education',
         ]);
@@ -172,5 +243,16 @@ class GpoaActivityMonitoringStatusTest extends TestCase
         }
 
         return $activity->fresh();
+    }
+
+    private function createDeadline(?int $graceDays = null, ?string $deadlineDate = null): DocumentDeadline
+    {
+        return DocumentDeadline::create([
+            'document_type' => DocumentDeadline::TYPE_ACTIVITY_REPORT,
+            'term' => '1st Semester',
+            'school_year' => '2025-2026',
+            'grace_days' => $graceDays,
+            'deadline_date' => $deadlineDate,
+        ]);
     }
 }

@@ -42,34 +42,39 @@
     </div>
 
     @if(session('success'))
-        <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {{ session('success') }}
+        <div id="backupSuccessToast" class="fixed top-4 right-4 z-[60] flex max-w-sm items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-lg transition-opacity duration-300" role="status" aria-live="polite">
+            <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6"/></svg>
+            <p class="min-w-0 flex-1">{{ session('success') }}</p>
+            <button type="button" data-dismiss-success-toast class="-mr-2 -mt-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-green-700 hover:bg-green-100" aria-label="Dismiss success message">&times;</button>
         </div>
     @endif
 
     @if(session('error'))
-        <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {{ session('error') }}
+        <div class="mb-4 flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <p class="flex-1">{{ session('error') }}</p>
+            <button type="button" onclick="this.parentElement.remove()" class="-mr-2 -mt-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-700 hover:bg-red-100" aria-label="Dismiss error message">&times;</button>
         </div>
     @endif
 
     @if($errors->any())
-        <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <ul class="list-disc pl-5 space-y-1">
+        <div class="mb-4 flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <ul class="flex-1 list-disc space-y-1 pl-5">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
+            <button type="button" onclick="this.parentElement.remove()" class="-mr-2 -mt-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-700 hover:bg-red-100" aria-label="Dismiss validation errors">&times;</button>
         </div>
     @endif
 
     <div class="grid gap-6 lg:grid-cols-2">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Create Backup</h2>
-            <form action="{{ route('admin.backups.store') }}" method="POST">
+            <form id="createBackupForm" action="{{ route('admin.backups.store') }}" method="POST">
                 @csrf
-                <button type="submit" class="inline-flex items-center justify-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">
-                    Create Manual Backup
+                <button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">
+                    <svg data-loading-spinner class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path></svg>
+                    <span data-loading-label data-default-label="Create Manual Backup">Create Manual Backup</span>
                 </button>
             </form>
         </div>
@@ -164,12 +169,8 @@
                                 <td class="px-6 py-4 text-right text-sm font-medium">
                                     <div class="flex flex-wrap items-center justify-end gap-3">
                                     <a href="{{ route('admin.backups.download', ['filename' => $backup['name']]) }}" class="text-amber-700 hover:text-amber-900">Download</a>
-                                    <button type="button" data-open-backup-restore data-filename="{{ $backup['name'] }}" data-date="{{ $backup['created_at'] }}" class="text-sky-700 hover:text-sky-900">Restore</button>
-                                    <form action="{{ route('admin.backups.destroy', ['filename' => $backup['name']]) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Delete this backup archive?')">Delete</button>
-                                    </form>
+                                    <button type="button" data-open-backup-restore data-filename="{{ $backup['name'] }}" data-date="{{ $backup['created_at'] }}" class="inline-flex min-h-11 items-center rounded px-2 text-sky-700 hover:bg-sky-50 hover:text-sky-900">Restore</button>
+                                    <button type="button" data-open-delete-backup data-filename="{{ $backup['name'] }}" data-size="{{ number_format($backup['size'] / 1024, 2) }} KB" data-action="{{ route('admin.backups.destroy', ['filename' => $backup['name']]) }}" class="inline-flex min-h-11 items-center rounded px-2 text-red-600 hover:bg-red-50 hover:text-red-900">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -181,6 +182,31 @@
     </div>
 </div>
 
+<div id="deleteBackupModal" class="fixed inset-0 z-50 hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="delete-backup-title">
+    <div class="absolute left-1/2 top-1/2 w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl sm:p-6">
+        <div class="flex items-start gap-3">
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7h12m-10 0 .7 13h6.6L16 7M9 7V4h6v3m-5 4v5m4-5v5"/></svg>
+            </span>
+            <div>
+                <h2 id="delete-backup-title" class="text-lg font-bold text-gray-900">Delete backup archive?</h2>
+                <p class="mt-1 text-sm text-gray-600">Are you sure you want to delete this backup? This action cannot be undone.</p>
+            </div>
+        </div>
+        <div class="mt-4 rounded-lg bg-gray-50 p-3">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">BACKUP FILE</p>
+            <p id="deleteBackupFilename" class="mt-1 break-all text-sm font-semibold text-gray-900"></p>
+            <p class="mt-1 text-xs text-gray-600">Size: <span id="deleteBackupSize"></span></p>
+        </div>
+        <form id="deleteBackupForm" action="" method="POST" class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            @csrf
+            @method('DELETE')
+            <button type="button" data-close-delete-backup class="inline-flex min-h-11 items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+            <button type="submit" data-delete-backup-submit class="inline-flex min-h-11 items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Delete backup</button>
+        </form>
+    </div>
+</div>
+
 <div id="restoreConfirmModal" class="fixed inset-0 z-50 hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="restore-modal-title">
     <div class="absolute left-1/2 top-1/2 max-h-[95vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:p-6">
         <div class="flex items-start justify-between gap-3">
@@ -188,10 +214,10 @@
                 <h2 id="restore-modal-title" class="text-lg font-bold text-gray-900">Confirm backup restore</h2>
                 <p class="mt-1 text-sm text-red-700">All data newer than this backup will be lost.</p>
             </div>
-            <button type="button" data-close-restore-modal class="min-h-10 min-w-10 rounded border text-gray-600" aria-label="Close restore dialog">&times;</button>
+            <button type="button" data-close-restore-modal class="min-h-11 min-w-11 rounded border text-gray-600" aria-label="Close restore dialog">&times;</button>
         </div>
         <p class="mt-4 text-sm text-gray-700"><strong>Backup date:</strong> <span id="restoreBackupDate">Select a ZIP file.</span></p>
-        <form action="{{ route('admin.backups.restore') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
+        <form id="restoreBackupForm" action="{{ route('admin.backups.restore') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
             @csrf
             <input id="restoreBackupFilename" type="hidden" name="backup_filename" value="">
             <div>
@@ -202,9 +228,13 @@
                 <label for="restoreConfirmation" class="block text-sm font-semibold text-gray-700">Type RESTORE to continue</label>
                 <input id="restoreConfirmation" type="text" name="confirmation" required autocomplete="off" class="mt-1 block min-h-11 w-full rounded border border-gray-300 px-3 py-2 text-sm">
             </div>
+            <div id="restoreRunningNote" class="hidden rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Restoring can take several minutes. A pre-restore recovery archive has been created automatically.</div>
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" data-close-restore-modal class="min-h-11 rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
-                <button type="submit" class="min-h-11 rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Restore and replace current data</button>
+                <button type="submit" data-restore-submit class="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+                    <svg data-loading-spinner class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path></svg>
+                    <span data-loading-label data-default-label="Restore and replace current data">Restore and replace current data</span>
+                </button>
             </div>
         </form>
     </div>
@@ -212,11 +242,127 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const successToast = document.getElementById('backupSuccessToast');
+    let toastTimer = null;
+    let toastRemaining = 6000;
+    let toastStartedAt = 0;
+
+    const hideSuccessToast = () => {
+        if (!successToast) return;
+        clearTimeout(toastTimer);
+        successToast.classList.add('opacity-0');
+        window.setTimeout(() => successToast.remove(), 300);
+    };
+
+    const startToastTimer = () => {
+        if (!successToast || successToast.matches(':hover') || successToast.contains(document.activeElement)) return;
+        clearTimeout(toastTimer);
+        toastStartedAt = Date.now();
+        toastTimer = window.setTimeout(hideSuccessToast, toastRemaining);
+    };
+
+    if (successToast) {
+        startToastTimer();
+        successToast.addEventListener('pointerenter', () => {
+            clearTimeout(toastTimer);
+            toastRemaining = Math.max(0, toastRemaining - (Date.now() - toastStartedAt));
+        });
+        successToast.addEventListener('pointerleave', startToastTimer);
+        successToast.addEventListener('focusin', () => {
+            clearTimeout(toastTimer);
+            toastRemaining = Math.max(0, toastRemaining - (Date.now() - toastStartedAt));
+        });
+        successToast.addEventListener('focusout', (event) => {
+            if (!successToast.contains(event.relatedTarget)) startToastTimer();
+        });
+        successToast.querySelector('[data-dismiss-success-toast]')?.addEventListener('click', hideSuccessToast);
+    }
+
+    const createBackupForm = document.getElementById('createBackupForm');
+    createBackupForm?.addEventListener('submit', () => {
+        const button = createBackupForm.querySelector('button[type="submit"]');
+        if (!button) return;
+        button.disabled = true;
+        button.querySelector('[data-loading-label]').textContent = 'Creating backup…';
+        button.querySelector('[data-loading-spinner]').classList.remove('hidden');
+    });
+
+    window.addEventListener('pageshow', () => {
+        const createButton = createBackupForm?.querySelector('button[type="submit"]');
+        if (createButton) {
+            createButton.disabled = false;
+            createButton.querySelector('[data-loading-label]').textContent = createButton.querySelector('[data-loading-label]').dataset.defaultLabel;
+            createButton.querySelector('[data-loading-spinner]').classList.add('hidden');
+        }
+        if (restoreRunning) resetRestoreState();
+    });
+
+    const deleteModal = document.getElementById('deleteBackupModal');
+    const deleteForm = document.getElementById('deleteBackupForm');
+    const deleteFilename = document.getElementById('deleteBackupFilename');
+    const deleteSize = document.getElementById('deleteBackupSize');
+    const deleteSubmit = deleteForm?.querySelector('[data-delete-backup-submit]');
+    const closeDeleteModal = () => deleteModal?.classList.add('hidden');
+
+    document.querySelectorAll('[data-open-delete-backup]').forEach((button) => {
+        button.addEventListener('click', () => {
+            deleteFilename.textContent = button.dataset.filename || '';
+            deleteSize.textContent = button.dataset.size || '';
+            deleteForm.action = button.dataset.action || '';
+            deleteSubmit.disabled = false;
+            deleteSubmit.textContent = 'Delete backup';
+            deleteModal.classList.remove('hidden');
+            deleteModal.querySelector('[data-close-delete-backup]')?.focus();
+        });
+    });
+    deleteModal?.querySelectorAll('[data-close-delete-backup]').forEach((button) => button.addEventListener('click', closeDeleteModal));
+    deleteModal?.addEventListener('click', (event) => {
+        if (event.target === deleteModal) closeDeleteModal();
+    });
+    deleteForm?.addEventListener('submit', () => {
+        deleteSubmit.disabled = true;
+        deleteSubmit.textContent = 'Deleting…';
+    });
+
     const modal = document.getElementById('restoreConfirmModal');
     const filename = document.getElementById('restoreBackupFilename');
     const date = document.getElementById('restoreBackupDate');
     const file = document.getElementById('restoreBackupFile');
     const confirmation = document.getElementById('restoreConfirmation');
+    const restoreForm = document.getElementById('restoreBackupForm');
+    const restoreSubmit = restoreForm?.querySelector('[data-restore-submit]');
+    const restoreNote = document.getElementById('restoreRunningNote');
+    let restoreRunning = false;
+
+    const resetRestoreState = () => {
+        restoreRunning = false;
+        restoreForm?.querySelectorAll('[data-close-restore-modal]').forEach((button) => { button.disabled = false; });
+        if (restoreSubmit) {
+            restoreSubmit.disabled = false;
+            restoreSubmit.querySelector('[data-loading-label]').textContent = restoreSubmit.querySelector('[data-loading-label]').dataset.defaultLabel;
+            restoreSubmit.querySelector('[data-loading-spinner]').classList.add('hidden');
+        }
+        restoreNote?.classList.add('hidden');
+    };
+
+    restoreForm?.addEventListener('submit', () => {
+        restoreRunning = true;
+        restoreForm.querySelectorAll('[data-close-restore-modal]').forEach((button) => { button.disabled = true; });
+        restoreSubmit.disabled = true;
+        restoreSubmit.querySelector('[data-loading-label]').textContent = 'Restoring… please do not close this page';
+        restoreSubmit.querySelector('[data-loading-spinner]').classList.remove('hidden');
+        restoreNote.classList.remove('hidden');
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!restoreRunning) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && deleteModal && !deleteModal.classList.contains('hidden')) closeDeleteModal();
+    });
 
     document.querySelectorAll('[data-open-backup-restore]').forEach((button) => {
         button.addEventListener('click', () => {

@@ -152,7 +152,9 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->delete(route('admin.organizations.destroy', $organization));
+            ->delete(route('admin.organizations.destroy', $organization), [
+                'confirm_name' => $organization->name,
+            ]);
 
         $this->assertDatabaseMissing('users', ['id' => $secretary->id]);
 
@@ -167,6 +169,35 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_deleting_an_organization_requires_its_exact_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $organization = Organization::create([
+            'name' => 'CICS SC',
+            'type' => 'Minor Student Organization',
+            'college' => 'CICS',
+            'is_active' => true,
+        ]);
+        $secretary = User::factory()->create([
+            'role' => 'user',
+            'organization_id' => $organization->id,
+            'org_name' => $organization->name,
+            'org_type' => $organization->type,
+            'college' => $organization->college,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.organizations.show', $organization))
+            ->delete(route('admin.organizations.destroy', $organization), [
+                'confirm_name' => 'CICS Student Council',
+            ])
+            ->assertRedirect(route('admin.organizations.show', $organization))
+            ->assertSessionHasErrors('confirm_name');
+
+        $this->assertDatabaseHas('organizations', ['id' => $organization->id]);
+        $this->assertDatabaseHas('users', ['id' => $secretary->id]);
     }
 
     public function test_organization_logo_is_used_as_user_avatar_when_present(): void

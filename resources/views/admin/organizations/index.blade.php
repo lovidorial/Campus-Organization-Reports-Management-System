@@ -129,7 +129,7 @@
                                 <a href="{{ route('admin.organizations.edit', $org) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-slate-200 transition" title="Edit" aria-label="Edit">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h6m3 0a2 2 0 012 2v6m0 3v1a2 2 0 01-2 2H9m6-3l-5 5m0 0l-5-5m5 5V5" /></svg>
                                 </a>
-                                <form action="{{ route('admin.organizations.destroy', $org) }}" method="POST" onsubmit="return confirm('Delete this organization account? This cannot be undone.');" class="inline">
+                                <form action="{{ route('admin.organizations.destroy', $org) }}" method="POST" class="inline" data-confirm data-confirm-title="Delete organization permanently?" data-confirm-message="Deleting {{ $org->name }} will permanently remove its account(s), GPOA, activities, requests, and submitted documents. This cannot be undone. To keep the records, use Deactivate account instead." data-confirm-label="Delete permanently" data-confirm-variant="danger" data-confirm-type="{{ $org->name }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-700 hover:bg-rose-100 transition" title="Delete" aria-label="Delete">

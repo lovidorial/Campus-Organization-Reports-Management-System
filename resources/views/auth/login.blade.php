@@ -20,20 +20,17 @@
         <div class="login-page">
             <div class="login-card">
                 <div class="login-panel login-panel-left">
-                    <!-- Decorative circles -->
-                    <div class="deco-circle deco-circle-1"></div>
-                    <div class="deco-circle deco-circle-2"></div>
-                    <div class="deco-circle deco-circle-3"></div>
-
                     <div class="login-logo">
-                        <img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" onerror="this.style.display='none'">
+                        <img src="{{ asset('images/orgTracklogo.png') }}" alt="OSDW Orgtrack logo" loading="eager" decoding="async">
                     </div>
-                    <h1 class="login-title">OSDW</h1>
+                    <h1 class="sr-only">OSDW</h1>
                     <p class="login-subtitle">Cagayan State University</p>
                     <div class="login-badge">OFFICE OF STUDENT DEVELOPMENT AND WELFARE</div>
-                    <p class="login-description">
-                       Orgtrack- Campus Student Organization Narrative & Sumarry Reports — manage, monitor, and celebrate student activities.
-                    </p>
+                    <div class="login-description">
+                        <img class="osdw-seal" src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW seal" onerror="this.style.display='none'">
+                        <span class="description-divider" aria-hidden="true"></span>
+                        <p>Orgtrack- Campus Student Organization Narrative &amp; Summary Reports — manage, monitor, and celebrate student activities.</p>
+                    </div>
                 </div>
 
                 <div class="login-panel login-panel-right">
@@ -45,7 +42,7 @@
                     </a>
 
                     <div class="login-header">
-                        <h1 class="login-heading">Welcome Back</h1>
+                        <h1 class="login-heading">Welcome <span>Back</span></h1>
                         <p class="login-subtext">Sign in to your account</p>
                     </div>
 
@@ -79,39 +76,28 @@
                     <form method="POST" action="{{ route('login') }}" class="login-form">
                         @csrf
 
-                        <style>
-                            .captcha-block { margin: 18px 0; }
-                            .captcha-prompt { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-                            .captcha-code { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; min-width: 150px; min-height: 46px; padding: 8px 16px; border: 1px solid #D1D5DB; border-radius: 6px; background: #F3F4F6; color: #374151; font-family: monospace; font-size: 1.2rem; font-style: italic; font-weight: 700; letter-spacing: 0.28em; }
-                            .captcha-code::after { content: ''; position: absolute; left: -6%; top: 50%; width: 112%; border-top: 2px solid #9CA3AF; transform: rotate(-11deg); }
-                            .captcha-refresh { border: 0; padding: 4px 0; background: transparent; color: #2563EB; font-size: 0.8rem; font-weight: 600; text-decoration: underline; cursor: pointer; }
-                            .captcha-input { width: 100%; }
-                        </style>
-
                         <div>
                             <div class="form-group student-group">
-                                <div class="input-with-icon">
-                                   
-                                    <input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        value="{{ old('email') }}"
-                                        required
-                                        autofocus
-                                        autocomplete="username"
-                                        placeholder="Email address"
-                                        class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
-                                    />
-                                </div>
+                                <label for="email" class="sr-only">Email address</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value="{{ old('email') }}"
+                                    required
+                                    autofocus
+                                    autocomplete="username"
+                                    placeholder="Email address"
+                                    class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
+                                />
                                 @error('email')
                                     <span class="form-error">{{ $message }}</span>
                                 @enderror
                             </div>
 
                             <div class="form-group student-group">
-                                <div class="input-with-icon password-input-wrapper">
-                                    
+                                <label for="password" class="sr-only">Password</label>
+                                <div class="password-input-wrapper">
                                     <input
                                         id="password"
                                         type="password"
@@ -153,6 +139,7 @@
                                     <span id="loginCaptchaCode" class="captcha-code" aria-label="Captcha code">{{ $captcha }}</span>
                                     <button type="button" id="refreshCaptcha" class="captcha-refresh">Refresh code</button>
                                 </div>
+                                <label for="captcha" class="sr-only">Captcha code</label>
                                 <input
                                     id="captcha"
                                     type="text"
@@ -180,7 +167,7 @@
                     </form>
 
                     <div class="login-help">
-                        Having trouble? <a href="{{ route('password.request') }}">Reset your password</a>
+                        <span>Having trouble?</span> <a href="{{ route('password.request') }}">Reset your password</a>
                     </div>
                 </div>
             </div>

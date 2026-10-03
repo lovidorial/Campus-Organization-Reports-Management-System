@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 class GpoaActivity extends Model
 {
@@ -92,7 +93,7 @@ class GpoaActivity extends Model
 
         return [
             'status' => $status,
-            'late' => $status !== 'Completed' && $this->isLateForMonitoring(),
+            'late' => $status !== 'Completed' && $this->isLateForMonitoring($reportPresent),
         ];
     }
 
@@ -126,20 +127,10 @@ class GpoaActivity extends Model
         return 'Pending';
     }
 
-    protected function isLateForMonitoring(): bool
+    protected function isLateForMonitoring(bool $reportPresent): bool
     {
-        $today = now()->startOfDay();
-
-        if ($this->date_is_month_only && $this->date) {
-            return $this->date->copy()->endOfMonth()->lt($today);
-        }
-
-        if ($this->time_frame === 'date_range' && $this->end_date) {
-            return $this->end_date->lt($today);
-        }
-
-        if ($this->date && $this->date->lt($today)) {
-            return true;
+        if ($reportPresent) {
+            return false;
         }
 
         $gpoa = $this->gpoa;
@@ -147,27 +138,41 @@ class GpoaActivity extends Model
             return false;
         }
 
-        $deadlineTypes = [
-            DocumentDeadline::TYPE_ACTIVITY_REQUEST,
-            DocumentDeadline::TYPE_ACTIVITY_REPORT,
-        ];
-
         $cacheKey = $gpoa->term . '|' . $gpoa->school_year;
         if (! array_key_exists($cacheKey, self::$monitoringDeadlineCache)) {
             self::$monitoringDeadlineCache[$cacheKey] = DocumentDeadline::query()
-                ->whereIn('document_type', $deadlineTypes)
+                ->where('document_type', DocumentDeadline::TYPE_ACTIVITY_REPORT)
                 ->where('term', $gpoa->term)
                 ->where('school_year', $gpoa->school_year)
-                ->orderByDesc('deadline_date')
                 ->first();
         }
 
         $deadline = self::$monitoringDeadlineCache[$cacheKey];
-
-        if (! $deadline || ! $deadline->deadline_date) {
+        if (! $deadline) {
             return false;
         }
 
-        return $deadline->deadline_date->isPast();
+        $today = now()->startOfDay();
+        $graceDays = $deadline->grace_days;
+        $activityEndDate = $this->activityEndDate();
+
+        if ($graceDays !== null && $activityEndDate && $today->gt($activityEndDate->copy()->addDays((int) $graceDays))) {
+            return true;
+        }
+
+        return $deadline->deadline_date !== null && $today->gt($deadline->deadline_date);
+    }
+
+    protected function activityEndDate(): ?Carbon
+    {
+        if ($this->date_is_month_only && $this->date) {
+            return $this->date->copy()->endOfMonth();
+        }
+
+        if ($this->time_frame === 'date_range' && $this->end_date) {
+            return $this->end_date->copy();
+        }
+
+        return $this->date?->copy();
     }
 }

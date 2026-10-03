@@ -7,6 +7,7 @@ use App\Models\Organization;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class AdminActivityMonitoringService
 {
@@ -224,18 +225,24 @@ class AdminActivityMonitoringService
             $request = $activity->activityRequest;
             if ($request?->communication_letter) {
                 $recentSubmissions->push([
+                    'activity_id' => $activity->id,
                     'activity' => $activity->title,
                     'organization' => $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—',
                     'document' => 'Communication Letter',
                     'submitted_at' => $request->communication_letter_signed_at ?? $request->updated_at,
+                    'url' => Storage::url($request->communication_letter),
                 ]);
             }
             if ($request?->report && ($request->report->narrative_report || $request->report->narrative_content)) {
                 $recentSubmissions->push([
+                    'activity_id' => $activity->id,
                     'activity' => $activity->title,
                     'organization' => $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—',
                     'document' => 'Narrative Report',
                     'submitted_at' => $request->report->submitted_at,
+                    'url' => filled($request->report->narrative_report)
+                        ? Storage::url($request->report->narrative_report)
+                        : route('admin.activity-requests.show', $request),
                 ]);
             }
         }

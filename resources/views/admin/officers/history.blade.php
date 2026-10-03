@@ -71,7 +71,7 @@
                                     <div class="text-[11px] text-gray-500">{{ $officer->archived_reason ?? 'No reason provided' }}</div>
                                 </td>
                                 <td class="p-3 text-center">
-                                    <form method="POST" action="{{ route($isAdminView ? 'admin.officers.restore' : 'organization.officers.restore', $officer) }}" onsubmit="return confirm('Restore {{ $officer->name }} to active status?')">
+                                    <form method="POST" action="{{ route($isAdminView ? 'admin.officers.restore' : 'organization.officers.restore', $officer) }}" data-confirm data-confirm-title="Restore officer?" data-confirm-message="Restore {{ $officer->name }} to active status?" data-confirm-label="Restore" data-confirm-variant="primary">
                                         @csrf
                                         <button type="submit" class="rounded bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 hover:bg-green-100">Restore</button>
                                     </form>

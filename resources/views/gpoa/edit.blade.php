@@ -263,7 +263,13 @@
                 this.repeatedTitleHint = '';
 
                 if (this.activities.some(activity => activity.title || activity.date || activity.end_date || activity.venue || activity.category || (activity.sdgs && activity.sdgs.length))) {
-                    if (!window.confirm('Replace the planned activity rows currently entered with the imported rows?')) {
+                    const replaceConfirmed = await window.orgConfirm({
+                        title: 'Replace planned activities?',
+                        message: 'Replace the planned activity rows currently entered with the imported rows?',
+                        label: 'Replace rows',
+                        variant: 'warning',
+                    });
+                    if (!replaceConfirmed) {
                         event.target.value = '';
                         return;
                     }

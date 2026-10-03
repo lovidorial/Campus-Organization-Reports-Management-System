@@ -1,9 +1,10 @@
 import Chart from 'chart.js/auto';
 
 const palette = {
-    Pending: '#f59e0b',
-    Ongoing: '#0ea5e9',
-    Completed: '#10b981',
+    Pending: '#F59E0B',
+    Ongoing: '#0EA5E9',
+    Completed: '#10B981',
+    Archived: '#CBD5E1',
 };
 
 const centerTextPlugin = {
@@ -34,6 +35,7 @@ function initDoughnut(canvas) {
     const labels = data.labels || [];
     const values = data.values || [];
     const hasValues = values.some(value => Number(value) > 0);
+    const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
 
     new Chart(canvas, {
         type: 'doughnut',
@@ -41,8 +43,9 @@ function initDoughnut(canvas) {
             labels,
             datasets: [{
                 data: hasValues ? values : [1],
-                backgroundColor: hasValues ? labels.map(label => palette[label] || '#cbd5e1') : ['#e2e8f0'],
-                borderWidth: 0,
+                backgroundColor: hasValues ? labels.map(label => palette[label] || '#CBD5E1') : ['#e2e8f0'],
+                borderColor: '#FFFFFF',
+                borderWidth: 2,
                 hoverOffset: 4,
             }],
         },
@@ -51,8 +54,17 @@ function initDoughnut(canvas) {
             maintainAspectRatio: false,
             cutout: '76%',
             plugins: {
-                legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } },
-                tooltip: { enabled: hasValues },
+                legend: { display: false },
+                tooltip: {
+                    enabled: hasValues,
+                    callbacks: {
+                        label: context => {
+                            const count = Number(context.raw || 0);
+                            const percentage = total > 0 ? (count / total * 100).toFixed(1) : '0.0';
+                            return `${context.label}: ${count} (${percentage}%)`;
+                        },
+                    },
+                },
             },
         },
         plugins: [centerTextPlugin],

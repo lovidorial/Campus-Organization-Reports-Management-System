@@ -6,6 +6,7 @@ use App\Exports\SummaryReportExport;
 use App\Services\AdminActivityMonitoringService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AdminSummaryReportController extends Controller
@@ -13,6 +14,39 @@ class AdminSummaryReportController extends Controller
     public function index(Request $request, AdminActivityMonitoringService $monitoringService)
     {
         $data = $this->reportData($request, $monitoringService);
+        $sortOptions = $request->validate([
+            'sort' => ['nullable', 'in:organization,date,status'],
+            'direction' => ['nullable', 'in:asc,desc'],
+        ]);
+        $sort = $sortOptions['sort'] ?? '';
+        $direction = $sortOptions['direction'] ?? 'asc';
+        $activities = $data['activities'];
+
+        if ($sort !== '') {
+            $activities = $activities->sort(function ($left, $right) use ($sort, $direction): int {
+                $comparison = match ($sort) {
+                    'organization' => strnatcasecmp(
+                        $left->gpoa?->user?->org_name ?? $left->gpoa?->user?->name ?? '',
+                        $right->gpoa?->user?->org_name ?? $right->gpoa?->user?->name ?? ''
+                    ),
+                    'date' => ($left->date?->timestamp ?? 0) <=> ($right->date?->timestamp ?? 0),
+                    'status' => strcasecmp($left->monitoring_status ?? '', $right->monitoring_status ?? ''),
+                };
+
+                return $direction === 'desc' ? -$comparison : $comparison;
+            })->values();
+        }
+
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $data['activities'] = (new LengthAwarePaginator(
+            $activities->forPage($page, 25)->values(),
+            $activities->count(),
+            25,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        ))->withQueryString();
+        $data['sort'] = $sort;
+        $data['direction'] = $direction;
 
         return view('admin.gpoa.summary-report', $data);
     }

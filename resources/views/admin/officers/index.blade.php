@@ -155,10 +155,10 @@
                             @if(! $isAdminView)
                                 <div class="mt-4 flex gap-2">
                                     <button type="button" x-data="{}" @click="$dispatch('open-edit-member', {{ json_encode($member->toArray()) }})" class="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Edit</button>
-                                    <form method="POST" action="{{ route('organization.members.destroy', $member) }}" class="flex-1">
+                                    <form method="POST" action="{{ route('organization.members.destroy', $member) }}" class="flex-1" data-confirm data-confirm-title="Remove organization member?" data-confirm-message="Remove {{ $member->name }} from the org chart?" data-confirm-label="Remove member" data-confirm-variant="danger">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100" onclick="return confirm('Remove {{ addslashes($member->name) }} from the org chart?')">Delete</button>
+                                        <button type="submit" class="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100">Delete</button>
                                     </form>
                                 </div>
                             @endif
@@ -250,7 +250,7 @@
 
                         @if(! $isAdminView)
                             <div class="mt-6">
-                                <form method="POST" action="{{ route('organization.officers.archive', $officer) }}" onsubmit="return confirm('This will end {{ addslashes($officer->name) }}\'s term as {{ addslashes($officer->position ?? 'Officer') }} for {{ addslashes($officer->term ?? $officer->organization?->term ?? '—') }} / {{ addslashes($officer->school_year ?? $officer->organization?->school_year ?? '—') }} and move them to Previous Officers. They will no longer be able to log in. Continue?')">
+                                <form method="POST" action="{{ route('organization.officers.archive', $officer) }}" data-confirm data-confirm-title="End officer term?" data-confirm-message="This will end {{ $officer->name }}'s term as {{ $officer->position ?? 'Officer' }} for {{ $officer->term ?? $officer->organization?->term ?? '—' }} / {{ $officer->school_year ?? $officer->organization?->school_year ?? '—' }} and move them to Previous Officers. They will no longer be able to log in. Continue?" data-confirm-label="End term" data-confirm-variant="warning">
                                     @csrf
                                     <input type="hidden" name="archived_reason" value="Term ended">
                                     <button type="submit" class="w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">

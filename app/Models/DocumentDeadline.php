@@ -23,10 +23,12 @@ class DocumentDeadline extends Model
         'term',
         'school_year',
         'deadline_date',
+        'grace_days',
     ];
 
     protected $casts = [
         'deadline_date' => 'date',
+        'grace_days' => 'integer',
     ];
 
     public static function forPeriod(

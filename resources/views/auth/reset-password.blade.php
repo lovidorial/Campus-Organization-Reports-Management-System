@@ -15,14 +15,15 @@
         <main class="login-page">
             <div class="login-card">
                 <section class="login-panel login-panel-left">
-                    <div class="deco-circle deco-circle-1"></div>
-                    <div class="deco-circle deco-circle-2"></div>
-                    <div class="deco-circle deco-circle-3"></div>
-                    <div class="login-logo"><img src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW Logo" onerror="this.style.display='none'"></div>
-                    <h1 class="login-title">OSDW</h1>
+                    <div class="login-logo"><img src="{{ asset('images/orgTracklogo.png') }}" alt="OSDW Orgtrack logo" loading="eager" decoding="async"></div>
+                    <h1 class="sr-only">OSDW</h1>
                     <p class="login-subtitle">Cagayan State University</p>
                     <div class="login-badge">OFFICE OF STUDENT DEVELOPMENT AND WELFARE</div>
-                    <p class="login-description">Choose a new password for your Orgtrack account.</p>
+                    <div class="login-description">
+                        <img class="osdw-seal" src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW seal" onerror="this.style.display='none'">
+                        <span class="description-divider" aria-hidden="true"></span>
+                        <p>Orgtrack- Campus Student Organization Narrative &amp; Summary Reports — manage, monitor, and celebrate student activities.</p>
+                    </div>
                 </section>
 
                 <section class="login-panel login-panel-right">
@@ -55,23 +56,23 @@
 
                         <div class="form-group student-group">
                             <label for="email" class="sr-only">Email address</label>
-                            <input id="email" type="email" name="email" value="{{ old('email', $request->email) }}" required autofocus autocomplete="username" placeholder="Email address" class="form-input !pl-4 {{ $errors->has('email') ? 'form-input--error' : '' }}">
+                            <input id="email" type="email" name="email" value="{{ old('email', $request->email) }}" required autofocus autocomplete="username" placeholder="Email address" class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}">
                             @error('email')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
 
                         <div class="form-group student-group">
                             <label for="password" class="sr-only">New password</label>
-                            <input id="password" type="password" name="password" required autocomplete="new-password" placeholder="New password" class="form-input !pl-4 {{ $errors->has('password') ? 'form-input--error' : '' }}">
+                            <input id="password" type="password" name="password" required autocomplete="new-password" placeholder="New password" class="form-input {{ $errors->has('password') ? 'form-input--error' : '' }}">
                             @error('password')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
 
                         <div class="form-group student-group">
                             <label for="password_confirmation" class="sr-only">Confirm new password</label>
-                            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm new password" class="form-input !pl-4 {{ $errors->has('password_confirmation') ? 'form-input--error' : '' }}">
+                            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm new password" class="form-input {{ $errors->has('password_confirmation') ? 'form-input--error' : '' }}">
                             @error('password_confirmation')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
 
-                        <button type="submit" class="login-button w-full">Reset Password</button>
+                        <button type="submit" class="login-button w-full"><span>Reset Password</span><svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
                     </form>
                     <div class="login-help"><a href="{{ route('password.request') }}">Request another reset link</a></div>
                 </section>

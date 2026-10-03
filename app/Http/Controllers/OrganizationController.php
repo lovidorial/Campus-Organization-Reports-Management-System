@@ -292,8 +292,12 @@ class OrganizationController extends Controller
         };
     }
 
-    public function destroy(Organization $organization)
+    public function destroy(Request $request, Organization $organization)
     {
+        if (! hash_equals($organization->name, (string) $request->input('confirm_name', ''))) {
+            return back()->withErrors(['confirm_name' => 'The organization name did not match. Nothing was deleted.']);
+        }
+
         DB::transaction(function () use ($organization) {
             $organization->members()->delete();
             $organization->delete();

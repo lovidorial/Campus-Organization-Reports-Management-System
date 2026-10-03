@@ -19,6 +19,18 @@ class AdminController extends Controller
         $activities = $monitoringService->all();
         $stats = $monitoringService->counts($activities);
         $visibleActivities = $activities->reject(fn (GpoaActivity $activity) => $activity->archived_at)->values();
+        $today = now()->startOfDay();
+        $upcomingThrough = $today->copy()->addDays(7)->endOfDay();
+        $alerts = [
+            'awaitingReview' => $visibleActivities->filter(fn (GpoaActivity $activity) => $activity->narrativeStatusLabel() === 'For Review')->count(),
+            'upcomingInSevenDays' => $visibleActivities->filter(function (GpoaActivity $activity) use ($today, $upcomingThrough): bool {
+                return $activity->date
+                    && $activity->date->greaterThanOrEqualTo($today)
+                    && $activity->date->lessThanOrEqualTo($upcomingThrough)
+                    && ! filled($activity->activityRequest?->communication_letter);
+            })->count(),
+            'late' => $stats['Late'],
+        ];
         $dashboardData = $monitoringService->dashboardData($visibleActivities);
         $organizationProgress = $monitoringService->organizationProgress($visibleActivities);
         $recentActivities = $visibleActivities
@@ -26,7 +38,7 @@ class AdminController extends Controller
             ->take(8)
             ->values();
 
-        return view('admin.monitoring-dashboard', compact('stats', 'recentActivities', 'dashboardData', 'organizationProgress'));
+        return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress'));
     }
 
     public function monitor(Request $request, AdminActivityMonitoringService $monitoringService)
@@ -198,7 +210,9 @@ class AdminController extends Controller
     {
         $this->authorize('review', $activityReport);
         $validated = $request->validate([
-            'feedback' => ['required', 'string', 'max:1000'],
+            'feedback' => ['required', 'string', 'min:10', 'max:1000'],
+        ], [
+            'feedback.min' => 'Please explain what needs to be revised (at least 10 characters).',
         ]);
 
         $activityReport->update([

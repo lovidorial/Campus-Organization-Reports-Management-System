@@ -131,7 +131,7 @@
     </div>
 
     <div class="mt-2.5 flex flex-wrap items-center gap-2">
-        <a href="{{ route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Late']) }}" title="Activities past their due date that are not completed. Late is a flag and may overlap another status." class="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
+        <a href="{{ route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Late']) }}" title="Narrative report missing after the deadline." class="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
             <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold">!</span>
             Late {{ $activityCounts['Late'] ?? 0 }}
         </a>

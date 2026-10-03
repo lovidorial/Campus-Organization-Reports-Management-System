@@ -8,13 +8,13 @@
         </div>
         <div class="flex flex-wrap gap-3">
             <a href="{{ route('admin.organizations.edit', $organization) }}" class="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800">Edit</a>
-            <form action="{{ route('admin.organizations.reset-password', $organization) }}" method="POST" class="inline">
+            <form action="{{ route('admin.organizations.reset-password', $organization) }}" method="POST" class="inline" data-confirm data-confirm-title="Send password reset link?" data-confirm-message="A password reset link will be emailed to the organization's secretary." data-confirm-label="Send link" data-confirm-variant="warning">
                 @csrf
                 <button type="submit" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset Password</button>
             </form>
             @if($organization->is_active)
             @endif
-            <form action="{{ route('admin.organizations.destroy', $organization) }}" method="POST" class="inline" onsubmit="return confirm('Delete this organization account? This cannot be undone.');">
+            <form action="{{ route('admin.organizations.destroy', $organization) }}" method="POST" class="inline" data-confirm data-confirm-title="Delete organization permanently?" data-confirm-message="Deleting {{ $organization->name }} will permanently remove its account(s), GPOA, activities, requests, and submitted documents. This cannot be undone. To keep the records, use Deactivate account instead." data-confirm-label="Delete permanently" data-confirm-variant="danger" data-confirm-type="{{ $organization->name }}">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100">Delete Account</button>

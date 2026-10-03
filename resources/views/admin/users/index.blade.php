@@ -80,8 +80,7 @@
                     <div class="flex items-center justify-center gap-2">
                         <a href="{{ route('admin.users.edit', $user) }}"
                            class="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs hover:bg-yellow-100 font-semibold">Edit</a>
-                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline"
-                              onsubmit="return confirm('Delete {{ $user->name }}?')">
+                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" data-confirm data-confirm-title="Delete user?" data-confirm-message="Delete {{ $user->name }}? This cannot be undone." data-confirm-label="Delete user" data-confirm-variant="danger">
                             @csrf @method('DELETE')
                             <button class="px-2 py-1 bg-red-50 text-red-700 rounded text-xs hover:bg-red-100 font-semibold">Delete</button>
                         </form>
