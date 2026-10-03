@@ -20,22 +20,12 @@
         <div class="login-page">
             <div class="login-card">
                 <div class="login-panel login-panel-left">
-                    <div class="login-logo">
-                        <img src="{{ asset('images/orgTracklogo.png') }}" alt="OSDW Orgtrack logo" loading="eager" decoding="async">
-                    </div>
-                    <h1 class="sr-only">OSDW</h1>
-                    <p class="login-subtitle">Cagayan State University</p>
-                    <div class="login-badge">OFFICE OF STUDENT DEVELOPMENT AND WELFARE</div>
-                    <div class="login-description">
-                        <img class="osdw-seal" src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW seal" onerror="this.style.display='none'">
-                        <span class="description-divider" aria-hidden="true"></span>
-                        <p>Orgtrack- Campus Student Organization Narrative &amp; Summary Reports — manage, monitor, and celebrate student activities.</p>
-                    </div>
+                    <span class="sr-only">OSDW – Cagayan State University – Office of Student Development and Welfare – Orgtrack</span>
                 </div>
 
                 <div class="login-panel login-panel-right">
                     <a href="{{ route('welcome') }}" class="login-back-link">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
                         Back
@@ -43,12 +33,12 @@
 
                     <div class="login-header">
                         <h1 class="login-heading">Welcome <span>Back</span></h1>
-                        <p class="login-subtext">Sign in to your account</p>
+                        <p class="login-subtext">Sign in to your account.</p>
                     </div>
 
                     @if ($errors->any())
                         <div class="alert alert-error">
-                            <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="8" x2="12" y2="12"></line>
                                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -66,7 +56,7 @@
 
                     @if (session('status'))
                         <div class="alert alert-success">
-                            <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                             {{ session('status') }}
@@ -79,17 +69,20 @@
                         <div>
                             <div class="form-group student-group">
                                 <label for="email" class="sr-only">Email address</label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value="{{ old('email') }}"
-                                    required
-                                    autofocus
-                                    autocomplete="username"
-                                    placeholder="Email address"
-                                    class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
-                                />
+                                <div class="input-with-icon">
+                                    <svg class="field-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        value="{{ old('email') }}"
+                                        required
+                                        autofocus
+                                        autocomplete="username"
+                                        placeholder="Email address"
+                                        class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
+                                    />
+                                </div>
                                 @error('email')
                                     <span class="form-error">{{ $message }}</span>
                                 @enderror
@@ -98,6 +91,7 @@
                             <div class="form-group student-group">
                                 <label for="password" class="sr-only">Password</label>
                                 <div class="password-input-wrapper">
+                                    <svg class="field-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path><path d="M12 14v3"></path></svg>
                                     <input
                                         id="password"
                                         type="password"
@@ -108,11 +102,11 @@
                                         class="form-input {{ $errors->has('password') ? 'form-input--error' : '' }}"
                                     />
                                     <button type="button" class="password-toggle" onclick="togglePassword(this)" aria-label="Toggle password visibility">
-                                        <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <svg class="eye-icon eye-open" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                             <circle cx="12" cy="12" r="3"></circle>
                                         </svg>
-                                        <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                        <svg class="eye-icon eye-closed" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
                                             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                                             <line x1="1" y1="1" x2="23" y2="23"/>
                                         </svg>
@@ -140,16 +134,19 @@
                                     <button type="button" id="refreshCaptcha" class="captcha-refresh">Refresh code</button>
                                 </div>
                                 <label for="captcha" class="sr-only">Captcha code</label>
-                                <input
-                                    id="captcha"
-                                    type="text"
-                                    name="captcha"
-                                    required
-                                    autocomplete="off"
-                                    autocapitalize="characters"
-                                    placeholder="Enter the code above"
-                                    class="form-input captcha-input {{ $errors->has('captcha') ? 'form-input--error' : '' }}"
-                                />
+                                <div class="input-with-icon">
+                                    <svg class="field-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6z"></path><path d="m8.5 12 2.2 2.2 4.8-4.8"></path></svg>
+                                    <input
+                                        id="captcha"
+                                        type="text"
+                                        name="captcha"
+                                        required
+                                        autocomplete="off"
+                                        autocapitalize="characters"
+                                        placeholder="Enter the code above"
+                                        class="form-input captcha-input {{ $errors->has('captcha') ? 'form-input--error' : '' }}"
+                                    />
+                                </div>
                                 @error('captcha')
                                     <span class="form-error">{{ $message }}</span>
                                 @enderror
@@ -157,7 +154,7 @@
 
                             <button type="submit" class="login-button student-submit-button">
                                 <span>Sign In</span>
-                                <svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                     <polyline points="12 5 19 12 12 19"></polyline>
                                 </svg>
