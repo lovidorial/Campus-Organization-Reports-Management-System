@@ -45,7 +45,6 @@
                         @endforeach
                     </ul>
                 </li>
-                <li><a href="{{ route('public.activities') }}" class="nav-link">Browse Activities</a></li>
             </ul>
 
             <div class="nav-auth">
@@ -102,7 +101,6 @@
                         @endforeach
                     </ul>
                 </li>
-                <li class="mobile-nav-item"><a href="{{ route('public.activities') }}" class="mobile-nav-link" @click="mobileMenuOpen = false">Browse Activities</a></li>
                 <li class="mobile-nav-item mobile-auth-item">
                     @guest
                         <a href="{{ route('login') }}" class="nav-auth-link mobile-auth-link" @click="mobileMenuOpen = false">Login</a>
@@ -120,13 +118,8 @@
     <section id="top" class="hero hero-with-bg" style="background-image: url('{{ asset('images/hero-bg.jpg') }}');">
         <div class="hero-container">
             <div class="hero-content">
-                
-                <h1 class="hero-heading">
-                    Manage Student<br>Organization Activities<br>with Ease
-                </h1>
-                <p class="hero-sub">
-                    A comprehensive platform designed to streamline the planning, monitoring and reporting of student organization activities under your approved GPOA. Simplify narrative and summary reporting, enhance transparency between organizations and OSDW, and monitor progress every step of the way.
-                </p>
+                <h1 class="hero-heading">Manage Student Organizations.<br>Simplify Every Activity.</h1>
+                <p class="hero-sub">Orgtrack helps student organizations plan, submit and track activity reports under their approved GPOA, while giving OSDW a centralized view of every organization's progress.</p>
                 <div class="hero-btns">
                     @auth
                         <a href="{{ route('user.submit') }}" class="btn-primary-cta">
@@ -139,8 +132,8 @@
                         <a href="{{ route('login') }}" class="btn-primary-cta">
                             <i class="fas fa-sign-in-alt"></i> Get Started
                         </a>
-                        <a href="{{ route('login') }}" class="btn-outline-cta">
-                            <i class="fas fa-arrow-right"></i> Learn More
+                        <a href="#how-it-works" class="btn-outline-cta">
+                            <i class="fas fa-compass" aria-hidden="true"></i> How It Works
                         </a>
                     @endauth
                 </div>
@@ -167,29 +160,31 @@
     {{-- ========================================================
          BENEFITS SECTION
     ======================================================== --}}
-    <div id="about"></div>
     <section id="features" class="section-block section-benefits">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Why Use Org-track?</h2>
+                <h2 class="section-title">Why Use Orgtrack?</h2>
                 <p class="section-subtitle">Streamlined management for student organizations</p>
             </div>
 
             <div class="row g-4">
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
+                        <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-file-arrow-up"></i></div>
                         <h5 class="benefit-title">Easy Submission</h5>
                         <p class="benefit-text">Quickly submit activities and signed PDF narrative reports without hassle. User-friendly forms guide you through each step.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
+                        <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></div>
                         <h5 class="benefit-title">Real-Time Tracking</h5>
                         <p class="benefit-text">Monitor activity progress instantly. Stay updated on every submission with transparent feedback.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
+                        <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved fa-shield-alt"></i></div>
                         <h5 class="benefit-title">Secure & Organized</h5>
                         <p class="benefit-text">Narrative Reports are stored as verified, signed PDF files-organized and easily accessible.</p>
                     </div>
@@ -198,27 +193,50 @@
         </div>
     </section>
 
-    {{-- ========================================================
-         FEATURE / STATS SECTION
-    ======================================================== --}}
-    <section id="how-it-works" class="section-block section-light">
+    <section id="how-it-works" class="section-block section-light how-it-works-section">
         <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">How Orgtrack Works</h2>
+                <p class="section-subtitle">A clear path from submission to completion</p>
+            </div>
+            <div class="workflow-steps">
+                <article class="workflow-step">
+                    <span class="workflow-number">01</span>
+                    <h3>Submit GPOA</h3>
+                    <p>Upload your signed, approved GPOA together with your planned activities.</p>
+                </article>
+                <article class="workflow-step">
+                    <span class="workflow-number">02</span>
+                    <h3>Request Activity</h3>
+                    <p>For each activity, file a request and upload the communication letter.</p>
+                </article>
+                <article class="workflow-step">
+                    <span class="workflow-number">03</span>
+                    <h3>Submit Report</h3>
+                    <p>After the activity, upload the narrative report, photos and attendance sheet.</p>
+                </article>
+                <article class="workflow-step">
+                    <span class="workflow-number">04</span>
+                    <h3>OSDW Review</h3>
+                    <p>OSDW approves the report or sends it back for revision.</p>
+                </article>
+                <article class="workflow-step">
+                    <span class="workflow-number">05</span>
+                    <h3>Completed</h3>
+                    <p>Once OSDW approves the report, the activity is marked Completed in your records.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="explore" class="section-block">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get Started</h2>
+                <p class="section-subtitle">Learn about Orgtrack or follow your submissions</p>
+            </div>
             <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="feat-card">
-                        <h5 class="feat-title">Browse Activities</h5>
-                        <p class="feat-desc">
-                            Discover various activities and their verified reports form student organizations on Aparri campus.
-                        </p>
-                        @guest
-                            <a href="{{ route('public.activities') }}" class="btn-feat btn-feat-blue">Browse Activities</a>
-                        @endguest
-                        @auth
-                            <a href="{{ route('public.activities') }}" class="btn-feat btn-feat-blue">Browse Activities</a>
-                        @endauth
-                    </div>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="feat-card">
                         <h5 class="feat-title">Learn More</h5>
                         <p class="feat-desc">
@@ -227,7 +245,7 @@
                         <a href="#" class="btn-feat btn-feat-teal" data-bs-toggle="modal" data-bs-target="#learnMoreModal">Learn More</a>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="feat-card">
                         <h5 class="feat-title">Track Status</h5>
                         <p class="feat-desc">
@@ -270,75 +288,62 @@
             </div>
             <hr class="footer-hr">
             <p class="footer-copy">
-                &copy; {{ date('Y') }} Campus Student Organization Reports Monitoring  System. All Rights Reserved.
+                &copy; Orgtrack - Campus Student Organization Narrative and Summary Reports. All Rights Reserved.
             </p>
         </div>
     </footer>
 
-    {{-- Learn More Modal --}}
+    {{-- About Orgtrack Modal --}}
     <div class="modal fade" id="learnMoreModal" tabindex="-1" aria-labelledby="learnMoreModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="learnMoreModalLabel">About</h5>
+                    <h5 class="modal-title" id="learnMoreModalLabel">About Orgtrack</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <!-- System Overview -->
-                    <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">What is Orgtrack?</h6>
-                        <p style="color: #555; line-height: 1.6;">
-                            <strong>Campus Student Organization Narrative and Summary Reports for the Office  of the Social Development and Welfare at CSU-Aparri (Orgtrack)</strong> is a comprehensive digital platform designed to streamline the management of student organization activities. Our mission is to simplify the process of submitting, tracking, and approving organizational reports while maintaining transparency and accountability.
-                        </p>
+                <div class="modal-body about-modal-body">
+                    <div class="about-modal-section">
+                        <h6 class="about-section-title">What is Orgtrack?</h6>
+                        <p class="about-copy">Orgtrack is the Campus Student Organization Narrative and Summary Reports system of the Office of Student Development and Welfare (OSDW) at Cagayan State University - Aparri. It helps student organizations submit their approved GPOA, request activities and submit narrative reports, and gives OSDW one place to review reports and monitor every organization's progress.</p>
                     </div>
 
-                    <!-- Key Features -->
-                    <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Key Features</h6>
-                        <ul style="color: #555; line-height: 1.8;">
-                            <li><strong>Easy Submission:</strong> Easy Submission: User-friendly forms for submitting signed PDF narrative reports and supporting documentation</li>
-                            <li><strong>Real-Time Tracking:</strong> Monitor activity progress instantly with transparent feedback</li>
-                            <li><strong>Secure Storage:</strong> Reports are stored as verified PDF files with signatory tracking - keeping the database light and organized</li>
-                            <li><strong>Organization Management:</strong> Browse and discover various activities organized by student groups</li>
-                            <li><strong>Workflow Automation:</strong> Streamlined approval processes for efficient management</li>
+                    <div class="about-modal-section">
+                        <h6 class="about-section-title">Key Features</h6>
+                        <ul class="about-feature-list">
+                            <li><strong>GPOA Submission:</strong> Upload your signed, approved GPOA together with your list of planned activities.</li>
+                            <li><strong>Activity Requests:</strong> File a request for each planned activity and upload the communication letter.</li>
+                            <li><strong>Narrative Reports:</strong> Submit a narrative report with photos and the attendance sheet, either generated in the system or uploaded as a signed PDF.</li>
+                            <li><strong>Report Review:</strong> OSDW approves reports or sends them back with feedback for revision.</li>
+                            <li><strong>Status Tracking:</strong> See at a glance whether each activity is pending, ongoing or completed.</li>
+                            <li><strong>Secure Records:</strong> Documents are stored securely and visible only to the organization and OSDW.</li>
                         </ul>
                     </div>
 
-                    <!-- System Benefits -->
-                    <div class="mb-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Why Choose Orgtrack?</h6>
-                        <p style="color: #555; line-height: 1.6;">
-                            Orgtrack eliminates paperwork, reduces administrative burden, and ensures all student organization activities are properly documented and tracked. The system promotes transparency, enhances collaboration, and provides real-time insights into organizational activities and performance.
-                        </p>
+                    <div class="about-modal-section">
+                        <h6 class="about-section-title">Why Orgtrack</h6>
+                        <p class="about-copy">Orgtrack replaces scattered paper submissions with one organized record. Organizations always know where each submission stands, and OSDW can review and follow up from a single dashboard.</p>
                     </div>
 
-                    <!-- Developers -->
-                    <div class="border-top pt-4">
-                        <h6 class="mb-3" style="color: #1a5f7a; font-weight: 600;">Development Team</h6>
-                        <p style="color: #666; font-size: 0.95rem; margin-bottom: 1.5rem;">
-                            Orgtrack was developed by a dedicated team of student developers and IT professionals committed to improving campus life through technology.
-                        </p>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Project Leader</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Unciano Jade</p>
+                    <div class="about-modal-section about-team-section">
+                        <h6 class="about-section-title">Development Team</h6>
+                        <p class="about-team-intro">Orgtrack was developed by student developers of CSU - Aparri.</p>
+
+                        <div class="development-team-grid">
+                            <div class="development-team-card">
+                                <p class="development-team-role">Project Leader</p>
+                                <p class="development-team-name">Unciano Jade</p>
                             </div>
-                            <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Developer</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Lovidorial Christian Paolo</p>
+                            <div class="development-team-card">
+                                <p class="development-team-role">Developer</p>
+                                <p class="development-team-name">Lovidorial Christian Paolo</p>
                             </div>
-                            <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">UI/UX Designer</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Villena Adrian</p>
-                            </div>
-                            <div style="background: #f9f9f9; padding: 1rem; border-radius: 8px; border-left: 4px solid #1a5f7a;">
-                                <p style="margin: 0; color: #333; font-weight: 500; margin-bottom: 0.25rem;">Quality Assurance</p>
-                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Testing & QA Team</p>
+                            <div class="development-team-card">
+                                <p class="development-team-role">UI/UX Designer</p>
+                                <p class="development-team-name">Villena Adrian</p>
                             </div>
                         </div>
-                        
-                        <p style="color: #999; font-size: 0.85rem; margin-top: 1.5rem; text-align: center;">
+
+                        <p class="about-team-credit">
                             &copy; {{ date('Y') }} - Developed with care for campus community
                         </p>
                     </div>
@@ -355,6 +360,32 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     @vite(['resources/js/app.js'])
     <script src="{{ asset('js/auth.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sectionIds = ['top', 'features', 'how-it-works'];
+            const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
+            const updateActiveLinks = (activeId) => {
+                document.querySelectorAll('.nav-link[href^="#"], .mobile-nav-link[href^="#"]').forEach((link) => {
+                    link.classList.toggle('is-active', link.getAttribute('href') === `#${activeId}`);
+                });
+            };
+
+            if (!('IntersectionObserver' in window)) return;
+
+            const observer = new IntersectionObserver((entries) => {
+                const visible = entries
+                    .filter((entry) => entry.isIntersecting)
+                    .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+                if (visible) updateActiveLinks(visible.target.id);
+            }, {
+                rootMargin: '-76px 0px -55% 0px',
+                threshold: [0, .15, .35, .6],
+            });
+
+            sections.forEach((section) => observer.observe(section));
+        });
+    </script>
 
 </body>
 </html>

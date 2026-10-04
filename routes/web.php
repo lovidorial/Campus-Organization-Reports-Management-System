@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityReportController;
 use App\Http\Controllers\ActivityRequestController;
@@ -34,7 +33,7 @@ Route::get('/storage/{path}', function (string $path) {
     return response()->file(Storage::disk('public')->path($safePath));
 })->where('path', '.*');
 
-Route::get('/activities', [ActivityController::class, 'publicActivities'])->name('public.activities');
+Route::redirect('/activities', '/');
 Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('public.orgchart');
 
 require __DIR__ . '/auth.php';

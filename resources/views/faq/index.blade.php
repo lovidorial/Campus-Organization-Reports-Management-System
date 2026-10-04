@@ -93,7 +93,7 @@
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I see activities on the calendar?</summary>
-                        <p class="mt-2 text-sm text-gray-600">Open the <a class="text-amber-700 hover:underline" href="{{ route('activities.calendar') }}">Activity Calendar</a> to browse activities by month and optionally filter by venue. Calendar events show their current monitoring status.</p>
+                        <p class="mt-2 text-sm text-gray-600">Open the <a class="text-amber-700 hover:underline" href="{{ route('activities.calendar') }}">Activity Calendar</a> to view your organization’s activities by month and optionally filter by venue. Calendar events show their current monitoring status.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">Can I submit a Summary Report?</summary>
