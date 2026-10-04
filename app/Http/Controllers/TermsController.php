@@ -20,6 +20,12 @@ class TermsController extends Controller
         $user->terms_accepted_at = now();
         $user->save();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $intendedUrl = $request->session()->pull('url.intended');
+        $isAdmin = $user->isAdmin() || $user->role === 'admin';
+        $intendedIsAdmin = is_string($intendedUrl) && str_contains($intendedUrl, '/admin');
+
+        return redirect()->to($intendedUrl && $intendedIsAdmin === $isAdmin
+            ? $intendedUrl
+            : route($isAdmin ? 'admin.dashboard' : 'dashboard', absolute: false));
     }
 }

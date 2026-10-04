@@ -35,6 +35,24 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
+    public function test_regular_user_login_discards_an_intended_admin_url(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+            'terms_accepted_at' => now(),
+        ]);
+
+        $this->get('/admin/dashboard')->assertRedirect(route('login', absolute: false));
+
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertRedirect(route('dashboard', absolute: false));
+    }
+
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();
@@ -121,6 +139,19 @@ class AuthenticationTest extends TestCase
 
         $response->assertRedirect(route('dashboard', absolute: false));
         $this->assertNotNull($user->fresh()->terms_accepted_at);
+    }
+
+    public function test_regular_user_terms_acceptance_discards_an_intended_admin_url(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'user',
+            'terms_accepted_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['url.intended' => '/admin/dashboard'])
+            ->post('/terms/accept')
+            ->assertRedirect(route('dashboard', absolute: false));
     }
 
     public function test_users_can_logout(): void

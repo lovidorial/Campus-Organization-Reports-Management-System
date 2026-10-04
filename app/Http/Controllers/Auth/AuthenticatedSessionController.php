@@ -68,9 +68,14 @@ class AuthenticatedSessionController extends Controller
         }
 
         $request->session()->regenerate();
+        $intendedUrl = $request->session()->pull('url.intended');
+        $isAdmin = $user->isAdmin() || $user->role === 'admin';
+        $intendedIsAdmin = is_string($intendedUrl) && str_contains($intendedUrl, '/admin');
 
-        if ($user->isAdmin() || $user->role === 'admin') {
-            return redirect()->intended(route('admin.dashboard', absolute: false));
+        if ($isAdmin) {
+            return redirect()->to($intendedUrl && $intendedIsAdmin
+                ? $intendedUrl
+                : route('admin.dashboard', absolute: false));
         }
 
         if ($user->role === 'user') {
@@ -84,7 +89,9 @@ class AuthenticatedSessionController extends Controller
                 ]);
             }
 
-            return redirect()->intended(route('dashboard', absolute: false));
+            return redirect()->to($intendedUrl && ! $intendedIsAdmin
+                ? $intendedUrl
+                : route('dashboard', absolute: false));
         }
 
         Auth::guard('web')->logout();
