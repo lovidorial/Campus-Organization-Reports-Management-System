@@ -211,12 +211,17 @@
     <div class="absolute left-1/2 top-1/2 max-h-[95vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:p-6">
         <div class="flex items-start justify-between gap-3">
             <div>
-                <h2 id="restore-modal-title" class="text-lg font-bold text-gray-900">Confirm backup restore</h2>
-                <p class="mt-1 text-sm text-red-700">All data newer than this backup will be lost.</p>
+                <h2 id="restore-modal-title" class="text-lg font-bold text-gray-900">Restore backup</h2>
+                <p class="mt-1 text-sm text-red-700">This will replace your current data with the selected backup.</p>
             </div>
             <button type="button" data-close-restore-modal class="min-h-11 min-w-11 rounded border text-gray-600" aria-label="Close restore dialog">&times;</button>
         </div>
-        <p class="mt-4 text-sm text-gray-700"><strong>Backup date:</strong> <span id="restoreBackupDate">Select a ZIP file.</span></p>
+        <div class="mt-4 space-y-1 text-sm text-gray-700">
+            <p><strong>Selected backup:</strong> <span id="restoreBackupName" class="break-all">Select a ZIP file.</span></p>
+            <p><strong>Backup date:</strong> <span id="restoreBackupDate">Not available</span></p>
+        </div>
+        <p class="mt-3 text-xs text-gray-600">A safety backup will be created before restoration.</p>
+        <div id="restoreError" class="mt-4 hidden rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert" aria-live="assertive"></div>
         <form id="restoreBackupForm" action="{{ route('admin.backups.restore') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
             @csrf
             <input id="restoreBackupFilename" type="hidden" name="backup_filename" value="">
@@ -228,12 +233,11 @@
                 <label for="restoreConfirmation" class="block text-sm font-semibold text-gray-700">Type RESTORE to continue</label>
                 <input id="restoreConfirmation" type="text" name="confirmation" required autocomplete="off" class="mt-1 block min-h-11 w-full rounded border border-gray-300 px-3 py-2 text-sm">
             </div>
-            <div id="restoreRunningNote" class="hidden rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Restoring can take several minutes. A pre-restore recovery archive has been created automatically.</div>
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <button type="button" data-close-restore-modal class="min-h-11 rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
+                <button type="button" data-close-restore-modal class="min-h-11 rounded border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Cancel</button>
                 <button type="submit" data-restore-submit class="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
                     <svg data-loading-spinner class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path></svg>
-                    <span data-loading-label data-default-label="Restore and replace current data">Restore and replace current data</span>
+                    <span data-loading-label data-default-label="Restore backup">Restore backup</span>
                 </button>
             </div>
         </form>
@@ -326,12 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const modal = document.getElementById('restoreConfirmModal');
     const filename = document.getElementById('restoreBackupFilename');
+    const name = document.getElementById('restoreBackupName');
     const date = document.getElementById('restoreBackupDate');
     const file = document.getElementById('restoreBackupFile');
     const confirmation = document.getElementById('restoreConfirmation');
     const restoreForm = document.getElementById('restoreBackupForm');
     const restoreSubmit = restoreForm?.querySelector('[data-restore-submit]');
-    const restoreNote = document.getElementById('restoreRunningNote');
+    const restoreError = document.getElementById('restoreError');
     let restoreRunning = false;
 
     const resetRestoreState = () => {
@@ -342,16 +347,49 @@ document.addEventListener('DOMContentLoaded', () => {
             restoreSubmit.querySelector('[data-loading-label]').textContent = restoreSubmit.querySelector('[data-loading-label]').dataset.defaultLabel;
             restoreSubmit.querySelector('[data-loading-spinner]').classList.add('hidden');
         }
-        restoreNote?.classList.add('hidden');
     };
 
-    restoreForm?.addEventListener('submit', () => {
-        restoreRunning = true;
+    const showRestoreError = (message) => {
+        restoreError.textContent = message;
+        restoreError.classList.remove('hidden');
+    };
+
+    restoreForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        restoreError.textContent = '';
+        restoreError.classList.add('hidden');
         restoreForm.querySelectorAll('[data-close-restore-modal]').forEach((button) => { button.disabled = true; });
         restoreSubmit.disabled = true;
-        restoreSubmit.querySelector('[data-loading-label]').textContent = 'Restoring… please do not close this page';
+        restoreSubmit.querySelector('[data-loading-label]').textContent = "Restoring… this can take several minutes. Please don't close this page.";
         restoreSubmit.querySelector('[data-loading-spinner]').classList.remove('hidden');
-        restoreNote.classList.remove('hidden');
+
+        try {
+            const formData = new FormData(restoreForm);
+            const csrfToken = formData.get('_token');
+            const pendingRestore = fetch(restoreForm.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+            });
+            restoreRunning = true;
+            const response = await pendingRestore;
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const validationMessage = Object.values(payload.errors || {}).flat()[0];
+                throw new Error(validationMessage || payload.message || 'The backup could not be restored.');
+            }
+
+            restoreRunning = false;
+            window.location = payload.redirect || window.location.href;
+        } catch (error) {
+            resetRestoreState();
+            showRestoreError(error.message || 'The backup could not be restored. Please try again.');
+        }
     });
 
     window.addEventListener('beforeunload', (event) => {
@@ -367,8 +405,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-open-backup-restore]').forEach((button) => {
         button.addEventListener('click', () => {
             filename.value = button.dataset.filename;
+            name.textContent = button.dataset.filename || 'Selected backup';
             date.textContent = button.dataset.date;
             file.value = '';
+            restoreError.textContent = '';
+            restoreError.classList.add('hidden');
             modal.classList.remove('hidden');
             confirmation.focus();
         });
@@ -376,8 +417,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelector('[data-open-upload-restore]')?.addEventListener('click', () => {
         filename.value = '';
-        date.textContent = 'Choose a ZIP file to display its date.';
+        name.textContent = 'Choose a ZIP file.';
+        date.textContent = 'Not available';
         file.value = '';
+        restoreError.textContent = '';
+        restoreError.classList.add('hidden');
         modal.classList.remove('hidden');
         file.focus();
     });
@@ -385,14 +429,17 @@ document.addEventListener('DOMContentLoaded', () => {
     file.addEventListener('change', () => {
         filename.value = '';
         const selected = file.files?.[0];
-        date.textContent = selected ? new Date(selected.lastModified).toLocaleString() : 'Choose a ZIP file to display its date.';
+        name.textContent = selected?.name || 'Choose a ZIP file.';
+        date.textContent = selected ? new Date(selected.lastModified).toLocaleString() : 'Not available';
     });
 
     document.querySelectorAll('[data-close-restore-modal]').forEach((button) => {
-        button.addEventListener('click', () => modal.classList.add('hidden'));
+        button.addEventListener('click', () => {
+            if (!restoreRunning) modal.classList.add('hidden');
+        });
     });
     modal.addEventListener('click', (event) => {
-        if (event.target === modal) modal.classList.add('hidden');
+        if (event.target === modal && !restoreRunning) modal.classList.add('hidden');
     });
 });
 </script>

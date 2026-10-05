@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class OrganizationAccountCreationTest extends TestCase
@@ -43,5 +44,30 @@ class OrganizationAccountCreationTest extends TestCase
                 'secretary_password_confirmation' => 'password',
             ])
             ->assertSessionHasErrors('school_year');
+    }
+
+    public function test_admin_can_create_organization_account_with_standard_password(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.organizations.store'), [
+                'name' => 'Campus Organization',
+                'type' => 'Major Student Organization',
+                'college' => 'CICS',
+                'sc_president' => '',
+                'description' => '',
+                'term' => '1st Term',
+                'school_year' => '2025-2026',
+                'secretary_name' => 'Organization Secretary',
+                'secretary_email' => 'secretary@example.com',
+                'secretary_password' => 'password',
+                'secretary_password_confirmation' => 'password',
+            ])
+            ->assertRedirect(route('admin.organizations.index'))
+            ->assertSessionHasNoErrors();
+
+        $secretary = User::query()->where('email', 'secretary@example.com')->firstOrFail();
+        $this->assertTrue(Hash::check('password', $secretary->password));
     }
 }

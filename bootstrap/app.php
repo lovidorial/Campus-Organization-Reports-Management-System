@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureTermsAccepted;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->appendToGroup('web', SecurityHeaders::class);
+
         // REGISTER YOUR MIDDLEWARE ALIAS HERE
         $middleware->alias([
             'terms.accepted' => EnsureTermsAccepted::class,

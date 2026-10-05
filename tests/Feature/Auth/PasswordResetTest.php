@@ -71,8 +71,8 @@ class PasswordResetTest extends TestCase
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                'password' => 'Password123',
+                'password_confirmation' => 'Password123',
             ]);
 
             $response
@@ -82,6 +82,29 @@ class PasswordResetTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_weak_password_is_rejected_and_compliant_password_can_reset_account(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $token = Password::broker()->createToken($user);
+
+        $this->from('/reset-password/'.$token)->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'abcdefgh',
+            'password_confirmation' => 'abcdefgh',
+        ])->assertSessionHasErrors('password');
+
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ])->assertSessionHasNoErrors()
+            ->assertRedirect(route('login'));
     }
 
     public function test_login_page_displays_session_status(): void
@@ -148,8 +171,8 @@ class PasswordResetTest extends TestCase
         $this->from('/reset-password/invalid')->post('/reset-password', [
             'token' => 'invalid-token',
             'email' => $user->email,
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
         ])->assertSessionHasErrors('email');
     }
 
@@ -164,8 +187,8 @@ class PasswordResetTest extends TestCase
         $this->from('/reset-password/'.$token)->post('/reset-password', [
             'token' => $token,
             'email' => $user->email,
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
         ])->assertSessionHasErrors('email');
     }
 }

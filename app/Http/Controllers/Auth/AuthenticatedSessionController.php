@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
@@ -36,6 +37,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $request->ensureIsNotRateLimited();
+
         $captchaValidator = Validator::make($request->only('captcha'), [
             'captcha' => 'required|string',
         ]);
@@ -46,6 +49,7 @@ class AuthenticatedSessionController extends Controller
             && hash_equals(strtoupper($expectedCaptcha), strtoupper($providedCaptcha));
 
         if (! $captchaIsValid) {
+            RateLimiter::hit($request->throttleKey(), 300);
             $request->session()->put('login_captcha', $this->generateCaptcha());
 
             return back()

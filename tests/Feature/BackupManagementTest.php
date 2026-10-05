@@ -123,6 +123,19 @@ class BackupManagementTest extends TestCase
         ])->assertSessionHasErrors('backup_file');
     }
 
+    public function test_restore_returns_json_validation_errors_for_fetch_requests(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.backups.restore'), [
+                'backup_filename' => 'backup.zip',
+                'confirmation' => 'wrong',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Please type RESTORE to confirm the restore action.');
+    }
+
     public function test_restore_route_writes_audit_entry_on_success(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -139,10 +152,10 @@ class BackupManagementTest extends TestCase
         $zip->close();
 
         $service = \Mockery::mock(BackupService::class);
-        $service->shouldReceive('restoreBackup')->once()->with(\Mockery::on(
+        $service->shouldReceive('restoreBackup')->twice()->with(\Mockery::on(
             fn (string $argument): bool => basename(str_replace('\\', '/', $argument)) === $filename
         ))->andReturn(true);
-        $service->shouldReceive('listBackupFiles')->once()->andReturn([
+        $service->shouldReceive('listBackupFiles')->twice()->andReturn([
             ['name' => 'pre_restore_safety.zip', 'path' => 'unused', 'size' => 64, 'created_at' => time()],
         ]);
         $this->app->instance(BackupService::class, $service);
@@ -152,6 +165,14 @@ class BackupManagementTest extends TestCase
                 'backup_filename' => $filename,
                 'confirmation' => 'RESTORE',
             ])->assertRedirect()->assertSessionHas('success');
+
+            $this->postJson(route('admin.backups.restore'), [
+                'backup_filename' => $filename,
+                'confirmation' => 'RESTORE',
+            ])->assertOk()
+                ->assertJsonPath('message', 'Backup restored successfully.')
+                ->assertJsonPath('redirect', route('admin.backups.index'))
+                ->assertSessionHas('success', 'Backup restored successfully.');
 
             $log = ActivityLog::query()->where('event', 'backup_restored')->firstOrFail();
             $this->assertSame($admin->id, $log->causer_id);

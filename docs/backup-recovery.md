@@ -12,7 +12,7 @@ Each archive contains `database.sql` and the files under `storage/app/public`. D
 
 1. Keep a separate copy of the archive and confirm it is the intended backup.
 2. On **Backup & Restore**, find the archive and enter `RESTORE` in its confirmation field.
-3. Submit **Restore** and confirm the browser warning. The action replaces the configured MySQL database and all files in `storage/app/public` with the archive contents.
+3. Submit **Restore** and keep the page open while the operation runs. A safety backup is created before restoration; the action replaces the configured MySQL database and all files in `storage/app/public` with the archive contents.
 4. Do not interrupt the request. For large archives, perform recovery during a maintenance window.
 5. Verify organization records, recent submissions, and representative uploaded documents before reopening normal access.
 
@@ -20,4 +20,4 @@ Only restore trusted archives produced for this application. The service rejects
 
 ## Recovery limitations
 
-Restoring does not alter application code, `.env`, or files outside `storage/app/public`. Keep those items backed up separately. The administrator action currently restores the database and public files directly; it does not provide a transaction or automatic rollback if the database import fails partway through.
+Restoring does not alter application code, `.env`, or files outside `storage/app/public`. Keep those items backed up separately. If the database import fails, the restore process attempts to roll back automatically using the pre-restore safety backup.

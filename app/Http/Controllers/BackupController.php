@@ -6,6 +6,7 @@ use App\Models\BackupArchive;
 use App\Models\BackupSetting;
 use App\Services\BackupService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -93,9 +94,13 @@ class BackupController extends Controller
         return response()->download($path, $safeFilename);
     }
 
-    public function restore(Request $request): RedirectResponse
+    public function restore(Request $request): RedirectResponse|JsonResponse
     {
         if ($uploadError = $this->restoreUploadLimitError($request)) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $uploadError], 422);
+            }
+
             return back()->withErrors(['backup_file' => $uploadError])->withInput();
         }
 
@@ -108,6 +113,10 @@ class BackupController extends Controller
 
         $confirmation = strtoupper(trim((string) ($validated['confirmation'] ?? '')));
         if ($confirmation !== 'RESTORE') {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Please type RESTORE to confirm the restore action.'], 422);
+            }
+
             return back()->withErrors(['confirmation' => 'Please type RESTORE to confirm the restore action.'])->withInput();
         }
 
@@ -120,6 +129,10 @@ class BackupController extends Controller
             $backupPath = storage_path('app/backups/'.$safeFilename);
             abort_unless(file_exists($backupPath), 404, 'Backup file not found.');
         } else {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Please choose a backup file or select an existing backup.'], 422);
+            }
+
             return back()->withErrors(['backup_file' => 'Please choose a backup file or select an existing backup.'])->withInput();
         }
 
@@ -139,7 +152,20 @@ class BackupController extends Controller
             Log::error('Backup restore failed.', ['exception' => $e]);
             $this->rememberBackupError($e->getMessage());
 
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Restore failed: '.$e->getMessage()], 500);
+            }
+
             return back()->with('error', 'Restore failed: '.$e->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            $request->session()->flash('success', 'Backup restored successfully.');
+
+            return response()->json([
+                'message' => 'Backup restored successfully.',
+                'redirect' => route('admin.backups.index'),
+            ]);
         }
 
         return back()->with('success', 'Backup restored successfully.');

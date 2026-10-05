@@ -1,5 +1,19 @@
 <x-app-layout>
     <link rel="stylesheet" href="{{ asset('css/gpoa-form.css') }}">
+    <style>
+        .sdg-label-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .sdg-label-row label { margin: 0; flex-shrink: 0; }
+        .sdg-summary-badges { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; padding: 6px 8px; background: #F3F4F6; border-radius: 4px; min-height: 24px; align-items: center; }
+        .sdg-badge { padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; display: inline-block; white-space: nowrap; }
+        .sdg-placeholder { color: #9CA3AF; font-size: 0.875rem; }
+        .sdg-checkbox-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding: 8px; border: 1px solid #D1D5DB; border-radius: 4px; background: #FFFFFF; margin-bottom: 8px; }
+        .sdg-checkbox-item { display: flex; align-items: center; gap: 8px; padding: 4px; cursor: pointer; user-select: none; }
+        .sdg-checkbox-item input[type="checkbox"] { cursor: pointer; }
+        .sdg-checkbox-item label { cursor: pointer; margin: 0; font-size: 0.875rem; flex: 1; }
+        .sdg-number { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; flex: 0 0 1.35rem; border-radius: 50%; font-size: 0.7rem; font-weight: 700; }
+        .sdg-helper-text { font-size: 0.75rem; color: #6B7280; display: block; margin-bottom: 8px; font-weight: 500; }
+        .sdg-validation-error { color: #DC2626; font-size: 0.875rem; margin-top: 6px; }
+    </style>
 
     <main class="page-wrapper">
         <div class="page-header">
@@ -23,7 +37,7 @@
         @endif
 
         <script type="application/json" id="planned-activities-seed">
-            @json($plannedActivitySeed)
+            @json(old('planned_activities', $plannedActivitySeed))
         </script>
 
         <form action="{{ route('gpoa.update', $gpoa) }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm">
@@ -101,6 +115,8 @@
                                 <div class="mb-3 flex items-center justify-between">
                                     <strong class="text-sm text-gray-700">Activity <span x-text="index + 1"></span></strong>
                                     <div class="flex items-center gap-2">
+                                        <span x-show="activityComplete(activity)" class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">Details complete</span>
+                                        <span x-show="!activityComplete(activity)" class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Details missing</span>
                                         <span x-show="activity.importWarnings && activity.importWarnings.length" class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Check this row</span>
                                         <button type="button" @click="removeActivity(index)" class="btn-secondary btn-small">Remove</button>
                                     </div>
@@ -109,12 +125,12 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="form-group">
-                                        <label>Title</label>
-                                        <input type="text" :name="'planned_activities[' + index + '][title]'" x-model="activity.title" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            <label>Title *</label>
+                                            <input type="text" :name="'planned_activities[' + index + '][title]'" x-model="activity.title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     </div>
                                     <div class="form-group">
-                                        <label>Time frame</label>
-                                        <select :name="'planned_activities[' + index + '][time_frame]'" x-model="activity.time_frame" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            <label>Date or time frame *</label>
+                                            <select :name="'planned_activities[' + index + '][time_frame]'" x-model="activity.time_frame" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                             <option value="">Select time frame</option>
                                             <option value="exact_date">Exact date</option>
                                             <option value="date_range">Date range</option>
@@ -124,20 +140,20 @@
 
                                     <template x-if="activity.time_frame === 'exact_date'">
                                         <div class="form-group">
-                                            <label>Date</label>
-                                            <input type="date" :name="'planned_activities[' + index + '][date]'" x-model="activity.date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                <label>Date *</label>
+                                                <input type="date" :name="'planned_activities[' + index + '][date]'" x-model="activity.date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                         </div>
                                     </template>
 
                                     <template x-if="activity.time_frame === 'date_range'">
                                         <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div class="form-group">
-                                                <label>Start date</label>
-                                                <input type="date" :name="'planned_activities[' + index + '][date]'" x-model="activity.date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                    <label>Start date *</label>
+                                                    <input type="date" :name="'planned_activities[' + index + '][date]'" x-model="activity.date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                             </div>
                                             <div class="form-group">
-                                                <label>End date</label>
-                                                <input type="date" :name="'planned_activities[' + index + '][end_date]'" x-model="activity.end_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                    <label>End date *</label>
+                                                    <input type="date" :name="'planned_activities[' + index + '][end_date]'" x-model="activity.end_date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                                 <p x-show="validationErrors['planned_activities.' + index + '.end_date']" x-text="validationErrors['planned_activities.' + index + '.end_date'] && validationErrors['planned_activities.' + index + '.end_date'][0]" class="text-red-500 text-xs mt-1"></p>
                                             </div>
                                         </div>
@@ -145,8 +161,8 @@
 
                                     <template x-if="activity.time_frame === 'month_only'">
                                         <div class="form-group md:col-span-2">
-                                            <label>Month</label>
-                                            <input type="month" :name="'planned_activities[' + index + '][date]'" x-model="activity.date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                <label>Month *</label>
+                                                <input type="month" :name="'planned_activities[' + index + '][date]'" x-model="activity.date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                         </div>
                                     </template>
 
@@ -164,20 +180,48 @@
                                     </template>
 
                                     <div class="form-group md:col-span-2">
-                                        <label>Venue</label>
-                                        <input type="text" :name="'planned_activities[' + index + '][venue]'" x-model="activity.venue" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <label>Venue *</label>
+                                        <input type="text" :name="'planned_activities[' + index + '][venue]'" x-model="activity.venue" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     </div>
                                     <div class="form-group">
-                                        <label>Category</label>
-                                        <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <label>Category *</label>
+                                        <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                             <option value="">Select category</option>
                                             @include('partials.category-options')
                                         </select>
                                     </div>
                                     <div class="form-group md:col-span-2">
-                                        @include('partials.sdg-checkboxes', ['gpoa' => true])
+                                        <div class="sdg-widget" x-init="$nextTick(() => { const summary = $el.querySelector('[data-sdg-summary]'); const colors = @js(config('sdg')); const update = () => { const selected = activity.sdgs || []; summary.innerHTML = selected.length ? selected.map(number => `<span class='sdg-badge' style='background-color: ${colors[number].color}; color: ${colors[number].text}'>SDG ${number}</span>`).join('') : '<span class=&quot;sdg-placeholder&quot;>No SDGs selected yet</span>'; }; $el.addEventListener('change', update); update(); })">
+                                            <div class="sdg-label-row"><label>SDGs *</label><div class="sdg-summary-badges" :id="'sdgSummary-' + index" data-sdg-summary><span class="sdg-placeholder">No SDGs selected yet</span></div></div>
+                                            <div class="sdg-checkbox-list" :id="'sdgCheckboxes-' + index" data-sdg-checkboxes>
+                                                @foreach([1 => 'No Poverty', 2 => 'Zero Hunger', 3 => 'Good Health', 4 => 'Quality Education', 5 => 'Gender Equality', 6 => 'Clean Water', 7 => 'Affordable Energy', 8 => 'Decent Work', 9 => 'Industry, Innovation', 10 => 'Reduced Inequality', 11 => 'Sustainable Cities', 12 => 'Responsible Consumption', 13 => 'Climate Action', 14 => 'Life Below Water', 15 => 'Life on Land', 16 => 'Peace/Justice', 17 => 'Partnerships'] as $number => $label)
+                                                    <div class="sdg-checkbox-item"><input type="checkbox" :id="'planned-sdg-' + index + '-{{ $number }}'" :name="'planned_activities[' + index + '][sdgs][]'" value="{{ $number }}" x-model="activity.sdgs" :required="activity.sdgs.length === 0 && {{ $number }} === 1"><span class="sdg-number" style="background-color: {{ config('sdg.' . $number . '.color') }}; color: {{ config('sdg.' . $number . '.text') }}">{{ $number }}</span><label :for="'planned-sdg-' + index + '-{{ $number }}'">SDG {{ $number }} - {{ $label }}</label></div>
+                                                @endforeach
+                                            </div>
+                                            <span class="sdg-helper-text">Must select 1-8 SDGs aligned with the activity</span>
+                                            <p x-show="activity.sdgs.length === 0" class="sdg-validation-error show">Select at least 1 SDG.</p>
+                                        </div>
                                     </div>
                                 </div>
+                                <details class="mt-4 rounded-lg border border-slate-200 bg-white p-4" :open="activity.detailsOpen || detailsHaveErrors(index)" @invalid.capture="activity.detailsOpen = true">
+                                    <summary class="cursor-pointer font-semibold text-slate-800">Activity details</summary>
+                                    <div class="mt-4 space-y-4">
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <div class="form-group md:col-span-2"><label>Objectives *</label><textarea rows="3" :name="'planned_activities[' + index + '][objectives]'" x-model="activity.objectives" required class="w-full rounded-lg border border-gray-300 px-3 py-2"></textarea><p x-show="fieldError(index, 'objectives')" x-text="fieldError(index, 'objectives')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group md:col-span-2"><label>Expected Outcome *</label><textarea rows="3" :name="'planned_activities[' + index + '][expected_outcome]'" x-model="activity.expected_outcome" required class="w-full rounded-lg border border-gray-300 px-3 py-2"></textarea><p x-show="fieldError(index, 'expected_outcome')" x-text="fieldError(index, 'expected_outcome')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group md:col-span-2"><label>Delivery Strategy *</label><textarea rows="3" :name="'planned_activities[' + index + '][plan_key_strategy]'" x-model="activity.plan_key_strategy" required class="w-full rounded-lg border border-gray-300 px-3 py-2"></textarea><p x-show="fieldError(index, 'plan_key_strategy')" x-text="fieldError(index, 'plan_key_strategy')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group"><label>Target Participants *</label><input type="text" :name="'planned_activities[' + index + '][target_participants]'" x-model="activity.target_participants" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'target_participants')" x-text="fieldError(index, 'target_participants')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group"><label>Person in Charge *</label><input type="text" :name="'planned_activities[' + index + '][person_in_charge]'" x-model="activity.person_in_charge" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'person_in_charge')" x-text="fieldError(index, 'person_in_charge')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group"><label>Facilities / Materials *</label><input type="text" :name="'planned_activities[' + index + '][facilities_materials]'" x-model="activity.facilities_materials" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'facilities_materials')" x-text="fieldError(index, 'facilities_materials')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group"><label>Estimated Budget *</label><input type="number" min="0" step="0.01" :name="'planned_activities[' + index + '][estimated_budget]'" x-model="activity.estimated_budget" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'estimated_budget')" x-text="fieldError(index, 'estimated_budget')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group md:col-span-2"><label>Source of Funds *</label><input type="text" :name="'planned_activities[' + index + '][source_of_funds]'" x-model="activity.source_of_funds" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'source_of_funds')" x-text="fieldError(index, 'source_of_funds')" class="text-xs text-red-600"></p></div>
+                                        </div>
+                                        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                                            <select :value="''" @change="copyDetailsFrom(index, $event.target.value); $event.target.value = ''" class="w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Copy details from another activity</option><template x-for="(other, otherIndex) in activities" :key="other._key"><option x-show="otherIndex !== index && activityComplete(other)" :value="otherIndex" x-text="'Activity ' + (otherIndex + 1) + ' - ' + other.title"></option></template></select>
+                                            <button type="button" @click="copyCommonDetailsToAll(index)" class="btn-secondary">Copy shared details to all activities</button>
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
                         </template>
 
@@ -215,7 +259,7 @@
                     const seed = document.getElementById('planned-activities-seed');
                     const activities = seed ? JSON.parse(seed.textContent || '[]') : [];
                     return activities.map((activity, index) => {
-                        const timeFrame = activity.time_frame || (activity.end_date ? 'date_range' : (activity.date && activity.date.length === 7 ? 'month_only' : 'exact_date'));
+                        const timeFrame = activity.time_frame || (activity.end_date ? 'date_range' : (activity.date && activity.date.length === 7 ? 'month_only' : (activity.date ? 'exact_date' : '')));
 
                         return {
                             ...activity,
@@ -227,22 +271,31 @@
                             venue: activity.venue || '',
                             category: activity.category || '',
                             sdgs: Array.isArray(activity.sdgs) ? activity.sdgs : [],
+                            objectives: activity.objectives || '',
+                            expected_outcome: activity.expected_outcome || '',
+                            plan_key_strategy: activity.plan_key_strategy || '',
+                            target_participants: activity.target_participants || '',
+                            person_in_charge: activity.person_in_charge || '',
+                            facilities_materials: activity.facilities_materials || '',
+                            estimated_budget: activity.estimated_budget ?? '',
+                            source_of_funds: activity.source_of_funds || '',
+                            detailsOpen: false,
                             importWarnings: Array.isArray(activity.importWarnings) ? activity.importWarnings : [],
                             _key: activity._key || `activity-${index}-${Date.now()}`,
                         };
                     });
-                            if (this.activities.length >= this.maxActivities) return;
 
                 } catch (error) {
                     return [];
                 }
             })(),
             addActivity() {
+                if (this.activities.length >= this.maxActivities) return;
                 this.activities.push({
                     id: null,
                     _key: `new-${Date.now()}-${Math.random()}`,
                     title: '',
-                    time_frame: 'exact_date',
+                    time_frame: '',
                     date: '',
                     end_date: '',
                     start_time: '',
@@ -250,8 +303,40 @@
                     venue: '',
                     category: '',
                     sdgs: [],
+                    objectives: '',
+                    expected_outcome: '',
+                    plan_key_strategy: '',
+                    target_participants: '',
+                    person_in_charge: '',
+                    facilities_materials: '',
+                    estimated_budget: '',
+                    source_of_funds: '',
+                    detailsOpen: false,
                     importWarnings: [],
                 });
+            },
+            detailFields: ['objectives', 'expected_outcome', 'plan_key_strategy', 'target_participants', 'person_in_charge', 'facilities_materials', 'estimated_budget', 'source_of_funds'],
+            fieldError(index, field) { return this.validationErrors[`planned_activities.${index}.${field}`]?.[0] || ''; },
+            detailsHaveErrors(index) { return this.detailFields.some(field => this.fieldError(index, field)) || Boolean(this.fieldError(index, 'sdgs')); },
+            activityComplete(activity) {
+                const validDate = activity.time_frame === 'exact_date' ? Boolean(activity.date) : activity.time_frame === 'date_range' ? Boolean(activity.date && activity.end_date) : activity.time_frame === 'month_only' ? Boolean(activity.date) : false;
+                return Boolean(activity.title?.trim() && validDate && activity.category && activity.venue?.trim() && activity.sdgs?.length && activity.objectives?.trim() && activity.expected_outcome?.trim() && activity.plan_key_strategy?.trim() && activity.target_participants?.trim() && activity.person_in_charge?.trim() && activity.facilities_materials?.trim() && activity.estimated_budget !== '' && activity.estimated_budget !== null && activity.source_of_funds?.trim());
+            },
+            copyDetailsFrom(index, sourceIndex) {
+                if (sourceIndex === '' || sourceIndex === null) return;
+                const source = this.activities[Number(sourceIndex)];
+                if (source) {
+                    ['title', 'time_frame', 'date', 'end_date', 'start_time', 'end_time', 'venue', 'category', ...this.detailFields]
+                        .forEach(field => { this.activities[index][field] = source[field] ?? ''; });
+                    this.activities[index].sdgs = [...(source.sdgs || [])];
+                }
+            },
+            copyFieldToAll(index, field) {
+                const value = this.activities[index][field];
+                this.activities.forEach((activity, activityIndex) => { if (activityIndex !== index) activity[field] = value; });
+            },
+            copyCommonDetailsToAll(index) {
+                ['target_participants', 'person_in_charge', 'source_of_funds', 'facilities_materials'].forEach(field => this.copyFieldToAll(index, field));
             },
             async importFile(event) {
                 const file = event.target.files[0];
@@ -262,7 +347,7 @@
                 this.importNotes = [];
                 this.repeatedTitleHint = '';
 
-                if (this.activities.some(activity => activity.title || activity.date || activity.end_date || activity.venue || activity.category || (activity.sdgs && activity.sdgs.length))) {
+                if (this.activities.some(activity => ['title', 'date', 'end_date', 'start_time', 'end_time', 'venue', 'category', ...this.detailFields].some(field => String(activity[field] ?? '').trim() !== '') || activity.sdgs?.length)) {
                     const replaceConfirmed = await window.orgConfirm({
                         title: 'Replace planned activities?',
                         message: 'Replace the planned activity rows currently entered with the imported rows?',
@@ -299,8 +384,16 @@
                         start_time: row.start_time || '',
                         end_time: row.end_time || '',
                         venue: row.venue || '',
-                        category: '',
+                        category: row.category || '',
                         sdgs: Array.isArray(row.sdgs) ? row.sdgs.map(Number) : [],
+                        objectives: row.objectives || '',
+                        expected_outcome: row.expected_outcome || '',
+                        plan_key_strategy: row.plan_key_strategy || '',
+                        target_participants: row.target_participants || '',
+                        person_in_charge: row.person_in_charge || '',
+                        facilities_materials: row.facilities_materials || '',
+                        estimated_budget: row.estimated_budget ?? '',
+                        source_of_funds: row.source_of_funds || '',
                         importWarnings: row.warnings || [],
                     }));
                     this.importSummary = `Imported ${this.activities.length} activities`;

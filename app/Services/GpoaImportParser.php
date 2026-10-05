@@ -189,6 +189,12 @@ class GpoaImportParser
             $sdgs = $columns['sdgs'] !== null
                 ? $this->extractSdgs((string) ($cells[$columns['sdgs']] ?? ''))
                 : [];
+            $facilitiesMaterials = $this->cellValue($cells, $columns['facilities']);
+            $deliveryStrategy = $this->cellValue($cells, $columns['delivery']);
+            $budget = $this->cellValue($cells, $columns['estimated_budget']);
+            $budgetNumber = preg_match('/-?\d[\d,]*(?:\.\d+)?/', $budget, $budgetMatch)
+                ? (float) str_replace(',', '', $budgetMatch[0])
+                : null;
             $rowWarnings = $parsedTime['warnings'];
             if ($columns['sdgs'] !== null && $sdgs === []) {
                 $rowWarnings[] = 'No SDGs detected';
@@ -202,10 +208,19 @@ class GpoaImportParser
                 'start_time' => $parsedTime['start_time'],
                 'end_time' => $parsedTime['end_time'],
                 'venue' => $this->extractVenue(
-                    (string) ($columns['facilities'] !== null ? ($cells[$columns['facilities']] ?? '') : ''),
-                    (string) ($columns['delivery'] !== null ? ($cells[$columns['delivery']] ?? '') : '')
+                    $facilitiesMaterials,
+                    $deliveryStrategy
                 ),
+                'category' => $this->cellValue($cells, $columns['category']),
                 'sdgs' => $sdgs,
+                'objectives' => $this->cellValue($cells, $columns['objectives']),
+                'expected_outcome' => $this->cellValue($cells, $columns['expected_outcome']),
+                'plan_key_strategy' => $deliveryStrategy,
+                'target_participants' => $this->cellValue($cells, $columns['target_participants']),
+                'person_in_charge' => $this->cellValue($cells, $columns['person_in_charge']),
+                'facilities_materials' => $facilitiesMaterials,
+                'estimated_budget' => $budgetNumber,
+                'source_of_funds' => $this->cellValue($cells, $columns['source_of_funds']),
                 'warnings' => $rowWarnings,
             ];
         }
@@ -230,9 +245,23 @@ class GpoaImportParser
                     continue;
                 }
 
-                $columns = ['title' => null, 'time_frame' => null, 'facilities' => null, 'delivery' => null, 'sdgs' => null];
+                $columns = [
+                    'title' => null,
+                    'time_frame' => null,
+                    'facilities' => null,
+                    'delivery' => null,
+                    'sdgs' => null,
+                    'category' => null,
+                    'objectives' => null,
+                    'expected_outcome' => null,
+                    'target_participants' => null,
+                    'person_in_charge' => null,
+                    'estimated_budget' => null,
+                    'source_of_funds' => null,
+                ];
                 foreach ($headers as $index => $text) {
-                    $normalized = mb_strtolower($text);
+                    $normalized = mb_strtolower(trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text) ?? $text));
+                    $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
                     if ($columns['time_frame'] === null && str_contains($normalized, 'time frame')) {
                         $columns['time_frame'] = $index;
                     }
@@ -248,6 +277,19 @@ class GpoaImportParser
                     if ($columns['sdgs'] === null && (str_contains($normalized, 'sdg') || str_contains($normalized, 'sustainable development goal') || str_contains($normalized, 'sustainable development'))) {
                         $columns['sdgs'] = $index;
                     }
+                    foreach ([
+                        'category' => ['category'],
+                        'objectives' => ['objective'],
+                        'expected_outcome' => ['expected outcome', 'expected result'],
+                        'target_participants' => ['target participant', 'participant', 'recipient'],
+                        'person_in_charge' => ['person in charge', 'persons in charge', 'in charge'],
+                        'estimated_budget' => ['estimated budget', 'budgetary requirement', 'budget'],
+                        'source_of_funds' => ['source of funds', 'funding source'],
+                    ] as $field => $aliases) {
+                        if ($columns[$field] === null && collect($aliases)->contains(fn ($alias) => str_contains($normalized, $alias))) {
+                            $columns[$field] = $index;
+                        }
+                    }
                 }
 
                 if ($columns['title'] !== null && $columns['time_frame'] !== null) {
@@ -257,6 +299,11 @@ class GpoaImportParser
         }
 
         return null;
+    }
+
+    private function cellValue(array $cells, ?int $column): string
+    {
+        return $column === null ? '' : $this->cleanText((string) ($cells[$column] ?? ''));
     }
 
     private function extractSdgs(string $value): array

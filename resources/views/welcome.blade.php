@@ -115,7 +115,7 @@
     {{-- ========================================================
          HERO — heading
     ======================================================== --}}
-    <section id="top" class="hero hero-with-bg" style="background-image: url('{{ asset('images/hero-bg.jpg') }}');">
+    <section id="top" class="hero hero-with-bg">
         <div class="hero-container">
             <div class="hero-content">
                 <h1 class="hero-heading">Manage Student Organizations.<br>Simplify Every Activity.</h1>

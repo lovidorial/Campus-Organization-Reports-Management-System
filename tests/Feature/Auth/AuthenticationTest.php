@@ -66,6 +66,66 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_sixth_failed_login_attempt_returns_friendly_lockout_validation_error(): void
+    {
+        $user = User::factory()->create();
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->withSession(['login_captcha' => 'ABCDE'])
+                ->from('/login')
+                ->post('/login', [
+                    'email' => $user->email,
+                    'password' => 'wrong-password',
+                    'captcha' => 'ABCDE',
+                ])
+                ->assertRedirect('/login')
+                ->assertSessionHasErrors('email');
+        }
+
+        $response = $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+                'captcha' => 'ABCDE',
+            ]);
+
+        $response->assertStatus(302)
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('email');
+        $this->assertStringContainsString('Too many login attempts', session('errors')->first('email'));
+    }
+
+    public function test_wrong_captchas_count_toward_login_lockout(): void
+    {
+        $user = User::factory()->create();
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->withSession(['login_captcha' => 'ABCDE'])
+                ->from('/login')
+                ->post('/login', [
+                    'email' => $user->email,
+                    'password' => 'password',
+                    'captcha' => 'ZZZZZ',
+                ])
+                ->assertRedirect('/login')
+                ->assertSessionHasErrors('captcha');
+        }
+
+        $response = $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+                'captcha' => 'ABCDE',
+            ]);
+
+        $response->assertStatus(302)
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('email');
+        $this->assertStringContainsString('Too many login attempts', session('errors')->first('email'));
+    }
+
     public function test_login_rejects_an_incorrect_captcha_and_rotates_the_code(): void
     {
         $user = User::factory()->create();

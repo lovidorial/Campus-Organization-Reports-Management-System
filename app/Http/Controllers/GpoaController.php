@@ -246,8 +246,28 @@ class GpoaController extends Controller
         $this->authorize('update', $gpoa);
 
         $gpoa->load('activities');
+        $plannedActivitySeed = $gpoa->activities->map(fn (GpoaActivity $activity) => [
+            'id' => $activity->id,
+            'title' => $activity->title,
+            'time_frame' => $activity->time_frame,
+            'date' => $activity->date_is_month_only ? $activity->date?->format('Y-m') : $activity->date?->toDateString(),
+            'end_date' => $activity->end_date?->toDateString(),
+            'start_time' => $activity->start_time,
+            'end_time' => $activity->end_time,
+            'venue' => $activity->venue,
+            'category' => $activity->category,
+            'sdgs' => $activity->sdgs ?? [],
+            'objectives' => $activity->objectives,
+            'expected_outcome' => $activity->expected_outcome,
+            'plan_key_strategy' => $activity->plan_key_strategy,
+            'target_participants' => $activity->target_participants,
+            'person_in_charge' => $activity->person_in_charge,
+            'facilities_materials' => $activity->facilities_materials,
+            'estimated_budget' => $activity->estimated_budget,
+            'source_of_funds' => $activity->source_of_funds,
+        ])->values();
 
-        return view('gpoa.edit', compact('gpoa', 'workflow'));
+        return view('gpoa.edit', compact('gpoa', 'plannedActivitySeed'));
     }
 
     public function update(Request $request, Gpoa $gpoa)
@@ -387,24 +407,39 @@ class GpoaController extends Controller
             'time_frame' => $timeFrame,
             'date' => $dateValue !== '' ? $dateValue : null,
             'end_date' => $endDateValue !== '' ? $endDateValue : null,
-            'start_time' => trim((string) ($activityData['start_time'] ?? '')) !== '' ? $activityData['start_time'] : null,
-            'end_time' => trim((string) ($activityData['end_time'] ?? '')) !== '' ? $activityData['end_time'] : null,
+            'start_time' => trim((string) ($activityData['start_time'] ?? '')) !== '' ? trim((string) $activityData['start_time']) : null,
+            'end_time' => trim((string) ($activityData['end_time'] ?? '')) !== '' ? trim((string) $activityData['end_time']) : null,
             'date_is_month_only' => $timeFrame === 'month_only' || ! empty($activityData['date_is_month_only']),
             'venue' => trim((string) ($activityData['venue'] ?? '')) !== '' ? trim((string) $activityData['venue']) : null,
             'category' => trim((string) ($activityData['category'] ?? '')),
             'sdgs' => $sdgs,
+            'objectives' => trim((string) ($activityData['objectives'] ?? '')),
+            'expected_outcome' => trim((string) ($activityData['expected_outcome'] ?? '')),
+            'plan_key_strategy' => trim((string) ($activityData['plan_key_strategy'] ?? '')),
+            'target_participants' => trim((string) ($activityData['target_participants'] ?? '')),
+            'person_in_charge' => trim((string) ($activityData['person_in_charge'] ?? '')),
+            'facilities_materials' => trim((string) ($activityData['facilities_materials'] ?? '')),
+            'estimated_budget' => trim((string) ($activityData['estimated_budget'] ?? '')) !== ''
+                ? (float) $activityData['estimated_budget']
+                : null,
+            'source_of_funds' => trim((string) ($activityData['source_of_funds'] ?? '')),
         ];
     }
 
     private function isBlankPlannedActivity(array $activityData): bool
     {
-        return empty($activityData['title'])
-            && empty($activityData['time_frame'])
-            && empty($activityData['date'])
-            && empty($activityData['end_date'])
-            && empty($activityData['venue'])
-            && empty($activityData['category'])
-            && empty($activityData['sdgs']);
+        foreach ([
+            'title', 'time_frame', 'date', 'end_date', 'venue', 'category', 'objectives',
+            'expected_outcome', 'plan_key_strategy', 'target_participants', 'person_in_charge',
+            'facilities_materials', 'source_of_funds',
+        ] as $field) {
+            if (trim((string) ($activityData[$field] ?? '')) !== '') {
+                return false;
+            }
+        }
+
+        return empty($activityData['sdgs'])
+            && (($activityData['estimated_budget'] ?? null) === null || $activityData['estimated_budget'] === '');
     }
 
     private function validatePlannedActivityEntries(Request $request): void
@@ -417,47 +452,44 @@ class GpoaController extends Controller
 
         $validator->after(function ($validator) use ($request) {
             foreach ((array) $request->input('planned_activities', []) as $index => $activity) {
+                if (! is_array($activity)) {
+                    continue;
+                }
+
+                $rawBudget = trim((string) ($activity['estimated_budget'] ?? ''));
+                $activity = $this->normalizePlannedActivityData($activity);
                 $title = trim((string) ($activity['title'] ?? ''));
                 $timeFrame = trim((string) ($activity['time_frame'] ?? ''));
                 $date = trim((string) ($activity['date'] ?? ''));
                 $endDate = trim((string) ($activity['end_date'] ?? ''));
                 $venue = trim((string) ($activity['venue'] ?? ''));
                 $category = trim((string) ($activity['category'] ?? ''));
-                $hasAnyValue = $title !== ''
-                    || $timeFrame !== ''
-                    || $date !== ''
-                    || $endDate !== ''
-                    || $venue !== ''
-                    || $category !== ''
-                    || ! empty($activity['sdgs'] ?? []);
-
-                if (! $hasAnyValue) {
+                if ($this->isBlankPlannedActivity($activity)) {
                     continue;
                 }
 
+                $activityNumber = $index + 1;
                 if ($title === '') {
-                    $validator->errors()->add("planned_activities.{$index}.title", 'Activity ' . ($index + 1) . ' title is required.');
+                    $validator->errors()->add("planned_activities.{$index}.title", "Activity {$activityNumber}: Title is required.");
                 }
 
                 if ($timeFrame === '') {
-                    $validator->errors()->add("planned_activities.{$index}.time_frame", 'Activity ' . ($index + 1) . ' time frame is required.');
-                }
-
-                if (! in_array($timeFrame, ['exact_date', 'date_range', 'month_only'], true)) {
-                    continue;
+                    $validator->errors()->add("planned_activities.{$index}.time_frame", "Activity {$activityNumber}: Date or time frame is required.");
+                } elseif (! in_array($timeFrame, ['exact_date', 'date_range', 'month_only'], true)) {
+                    $validator->errors()->add("planned_activities.{$index}.time_frame", "Activity {$activityNumber}: Select a valid date or time frame.");
                 }
 
                 if ($timeFrame === 'exact_date' && $date === '') {
-                    $validator->errors()->add("planned_activities.{$index}.date", 'Activity ' . ($index + 1) . ' exact date is required.');
+                    $validator->errors()->add("planned_activities.{$index}.date", "Activity {$activityNumber}: Date is required.");
                 }
 
                 if ($timeFrame === 'date_range') {
                     if ($date === '') {
-                        $validator->errors()->add("planned_activities.{$index}.date", 'Activity ' . ($index + 1) . ' start date is required for a date range.');
+                        $validator->errors()->add("planned_activities.{$index}.date", "Activity {$activityNumber}: Start date is required.");
                     }
 
                     if ($endDate === '') {
-                        $validator->errors()->add("planned_activities.{$index}.end_date", 'Activity ' . ($index + 1) . ' end date is required for a date range.');
+                        $validator->errors()->add("planned_activities.{$index}.end_date", "Activity " . ($index + 1) . ' end date is required for a date range.');
                     }
 
                     if ($date !== '' && $endDate !== '' && $endDate < $date) {
@@ -466,7 +498,31 @@ class GpoaController extends Controller
                 }
 
                 if ($timeFrame === 'month_only' && $date === '') {
-                    $validator->errors()->add("planned_activities.{$index}.date", 'Activity ' . ($index + 1) . ' month is required for a month-only activity.');
+                    $validator->errors()->add("planned_activities.{$index}.date", "Activity {$activityNumber}: Month is required.");
+                }
+
+                foreach ([
+                    'category' => 'Category',
+                    'venue' => 'Venue',
+                    'objectives' => 'Objectives',
+                    'expected_outcome' => 'Expected Outcome',
+                    'plan_key_strategy' => 'Delivery Strategy',
+                    'target_participants' => 'Target Participants',
+                    'person_in_charge' => 'Person in Charge',
+                    'facilities_materials' => 'Facilities / Materials',
+                    'source_of_funds' => 'Source of Funds',
+                ] as $field => $label) {
+                    if (trim((string) ($activity[$field] ?? '')) === '') {
+                        $validator->errors()->add("planned_activities.{$index}.{$field}", "Activity {$activityNumber}: {$label} is required.");
+                    }
+                }
+
+                if (empty($activity['sdgs'] ?? [])) {
+                    $validator->errors()->add("planned_activities.{$index}.sdgs", "Activity {$activityNumber}: Select at least one SDG.");
+                }
+
+                if ($rawBudget === '' || ! is_numeric($rawBudget)) {
+                    $validator->errors()->add("planned_activities.{$index}.estimated_budget", "Activity {$activityNumber}: Estimated Budget is required and must be numeric.");
                 }
             }
         });

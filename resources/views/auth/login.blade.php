@@ -23,7 +23,7 @@
                     <span class="sr-only">OSDW – Cagayan State University – Office of Student Development and Welfare – Orgtrack</span>
                 </div>
 
-                <div class="login-panel login-panel-right">
+                <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
                     <a href="{{ route('welcome') }}" class="login-back-link">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -37,7 +37,7 @@
                     </div>
 
                     @if ($errors->any())
-                        <div class="alert alert-error">
+                        <div class="alert alert-error" @if (session()->has('login_retry_after')) x-show="remaining > 0" @endif>
                             <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -46,9 +46,13 @@
                             <div>
                                 <strong>Login Failed</strong>
                                 <ul class="error-list">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
+                                    @if (session()->has('login_retry_after'))
+                                        <li x-text="lockoutMessage">{{ $errors->first('email') }}</li>
+                                    @else
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    @endif
                                 </ul>
                             </div>
                         </div>
@@ -83,9 +87,11 @@
                                         class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
                                     />
                                 </div>
-                                @error('email')
-                                    <span class="form-error">{{ $message }}</span>
-                                @enderror
+                                @if (! session()->has('login_retry_after'))
+                                    @error('email')
+                                        <span class="form-error">{{ $message }}</span>
+                                    @enderror
+                                @endif
                             </div>
 
                             <div class="form-group student-group">
@@ -152,9 +158,9 @@
                                 @enderror
                             </div>
 
-                            <button type="submit" class="login-button student-submit-button">
-                                <span>Sign In</span>
-                                <svg class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button type="submit" class="login-button student-submit-button" x-bind:disabled="remaining > 0">
+                                <span x-text="remaining > 0 ? `Try again in ${formattedTime}` : 'Sign In'">Sign In</span>
+                                <svg x-show="remaining <= 0" class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                     <polyline points="12 5 19 12 12 19"></polyline>
                                 </svg>
@@ -171,6 +177,31 @@
         </div>
 
         <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('loginLockoutCountdown', (seconds) => ({
+                    remaining: seconds,
+                    timer: null,
+                    get formattedTime() {
+                        const minutes = Math.floor(this.remaining / 60);
+                        const seconds = this.remaining % 60;
+                        return `${minutes}:${String(seconds).padStart(2, '0')}`;
+                    },
+                    get lockoutMessage() {
+                        return `Too many login attempts. Please try again in ${this.formattedTime}.`;
+                    },
+                    start() {
+                        if (this.remaining <= 0) return;
+                        this.timer = window.setInterval(() => {
+                            this.remaining = Math.max(0, this.remaining - 1);
+                            if (this.remaining === 0) {
+                                window.clearInterval(this.timer);
+                                this.timer = null;
+                            }
+                        }, 1000);
+                    },
+                }));
+            });
+
             function togglePassword(button) {
                 const wrapper = button.closest('.password-input-wrapper');
                 if (!wrapper) {

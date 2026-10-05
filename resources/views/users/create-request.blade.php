@@ -17,12 +17,49 @@
                 @php
                     $prefill = $prefill ?? [];
                     $fromPlannedActivity = $fromPlannedActivity ?? false;
+                    $plannedActivity = $gpoaActivity ?? null;
+                    $dateRequiresConfirmation = $fromPlannedActivity && (
+                        (bool) ($plannedActivity?->date_is_month_only)
+                        || ($plannedActivity?->date !== null && $plannedActivity->date->lt(today()))
+                    );
+                    if ($fromPlannedActivity) {
+                        $prefill['date_requires_confirmation'] = $dateRequiresConfirmation;
+                        if ($dateRequiresConfirmation) {
+                            $prefill['date'] = '';
+                        }
+                    }
                     $programFlows = $programFlows ?? collect();
                     $org = $organization ?? auth()->user()->organization ?? null;
                     $limitObj = $activityLimitTemplate ?? $activityLimit ?? null;
                     $usedCount = $limitObj->used ?? $limitObj->used_count ?? $limitObj->usedActivities ?? null;
                     $limitCount = $limitObj->limit ?? $limitObj->max ?? $limitObj->allowed ?? null;
                     $atCap = ($usedCount !== null && $limitCount !== null && $usedCount >= $limitCount);
+                    $prefillFieldLabels = [
+                        'title' => 'Activity Title',
+                        'category' => 'Category',
+                        'sdgs' => 'SDGs',
+                        'date' => 'Date',
+                        'venue' => 'Venue',
+                        'objectives' => 'Objectives',
+                        'expected_outcome' => 'Expected Outcome',
+                        'plan_key_strategy' => 'Delivery Strategy',
+                        'target_participants' => 'Target Participants',
+                        'person_in_charge' => 'Person in Charge',
+                        'facilities_materials' => 'Facilities / Materials',
+                        'estimated_budget' => 'Estimated Budget',
+                        'source_of_funds' => 'Source of Funds',
+                    ];
+                    $missingPrefillFields = $fromPlannedActivity
+                        ? collect($prefillFieldLabels)
+                            ->filter(function ($label, $field) use ($prefill) {
+                                $value = old($field, $prefill[$field] ?? null);
+                                return $field === 'sdgs'
+                                    ? empty($value)
+                                    : ($value === null || trim((string) $value) === '');
+                            })
+                            ->keys()
+                            ->all()
+                        : [];
                 @endphp
 
                 <div class="org-info-block" aria-label="Organization Information">
@@ -110,7 +147,13 @@
 
                     @if($fromPlannedActivity)
                         <div id="gpoaPrefillHint" class="mb-6 flex items-start justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900" role="status">
-                            <p>Prefilled from your GPOA. Review and edit anything that changed.</p>
+                            <p id="gpoaPrefillMessage" data-complete="All details were filled from your GPOA. Review them before submitting." data-missing-prefix="Missing from your GPOA: " data-missing-suffix=". Complete the highlighted fields before submitting.">
+                                @if($missingPrefillFields === [])
+                                    All details were filled from your GPOA. Review them before submitting.
+                                @else
+                                    Missing from your GPOA: {{ implode(', ', array_map(fn ($field) => $prefillFieldLabels[$field], $missingPrefillFields)) }}. Complete the highlighted fields before submitting.
+                                @endif
+                            </p>
                             <button type="button" id="dismissPrefillHint" aria-label="Dismiss prefill hint" class="shrink-0 font-semibold text-sky-800">×</button>
                         </div>
                         <div class="mb-6">
@@ -177,7 +220,7 @@
                         <div class="form-group">
                             <label for="date">Date *</label>
                             <input id="date" type="date" name="date" value="{{ old('date', $prefill['date'] ?? '') }}" min="{{ old('date') && old('date') < today()->toDateString() ? old('date') : (!empty($prefill['date']) && $prefill['date'] < today()->toDateString() ? $prefill['date'] : today()->toDateString()) }}" required>
-                            <p id="plannedActivityPastDateWarning" class="mt-1 {{ old('date', $prefill['date'] ?? '') && old('date', $prefill['date'] ?? '') < today()->toDateString() ? '' : 'hidden' }} text-xs text-amber-700">This planned activity date is in the past. Choose today or a future date to submit the request.</p>
+                            <p id="plannedActivityPastDateWarning" class="mt-1 {{ !empty($prefill['date_requires_confirmation']) && !old('date') ? '' : 'hidden' }} text-xs text-amber-700">The planned date is in the past or specified only by month. Enter the exact activity date to continue.</p>
                             @error('date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
                         <div class="form-group">
@@ -337,11 +380,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     const serverPrefill = @js($prefill);
+    const missingPrefillFields = @js($missingPrefillFields);
+    const prefillFieldLabels = @js($prefillFieldLabels);
     const serverProgramFlows = @js($programFlows);
     const plannedActivities = @js($gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
         'title' => $activity->title,
         'category' => $activity->category,
         'sdgs' => $activity->sdgs ?? [],
+        'date_requires_confirmation' => (bool) $activity->date_is_month_only || ($activity->date && $activity->date->lt(today())),
         'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
         'date_is_month_only' => (bool) $activity->date_is_month_only,
         'end_date' => $activity->end_date?->toDateString() ?? '',
@@ -394,17 +440,25 @@ document.addEventListener('DOMContentLoaded', function(){
             return;
         }
 
+        if (['category', 'source_of_funds'].includes(field)) {
+            const addedOption = new Option(String(value), String(value), true, true);
+            select.add(addedOption);
+            select.value = addedOption.value;
+            return;
+        }
+
         select.value = '';
         console.warn(`Could not match planned GPOA value for ${field}:`, value);
     }
 
-    function setPastDateState(value) {
+    function setPastDateState(value, requiresConfirmation = false) {
         if (!dateInput) return;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const plannedDate = value ? new Date(`${value}T00:00:00`) : null;
         const isPast = plannedDate && plannedDate < today;
-        plannedDateWarning?.classList.toggle('hidden', !isPast);
+        const needsExactDate = Boolean(requiresConfirmation && !value);
+        plannedDateWarning?.classList.toggle('hidden', !isPast && !needsExactDate);
         const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         dateInput.min = isPast ? value : localToday;
     }
@@ -416,14 +470,31 @@ document.addEventListener('DOMContentLoaded', function(){
             if (!element || !(field in serverPrefill)) return;
             const expected = normalized(serverPrefill[field]);
             const current = normalized(element.value);
-            element.classList.toggle('border-amber-500', current !== expected);
-            element.classList.toggle('border-l-4', current !== expected);
+            const isMissing = missingPrefillFields.includes(field) && !current;
+            const isAmber = missingPrefillFields.includes(field) ? isMissing : current !== expected;
+            element.classList.toggle('border-amber-500', isAmber);
+            element.classList.toggle('border-l-4', isAmber);
         });
 
         const selectedSdgs = Array.from(sdgCheckboxContainer?.querySelectorAll('input[type="checkbox"]:checked') ?? []).map(input => input.value).sort();
         const expectedSdgs = (serverPrefill.sdgs ?? []).map(String).sort();
-        sdgCheckboxContainer?.classList.toggle('border-l-4', JSON.stringify(selectedSdgs) !== JSON.stringify(expectedSdgs));
-        sdgCheckboxContainer?.classList.toggle('border-amber-500', JSON.stringify(selectedSdgs) !== JSON.stringify(expectedSdgs));
+        const sdgsMissing = missingPrefillFields.includes('sdgs') && selectedSdgs.length === 0;
+        const sdgsChanged = JSON.stringify(selectedSdgs) !== JSON.stringify(expectedSdgs);
+        const sdgsAmber = missingPrefillFields.includes('sdgs') ? sdgsMissing : sdgsChanged;
+        sdgCheckboxContainer?.classList.toggle('border-l-4', sdgsAmber);
+        sdgCheckboxContainer?.classList.toggle('border-amber-500', sdgsAmber);
+
+        const currentMissing = missingPrefillFields.filter(field => {
+            if (field === 'sdgs') return selectedSdgs.length === 0;
+            const element = document.getElementById(field);
+            return !element || !normalized(element.value);
+        });
+        const prefillMessage = document.getElementById('gpoaPrefillMessage');
+        if (prefillMessage) {
+            prefillMessage.textContent = currentMissing.length
+                ? prefillMessage.dataset.missingPrefix + currentMissing.map(field => prefillFieldLabels[field]).join(', ') + prefillMessage.dataset.missingSuffix
+                : prefillMessage.dataset.complete;
+        }
     }
 
     function prefillFromPlannedActivity(onlyEmpty = false) {
@@ -439,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function(){
             'estimated_budget', 'source_of_funds'].forEach(field => {
             const input = document.getElementById(field);
             if (input && (!onlyEmpty || !input.value)) {
-                const value = activity[field] ?? '';
+                const value = field === 'date' && activity.date_requires_confirmation ? '' : (activity[field] ?? '');
                 if (input instanceof HTMLSelectElement) selectValue(input, value, field);
                 else input.value = value;
             }
@@ -452,12 +523,19 @@ document.addEventListener('DOMContentLoaded', function(){
             updateSdgSummary();
         }
 
-        setPastDateState(activity.date);
+        setPastDateState(activity.date_requires_confirmation ? '' : activity.date, activity.date_requires_confirmation);
         window.dispatchEvent(new CustomEvent('planned-activity-changed', { detail: { program_flows: activity.program_flows || [] } }));
         updateChangedFields();
     }
 
     if(!sdgCheckboxContainer) return;
+
+    if (hasOldInput) {
+        selectValue(document.getElementById('category'), @js(old('category', $prefill['category'] ?? '')), 'category');
+        selectValue(document.getElementById('source_of_funds'), @js(old('source_of_funds', $prefill['source_of_funds'] ?? '')), 'source_of_funds');
+    }
+    setPastDateState(dateInput?.value || '', serverPrefill.date_requires_confirmation);
+    dateInput?.addEventListener('change', () => setPastDateState(dateInput.value));
 
     plannedActivitySelect?.addEventListener('change', () => {
         const hiddenActivityId = document.getElementById('selectedPlannedActivityId');
@@ -501,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function(){
             plannedActivitySelect.classList.add('hidden');
         }
         window.dispatchEvent(new CustomEvent('reset-gpoa-prefill', { detail: { program_flows: serverProgramFlows } }));
-        setPastDateState(serverPrefill.date);
+        setPastDateState(serverPrefill.date, serverPrefill.date_requires_confirmation);
         updateSdgSummary();
         updateChangedFields();
     });
