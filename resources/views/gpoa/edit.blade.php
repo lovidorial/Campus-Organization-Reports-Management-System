@@ -184,11 +184,12 @@
                                         <input type="text" :name="'planned_activities[' + index + '][venue]'" x-model="activity.venue" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     </div>
                                     <div class="form-group">
-                                        <label>Category *</label>
-                                        <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                            <option value="">Select category</option>
-                                            @include('partials.category-options')
+                                        <label>Category</label>
+                                        <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            <option value="">Select category (optional)</option>
+                                            @include('partials.category-options', ['gpoaCategories' => array_values(array_unique(array_merge(array_keys(config('gpoa_activity_limits', [])), ['Religious Activity', 'Socio-Cultural and Sports', 'Makakalikasan (Clean and Green)', 'Extension Services Conducted'])) )])
                                         </select>
+                                        <p class="mt-1 text-xs text-slate-500">Optional. You will provide this when requesting the activity.</p>
                                     </div>
                                     <div class="form-group md:col-span-2">
                                         <div class="sdg-widget" x-init="$nextTick(() => { const summary = $el.querySelector('[data-sdg-summary]'); const colors = @js(config('sdg')); const update = () => { const selected = activity.sdgs || []; summary.innerHTML = selected.length ? selected.map(number => `<span class='sdg-badge' style='background-color: ${colors[number].color}; color: ${colors[number].text}'>SDG ${number}</span>`).join('') : '<span class=&quot;sdg-placeholder&quot;>No SDGs selected yet</span>'; }; $el.addEventListener('change', update); update(); })">
@@ -214,7 +215,7 @@
                                             <div class="form-group"><label>Person in Charge *</label><input type="text" :name="'planned_activities[' + index + '][person_in_charge]'" x-model="activity.person_in_charge" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'person_in_charge')" x-text="fieldError(index, 'person_in_charge')" class="text-xs text-red-600"></p></div>
                                             <div class="form-group"><label>Facilities / Materials *</label><input type="text" :name="'planned_activities[' + index + '][facilities_materials]'" x-model="activity.facilities_materials" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'facilities_materials')" x-text="fieldError(index, 'facilities_materials')" class="text-xs text-red-600"></p></div>
                                             <div class="form-group"><label>Estimated Budget *</label><input type="number" min="0" step="0.01" :name="'planned_activities[' + index + '][estimated_budget]'" x-model="activity.estimated_budget" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'estimated_budget')" x-text="fieldError(index, 'estimated_budget')" class="text-xs text-red-600"></p></div>
-                                            <div class="form-group md:col-span-2"><label>Source of Funds *</label><input type="text" :name="'planned_activities[' + index + '][source_of_funds]'" x-model="activity.source_of_funds" required class="w-full rounded-lg border border-gray-300 px-3 py-2"><p x-show="fieldError(index, 'source_of_funds')" x-text="fieldError(index, 'source_of_funds')" class="text-xs text-red-600"></p></div>
+                                            <div class="form-group md:col-span-2"><label>Source of Funds</label><input type="text" :name="'planned_activities[' + index + '][source_of_funds]'" x-model="activity.source_of_funds" class="w-full rounded-lg border border-gray-300 px-3 py-2"><p class="mt-1 text-xs text-slate-500">Optional. You will provide this when requesting the activity.</p><p x-show="fieldError(index, 'source_of_funds')" x-text="fieldError(index, 'source_of_funds')" class="text-xs text-red-600"></p></div>
                                         </div>
                                         <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
                                             <select :value="''" @change="copyDetailsFrom(index, $event.target.value); $event.target.value = ''" class="w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Copy details from another activity</option><template x-for="(other, otherIndex) in activities" :key="other._key"><option x-show="otherIndex !== index && activityComplete(other)" :value="otherIndex" x-text="'Activity ' + (otherIndex + 1) + ' - ' + other.title"></option></template></select>
@@ -320,7 +321,7 @@
             detailsHaveErrors(index) { return this.detailFields.some(field => this.fieldError(index, field)) || Boolean(this.fieldError(index, 'sdgs')); },
             activityComplete(activity) {
                 const validDate = activity.time_frame === 'exact_date' ? Boolean(activity.date) : activity.time_frame === 'date_range' ? Boolean(activity.date && activity.end_date) : activity.time_frame === 'month_only' ? Boolean(activity.date) : false;
-                return Boolean(activity.title?.trim() && validDate && activity.category && activity.venue?.trim() && activity.sdgs?.length && activity.objectives?.trim() && activity.expected_outcome?.trim() && activity.plan_key_strategy?.trim() && activity.target_participants?.trim() && activity.person_in_charge?.trim() && activity.facilities_materials?.trim() && activity.estimated_budget !== '' && activity.estimated_budget !== null && activity.source_of_funds?.trim());
+                return Boolean(activity.title?.trim() && validDate && activity.venue?.trim() && activity.sdgs?.length && activity.objectives?.trim() && activity.expected_outcome?.trim() && activity.plan_key_strategy?.trim() && activity.target_participants?.trim() && activity.person_in_charge?.trim() && activity.facilities_materials?.trim() && activity.estimated_budget !== '' && activity.estimated_budget !== null);
             },
             copyDetailsFrom(index, sourceIndex) {
                 if (sourceIndex === '' || sourceIndex === null) return;

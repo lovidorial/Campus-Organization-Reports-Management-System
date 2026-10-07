@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -43,13 +44,26 @@ class BackupController extends Controller
         });
 
         $lastSuccessfulAt = $backupSetting->last_successful_at;
-        $backupWarning = $this->backupIsOverdue($backupSetting->frequency, $lastSuccessfulAt);
+        $backupWarning = $this->backupService->isBackupDue($backupSetting);
+        $nextDueAt = $this->backupService->nextBackupDueAt($backupSetting);
+        $schedulerLastRunAt = Cache::get('scheduler_last_run_at');
+        if ($schedulerLastRunAt instanceof \DateTimeInterface) {
+            $schedulerLastRunAt = Carbon::instance($schedulerLastRunAt);
+        }
+        $schedulerThresholdMinutes = config('backup.web_scheduler', true) ? 1440 : 5;
+        $schedulerHealthy = $schedulerLastRunAt instanceof \DateTimeInterface
+            ? Carbon::instance($schedulerLastRunAt)->greaterThanOrEqualTo(now()->subMinutes($schedulerThresholdMinutes))
+            : false;
 
         return view('admin.backups.index', [
             'backups' => $backups,
             'backupSetting' => $backupSetting,
             'lastSuccessfulAt' => $lastSuccessfulAt,
+            'nextDueAt' => $nextDueAt,
             'backupWarning' => $backupWarning,
+            'schedulerVisible' => $backupSetting->frequency !== 'manual',
+            'schedulerHealthy' => $schedulerHealthy,
+            'schedulerLastRunAt' => $schedulerLastRunAt,
             'phpUploadLimit' => ini_get('upload_max_filesize'),
             'phpPostLimit' => ini_get('post_max_size'),
             'maxRestoreUploadMb' => (int) config('backup.max_restore_upload_mb', 2048),
@@ -73,7 +87,9 @@ class BackupController extends Controller
             return redirect()->route('admin.backups.index')->with('error', 'Backup failed: '.$exception->getMessage());
         }
 
-        return redirect()->route('admin.backups.index')->with('success', 'Backup created successfully.');
+        return redirect()->route('admin.backups.index')
+            ->with('success', 'Backup created successfully.')
+            ->with('download_filename', $backup['filename']);
     }
 
     public function download(string $filename)
@@ -190,12 +206,18 @@ class BackupController extends Controller
             'frequency' => $validated['frequency'],
             'retention_count' => (int) $validated['retention_count'],
         ]);
+        Cache::add('scheduler:web-tick', now(), 60);
         $this->recordBackupActivity($request, 'backup_schedule_changed', [
             'frequency' => $settings->frequency,
             'retention_count' => $settings->retention_count,
         ], 'Changed local backup schedule');
 
-        return redirect()->route('admin.backups.index')->with('success', 'Backup schedule updated.');
+        $redirect = redirect()->route('admin.backups.index')->with('success', 'Backup schedule updated.');
+        if ($this->backupService->isBackupDue($settings)) {
+            $redirect->with('backup_due_after_schedule', true);
+        }
+
+        return $redirect;
     }
 
     public function destroy(string $filename): RedirectResponse
@@ -230,33 +252,6 @@ class BackupController extends Controller
         return Carbon::createFromTimestamp(filemtime($filePath))
             ->setTimezone(config('app.timezone'))
             ->format('F j, Y g:i A');
-    }
-
-    private function backupIsOverdue(string $frequency, ?Carbon $lastSuccessfulAt): bool
-    {
-        if ($frequency === 'manual') {
-            return false;
-        }
-        if (! $lastSuccessfulAt) {
-            return true;
-        }
-
-        return match ($frequency) {
-            'monthly' => $lastSuccessfulAt->lt(now()->subDays(30)),
-            'per_semester' => $this->semesterKey($lastSuccessfulAt) !== $this->semesterKey(now()),
-            'per_school_year' => $this->schoolYearKey($lastSuccessfulAt) !== $this->schoolYearKey(now()),
-            default => false,
-        };
-    }
-
-    private function semesterKey(Carbon $date): string
-    {
-        return $date->format('Y').'-'.((int) $date->format('n') <= 6 ? '1' : '2');
-    }
-
-    private function schoolYearKey(Carbon $date): int
-    {
-        return (int) $date->format('Y') - ((int) $date->format('n') < 8 ? 1 : 0);
     }
 
     private function recordBackupActivity(Request $request, string $event, array $properties, string $description): void

@@ -143,7 +143,11 @@
                                 <div x-show="importNotes.length" class="mt-2 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
                                     <template x-for="(note, noteIndex) in importNotes" :key="noteIndex"><p x-text="note"></p></template>
                                 </div>
-                                <p x-show="repeatedTitleHint" x-text="repeatedTitleHint" class="mt-2 text-sm text-amber-800"></p>
+                                <div x-show="skippedRows.length" class="mt-2 rounded-md border border-amber-200 bg-white p-3 text-sm text-amber-900">
+                                    <p class="font-semibold">Not imported because the form allows up to 34 activities:</p>
+                                    <ul class="mt-1 list-disc pl-5"><template x-for="(title, titleIndex) in skippedRows" :key="titleIndex"><li x-text="title"></li></template></ul>
+                                </div>
+                                <p x-show="repeatedTitleHint" x-text="repeatedTitleHint" class="mt-2 text-sm text-sky-800"></p>
                                 <p x-show="importError" x-text="importError" role="alert" class="mt-2 text-sm text-red-700"></p>
                             </div>
                             <template x-if="activities.length === 0">
@@ -224,11 +228,12 @@
                                             <input type="text" :name="'planned_activities[' + index + '][venue]'" x-model="activity.venue" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                         </div>
                                         <div class="form-group">
-                                            <label>Category *</label>
-                                            <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                                <option value="">Select category</option>
-                                                @include('partials.category-options')
+                                            <label>Category</label>
+                                            <select :name="'planned_activities[' + index + '][category]'" x-model="activity.category" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                                <option value="">Select category (optional)</option>
+                                                @include('partials.category-options', ['gpoaCategories' => array_values(array_unique(array_merge(array_keys(config('gpoa_activity_limits', [])), ['Religious Activity', 'Socio-Cultural and Sports', 'Makakalikasan (Clean and Green)', 'Extension Services Conducted'])) )])
                                             </select>
+                                            <p class="mt-1 text-xs text-slate-500">Optional. You will provide this when requesting the activity.</p>
                                         </div>
                                         <div class="form-group md:col-span-2">
                                             <div class="sdg-widget" x-init="$nextTick(() => { const summary = $el.querySelector('[data-sdg-summary]'); const colors = @js(config('sdg')); const update = () => { const selected = activity.sdgs || []; summary.innerHTML = selected.length ? selected.map(number => `<span class='sdg-badge' style='background-color: ${colors[number].color}; color: ${colors[number].text}'>SDG ${number}</span>`).join('') : '<span class=&quot;sdg-placeholder&quot;>No SDGs selected yet</span>'; }; $el.addEventListener('change', update); update(); })">
@@ -287,8 +292,9 @@
                                                     <p x-show="fieldError(index, 'estimated_budget')" x-text="fieldError(index, 'estimated_budget')" class="text-xs text-red-600"></p>
                                                 </div>
                                                 <div class="form-group md:col-span-2">
-                                                    <label>Source of Funds *</label>
-                                                    <input type="text" :name="'planned_activities[' + index + '][source_of_funds]'" x-model="activity.source_of_funds" required class="w-full rounded-lg border border-gray-300 px-3 py-2">
+                                                    <label>Source of Funds</label>
+                                                    <input type="text" :name="'planned_activities[' + index + '][source_of_funds]'" x-model="activity.source_of_funds" class="w-full rounded-lg border border-gray-300 px-3 py-2">
+                                                    <p class="mt-1 text-xs text-slate-500">Optional. You will provide this when requesting the activity.</p>
                                                     <p x-show="fieldError(index, 'source_of_funds')" x-text="fieldError(index, 'source_of_funds')" class="text-xs text-red-600"></p>
                                                 </div>
                                             </div>
@@ -346,6 +352,7 @@
             importing: false,
             importSummary: '',
             importNotes: [],
+            skippedRows: [],
             repeatedTitleHint: '',
             importError: '',
             activities: (() => {
@@ -419,10 +426,10 @@
                 const validDate = activity.time_frame === 'exact_date' ? Boolean(activity.date)
                     : activity.time_frame === 'date_range' ? Boolean(activity.date && activity.end_date)
                     : activity.time_frame === 'month_only' ? Boolean(activity.date) : false;
-                return Boolean(activity.title?.trim() && validDate && activity.category && activity.venue?.trim() && activity.sdgs?.length
+                return Boolean(activity.title?.trim() && validDate && activity.venue?.trim() && activity.sdgs?.length
                     && activity.objectives?.trim() && activity.expected_outcome?.trim() && activity.plan_key_strategy?.trim()
                     && activity.target_participants?.trim() && activity.person_in_charge?.trim() && activity.facilities_materials?.trim()
-                    && activity.estimated_budget !== '' && activity.estimated_budget !== null && activity.source_of_funds?.trim());
+                    && activity.estimated_budget !== '' && activity.estimated_budget !== null);
             },
             copyDetailsFrom(index, sourceIndex) {
                 if (sourceIndex === '' || sourceIndex === null) return;
@@ -446,6 +453,7 @@
                 this.importError = '';
                 this.importSummary = '';
                 this.importNotes = [];
+                this.skippedRows = [];
                 this.repeatedTitleHint = '';
 
                 if (this.activities.some(activity => ['title', 'date', 'end_date', 'start_time', 'end_time', 'venue', 'category', ...this.detailFields].some(field => String(activity[field] ?? '').trim() !== '') || activity.sdgs?.length)) {
@@ -498,8 +506,9 @@
                     }));
                     this.importSummary = `Imported ${this.activities.length} activities`;
                     this.importNotes = result.warnings || [];
-                    if (result.skipped) this.importNotes.unshift(`${result.skipped} rows skipped because the maximum is 34.`);
-                    this.repeatedTitleHint = (result.repeated_titles || []).map(item => `${item.title} x${item.count}`).join('; ');
+                    this.skippedRows = result.skipped_rows || [];
+                    const repeatedTitles = (result.repeated_titles || []).map(item => `${item.title} x${item.count}`);
+                    this.repeatedTitleHint = repeatedTitles.length ? `Repeated titles (check if intentional): ${repeatedTitles.join('; ')}` : '';
                 } catch (error) {
                     this.importError = error.message || 'This file could not be read. Choose a valid DOCX or XLSX file.';
                 } finally {

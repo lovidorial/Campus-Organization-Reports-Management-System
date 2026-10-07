@@ -10,6 +10,7 @@ use App\Services\GpoaImportParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -411,7 +412,9 @@ class GpoaController extends Controller
             'end_time' => trim((string) ($activityData['end_time'] ?? '')) !== '' ? trim((string) $activityData['end_time']) : null,
             'date_is_month_only' => $timeFrame === 'month_only' || ! empty($activityData['date_is_month_only']),
             'venue' => trim((string) ($activityData['venue'] ?? '')) !== '' ? trim((string) $activityData['venue']) : null,
-            'category' => trim((string) ($activityData['category'] ?? '')),
+            'category' => trim((string) ($activityData['category'] ?? '')) !== ''
+                ? trim((string) $activityData['category'])
+                : null,
             'sdgs' => $sdgs,
             'objectives' => trim((string) ($activityData['objectives'] ?? '')),
             'expected_outcome' => trim((string) ($activityData['expected_outcome'] ?? '')),
@@ -422,7 +425,9 @@ class GpoaController extends Controller
             'estimated_budget' => trim((string) ($activityData['estimated_budget'] ?? '')) !== ''
                 ? (float) $activityData['estimated_budget']
                 : null,
-            'source_of_funds' => trim((string) ($activityData['source_of_funds'] ?? '')),
+            'source_of_funds' => trim((string) ($activityData['source_of_funds'] ?? '')) !== ''
+                ? trim((string) $activityData['source_of_funds'])
+                : null,
         ];
     }
 
@@ -446,6 +451,16 @@ class GpoaController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'planned_activities' => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
+            'planned_activities.*.category' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::in(array_values(array_unique(array_merge(
+                    array_keys((array) config('gpoa_activity_limits', [])),
+                    ['Religious Activity', 'Socio-Cultural and Sports', 'Makakalikasan (Clean and Green)', 'Extension Services Conducted']
+                )))),
+            ],
+            'planned_activities.*.source_of_funds' => 'nullable|string|max:255',
         ], [
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
         ]);
@@ -463,7 +478,6 @@ class GpoaController extends Controller
                 $date = trim((string) ($activity['date'] ?? ''));
                 $endDate = trim((string) ($activity['end_date'] ?? ''));
                 $venue = trim((string) ($activity['venue'] ?? ''));
-                $category = trim((string) ($activity['category'] ?? ''));
                 if ($this->isBlankPlannedActivity($activity)) {
                     continue;
                 }
@@ -502,7 +516,6 @@ class GpoaController extends Controller
                 }
 
                 foreach ([
-                    'category' => 'Category',
                     'venue' => 'Venue',
                     'objectives' => 'Objectives',
                     'expected_outcome' => 'Expected Outcome',
@@ -510,7 +523,6 @@ class GpoaController extends Controller
                     'target_participants' => 'Target Participants',
                     'person_in_charge' => 'Person in Charge',
                     'facilities_materials' => 'Facilities / Materials',
-                    'source_of_funds' => 'Source of Funds',
                 ] as $field => $label) {
                     if (trim((string) ($activity[$field] ?? '')) === '') {
                         $validator->errors()->add("planned_activities.{$index}.{$field}", "Activity {$activityNumber}: {$label} is required.");

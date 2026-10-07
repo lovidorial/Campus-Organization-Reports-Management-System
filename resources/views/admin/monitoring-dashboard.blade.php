@@ -8,6 +8,23 @@
             <a href="{{ route('admin.activities') }}" class="inline-flex items-center rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Open Activity Monitoring</a>
         </header>
 
+        @if($backupWarning)
+            <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-950" role="alert">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-base font-bold">Your backup is due.</p>
+                        @if($nextDueAt)
+                            <p class="mt-1 text-xs">Next backup due: <strong>{{ $nextDueAt->timezone(config('app.timezone'))->format('F j, Y g:i A') }}</strong></p>
+                        @endif
+                    </div>
+                    <form action="{{ route('admin.backups.store') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">Back up now</button>
+                    </form>
+                </div>
+            </div>
+        @endif
+
         @php
             $statusChart = ['labels' => ['Pending', 'Ongoing', 'Completed', 'Archived'], 'values' => [$stats['Pending'], $stats['Ongoing'], $stats['Completed'], $stats['Archived']]];
             $statusTotal = array_sum($statusChart['values']);

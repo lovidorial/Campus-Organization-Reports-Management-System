@@ -5,12 +5,13 @@ namespace App\Console\Commands;
 use App\Models\BackupSetting;
 use App\Services\BackupService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class RunScheduledBackup extends Command
 {
-    protected $signature = 'backup:run';
+    protected $signature = 'backup:run {--source=scheduled}';
 
     protected $description = 'Run scheduled backups when enabled';
 
@@ -24,25 +25,21 @@ class RunScheduledBackup extends Command
 
         $settings = BackupSetting::query()->first();
 
-        if (! $settings || $settings->frequency === 'manual') {
+        if (! $settings || ! $backupService->isBackupDue($settings)) {
             return self::SUCCESS;
         }
 
-        $now = now();
-        $lastRunAt = $settings->last_run_at;
-
-        $shouldRun = match ($settings->frequency) {
-            'monthly' => ! $lastRunAt || $lastRunAt->diffInDays($now) >= 30,
-            'per_semester' => ! $lastRunAt || $this->currentSemester($now) !== $this->currentSemester($lastRunAt),
-            'per_school_year' => ! $lastRunAt || $this->currentSchoolYear($now) !== $this->currentSchoolYear($lastRunAt),
-            default => false,
-        };
-
-        if (! $shouldRun) {
+        $lock = Cache::lock('backup:execution', 86400);
+        if (! $lock->get()) {
             return self::SUCCESS;
         }
 
         try {
+            $settings->refresh();
+            if (! $backupService->isBackupDue($settings)) {
+                return self::SUCCESS;
+            }
+
             $created = $backupService->createBackup();
             $settings->update([
                 'last_run_at' => now(),
@@ -53,7 +50,7 @@ class RunScheduledBackup extends Command
                 ->withProperties([
                     'filename' => $created['filename'],
                     'size' => $created['size'],
-                    'source' => 'scheduled',
+                    'source' => (string) $this->option('source'),
                 ])
                 ->log('Scheduled local backup created: '.$created['filename']);
         } catch (\Throwable $exception) {
@@ -64,22 +61,12 @@ class RunScheduledBackup extends Command
             $this->error('Scheduled backup failed: '.$exception->getMessage());
 
             return self::FAILURE;
+        } finally {
+            $lock->release();
         }
 
         $this->info('Backup created: '.$created['filename']);
 
         return self::SUCCESS;
-    }
-
-    protected function currentSemester(\DateTimeInterface $date): int
-    {
-        return $date->format('n') >= 1 && $date->format('n') <= 6 ? 1 : 2;
-    }
-
-    protected function currentSchoolYear(\DateTimeInterface $date): int
-    {
-        $month = (int) $date->format('n');
-
-        return $month >= 8 ? (int) $date->format('Y') : (int) $date->format('Y') - 1;
     }
 }

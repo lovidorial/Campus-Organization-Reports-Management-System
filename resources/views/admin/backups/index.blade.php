@@ -21,14 +21,33 @@
         </div>
     @endunless
 
-    @if($backupWarning)
-        <div class="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
-            No successful backup has completed within the selected <strong>{{ str_replace('_', ' ', $backupSetting->frequency) }}</strong> frequency.
-            @if($lastSuccessfulAt)
-                Last success: {{ $lastSuccessfulAt->timezone(config('app.timezone'))->format('F j, Y g:i A') }}.
-            @else
-                No successful backup is recorded yet.
-            @endif
+    @if($schedulerVisible)
+        <div class="mb-4 flex flex-col justify-between gap-2 rounded-lg border px-4 py-3 text-sm shadow-sm sm:flex-row sm:items-center {{ $schedulerHealthy ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-300 bg-amber-50 text-amber-950' }}" role="status">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $schedulerHealthy ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                <span class="font-semibold">{{ $schedulerHealthy ? 'Automatic backup is on. It runs whenever the system is in use.' : 'Automatic backup has not run recently. Open the system or ask your IT staff to check.' }}</span>
+            </div>
+            <span class="shrink-0 text-xs">Last check: {{ $schedulerLastRunAt ? $schedulerLastRunAt->timezone(config('app.timezone'))->format('M j, Y g:i A') : 'No check recorded' }}</span>
+        </div>
+    @endif
+
+    @if($backupWarning || session('backup_due_after_schedule'))
+        <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-950" role="alert">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-base font-bold">Your backup is due. Back up now?</p>
+                    @unless(session('backup_due_after_schedule'))
+                        <p class="mt-1">No successful backup has completed within the selected <strong>{{ str_replace('_', ' ', $backupSetting->frequency) }}</strong> frequency.</p>
+                    @endunless
+                    @if($nextDueAt)
+                        <p class="mt-1 text-xs">Next backup due: <strong>{{ $nextDueAt->timezone(config('app.timezone'))->format('F j, Y g:i A') }}</strong></p>
+                    @endif
+                </div>
+                <form action="{{ route('admin.backups.store') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">Back up now</button>
+                </form>
+            </div>
         </div>
     @endif
 
@@ -36,6 +55,9 @@
         <p><strong>Last successful backup:</strong>
             {{ $lastSuccessfulAt ? $lastSuccessfulAt->timezone(config('app.timezone'))->format('F j, Y g:i A') : 'None recorded' }}
         </p>
+        @if($nextDueAt)
+            <p class="mt-2"><strong>Next backup due:</strong> {{ $nextDueAt->timezone(config('app.timezone'))->format('F j, Y g:i A') }}</p>
+        @endif
         @if($backupSetting->last_error)
             <p class="mt-2 text-red-700"><strong>Last backup error:</strong> {{ $backupSetting->last_error }}</p>
         @endif
@@ -44,7 +66,12 @@
     @if(session('success'))
         <div id="backupSuccessToast" class="fixed top-4 right-4 z-[60] flex max-w-sm items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-lg transition-opacity duration-300" role="status" aria-live="polite">
             <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6"/></svg>
-            <p class="min-w-0 flex-1">{{ session('success') }}</p>
+            <p class="min-w-0 flex-1">
+                {{ session('success') }}
+                @if(session('download_filename'))
+                    <a href="{{ route('admin.backups.download', ['filename' => session('download_filename')]) }}" class="mt-1 inline-flex font-semibold text-green-700 underline">Download now</a>
+                @endif
+            </p>
             <button type="button" data-dismiss-success-toast class="-mr-2 -mt-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-green-700 hover:bg-green-100" aria-label="Dismiss success message">&times;</button>
         </div>
     @endif
@@ -117,13 +144,6 @@
             <li>After restoration, verify the organizations, latest submissions, and uploaded documents before reopening access.</li>
         </ol>
         <p class="mt-2 text-xs text-amber-900">Restore requires a ZIP containing <code>database.sql</code> and <code>storage/public/</code>, and may take several minutes. A local pre-restore recovery archive is created automatically. Do not interrupt the operation.</p>
-    </section>
-
-    <section class="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700" aria-labelledby="scheduler-heading">
-        <h2 id="scheduler-heading" class="font-semibold text-slate-900">Run the Laravel scheduler on this host</h2>
-        <p class="mt-1">The scheduled backup command is registered with Laravel’s scheduler. Run this every minute from the project directory:</p>
-        <pre class="mt-2 overflow-x-auto rounded bg-slate-900 p-3 text-xs text-white"><code>php artisan schedule:run</code></pre>
-        <p class="mt-2 text-xs">Linux cron: <code>* * * * * cd /path/to/Orgtrack &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code>. On Windows/XAMPP, create a Task Scheduler task that runs <code>php artisan schedule:run</code> every minute with the project directory as “Start in”.</p>
     </section>
 
     <section class="mt-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6" aria-labelledby="upload-restore-heading">

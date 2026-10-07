@@ -35,10 +35,12 @@ class GpoaImportParser
         }
 
         $activityRows = null;
+        $headerWarnings = [];
         foreach ($tables as $table) {
             $parsed = $this->rowsFromTable($table, $schoolYear);
-            if ($parsed !== null && $parsed !== []) {
-                $activityRows = $parsed;
+            if ($parsed !== null && $parsed['rows'] !== []) {
+                $activityRows = $parsed['rows'];
+                $headerWarnings = $parsed['header_warnings'];
                 break;
             }
         }
@@ -48,6 +50,10 @@ class GpoaImportParser
         }
 
         $skipped = max(0, count($activityRows) - self::MAX_ROWS);
+        $skippedRows = array_map(
+            static fn (array $row): string => $row['title'],
+            array_slice($activityRows, self::MAX_ROWS)
+        );
         $rows = array_slice($activityRows, 0, self::MAX_ROWS);
         $counts = [];
         foreach ($rows as $row) {
@@ -62,31 +68,31 @@ class GpoaImportParser
             }
         }
 
-        $warnings = [];
+        $warnings = $headerWarnings;
         if ($skipped > 0) {
             $warnings[] = "{$skipped} additional activity rows were skipped because the maximum is 34.";
-        }
-        foreach ($repeatedTitles as $repeated) {
-            $warnings[] = $repeated['title'] . ' x' . $repeated['count'];
         }
 
         return [
             'rows' => $rows,
             'warnings' => $warnings,
             'skipped' => $skipped,
+            'skipped_rows' => $skippedRows,
             'repeated_titles' => $repeatedTitles,
         ];
     }
 
     public function parseTimeFrameCell(string $value, string $schoolYear): array
     {
-        $text = preg_replace('/\s+/u', ' ', str_replace(',', ', ', trim($value))) ?? trim($value);
+        $text = preg_replace('/\s+/u', ' ', str_replace(["\r", "\n", "\t"], ' ', trim($value))) ?? trim($value);
         $text = preg_replace('/,\s+/', ', ', $text) ?? $text;
         $warnings = [];
         $startTime = null;
         $endTime = null;
 
-        if (preg_match('/\b(\d{1,2}):(\d{2})\s*(AM|PM)?\s*[-–—]\s*(\d{1,2}):(\d{2})\s*(AM|PM)?\b/i', $text, $timeMatch, PREG_OFFSET_CAPTURE)) {
+        $timePattern = '/(?<!\d)(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*(?:[-–—]|\bto\b)\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?(?!\d)/i';
+        if (preg_match($timePattern, $text, $timeMatch, PREG_OFFSET_CAPTURE)
+            && (($timeMatch[2][0] ?? '') !== '' || ($timeMatch[5][0] ?? '') !== '' || ($timeMatch[3][0] ?? '') !== '' || ($timeMatch[6][0] ?? '') !== '')) {
             $first = $this->normalizeTime($timeMatch[1][0], $timeMatch[2][0] ?? '', $timeMatch[3][0] ?? '');
             $second = $this->normalizeTime($timeMatch[4][0], $timeMatch[5][0] ?? '', $timeMatch[6][0] ?? '');
             $startTime = $first['time'];
@@ -104,7 +110,10 @@ class GpoaImportParser
             $text = trim($text, " ,\t\n\r\0\x0B");
         }
 
-        $months = 'January|February|March|April|May|June|July|August|September|October|November|December';
+        $text = preg_replace('/\s*\((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\)\s*$/i', '', $text) ?? $text;
+        $text = preg_replace('/\s+(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*$/i', '', $text) ?? $text;
+        $text = trim($text, " ,\t\n\r\0\x0B");
+        $months = '(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan\\.?|Feb\\.?|Mar\\.?|Apr\\.?|Jun\\.?|Jul\\.?|Aug\\.?|Sep\\.?|Sept\\.?|Oct\\.?|Nov\\.?|Dec\\.?)';
         $result = [
             'time_frame' => '',
             'date' => null,
@@ -114,7 +123,14 @@ class GpoaImportParser
             'warnings' => $warnings,
         ];
 
-        if (preg_match('/^(' . $months . ')\s+(\d{1,2})\s*[-–—]\s*(\d{1,2})(?:\s*,?\s*(\d{4}))?$/i', $text, $match)) {
+        if (preg_match('/^(' . $months . ')\s+(\d{1,2})\s*(?:&|and|,)\s*(\d{1,2})$/i', $text, $match)) {
+            $date = $this->makeDate($year ?? $this->inferYear($match[1], $schoolYear), $match[1], (int) $match[2]);
+            if ($date) {
+                $result['time_frame'] = 'exact';
+                $result['date'] = $date;
+                $result['warnings'][] = 'Multiple dates found; first date selected.';
+            }
+        } elseif (preg_match('/^(' . $months . ')\s+(\d{1,2})\s*[-–—]\s*(\d{1,2})(?:\s*,?\s*(\d{4}))?$/i', $text, $match)) {
             $resolvedYear = isset($match[4]) && $match[4] !== '' ? (int) $match[4] : ($year ?? $this->inferYear($match[1], $schoolYear));
             $start = $this->makeDate($resolvedYear, $match[1], (int) $match[2]);
             $end = $this->makeDate($resolvedYear, $match[1], (int) $match[3]);
@@ -126,6 +142,12 @@ class GpoaImportParser
         } elseif (preg_match('/^(' . $months . ')\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?$/i', $text, $match)) {
             $resolvedYear = isset($match[3]) && $match[3] !== '' ? (int) $match[3] : ($year ?? $this->inferYear($match[1], $schoolYear));
             $date = $this->makeDate($resolvedYear, $match[1], (int) $match[2]);
+            if ($date) {
+                $result['time_frame'] = 'exact';
+                $result['date'] = $date;
+            }
+        } elseif (preg_match('/^(\d{1,2})\s+(' . $months . ')$/i', $text, $match)) {
+            $date = $this->makeDate($year ?? $this->inferYear($match[2], $schoolYear), $match[2], (int) $match[1]);
             if ($date) {
                 $result['time_frame'] = 'exact';
                 $result['date'] = $date;
@@ -166,18 +188,13 @@ class GpoaImportParser
             return null;
         }
 
-        [$headerEnd, $columns] = $header;
-        while (isset($table[$headerEnd + 1]) && $this->isHeaderRow($table[$headerEnd + 1], $columns)) {
-            $headerEnd++;
-        }
+        [$headerEnd, $columns, $headerWarnings] = $header;
 
         $rows = [];
         foreach (array_slice($table, $headerEnd + 1) as $cells) {
             $combined = mb_strtolower(implode(' ', $cells));
             $title = $this->cleanText($cells[$columns['title']] ?? '');
-            $timeFrameHeader = mb_strtolower($this->cleanText((string) ($cells[$columns['time_frame']] ?? '')));
-            if ($this->isHeaderText($combined)
-                || (str_contains(mb_strtolower($title), 'program') && str_contains($timeFrameHeader, 'time frame'))) {
+            if ($this->isHeaderText($combined)) {
                 continue;
             }
 
@@ -189,16 +206,19 @@ class GpoaImportParser
             $sdgs = $columns['sdgs'] !== null
                 ? $this->extractSdgs((string) ($cells[$columns['sdgs']] ?? ''))
                 : [];
-            $facilitiesMaterials = $this->cellValue($cells, $columns['facilities']);
-            $deliveryStrategy = $this->cellValue($cells, $columns['delivery']);
+            $facilitiesRaw = $this->cellValue($cells, $columns['facilities'], true);
+            $facilitiesMaterials = $this->removeVenueLine($facilitiesRaw);
+            $deliveryStrategy = $this->cellValue($cells, $columns['delivery'], true);
             $budget = $this->cellValue($cells, $columns['estimated_budget']);
             $budgetNumber = preg_match('/-?\d[\d,]*(?:\.\d+)?/', $budget, $budgetMatch)
                 ? (float) str_replace(',', '', $budgetMatch[0])
                 : null;
-            $rowWarnings = $parsedTime['warnings'];
+            $rowWarnings = array_merge($headerWarnings, $parsedTime['warnings']);
             if ($columns['sdgs'] !== null && $sdgs === []) {
                 $rowWarnings[] = 'No SDGs detected';
             }
+            $rawCategory = $this->cellValue($cells, $columns['category']);
+            $category = $this->normalizeCategory($rawCategory);
 
             $rows[] = [
                 'title' => $title,
@@ -207,103 +227,147 @@ class GpoaImportParser
                 'end_date' => $parsedTime['end_date'],
                 'start_time' => $parsedTime['start_time'],
                 'end_time' => $parsedTime['end_time'],
-                'venue' => $this->extractVenue(
-                    $facilitiesMaterials,
-                    $deliveryStrategy
-                ),
-                'category' => $this->cellValue($cells, $columns['category']),
+                'venue' => $this->extractVenue($facilitiesRaw, $deliveryStrategy),
+                'category' => $category,
                 'sdgs' => $sdgs,
-                'objectives' => $this->cellValue($cells, $columns['objectives']),
-                'expected_outcome' => $this->cellValue($cells, $columns['expected_outcome']),
+                'objectives' => $this->cellValue($cells, $columns['objectives'], true),
+                'expected_outcome' => $this->cellValue($cells, $columns['expected_outcome'], true),
                 'plan_key_strategy' => $deliveryStrategy,
-                'target_participants' => $this->cellValue($cells, $columns['target_participants']),
-                'person_in_charge' => $this->cellValue($cells, $columns['person_in_charge']),
+                'target_participants' => $this->cellValue($cells, $columns['target_participants'], true),
+                'person_in_charge' => $this->cellValue($cells, $columns['person_in_charge'], true),
                 'facilities_materials' => $facilitiesMaterials,
                 'estimated_budget' => $budgetNumber,
-                'source_of_funds' => $this->cellValue($cells, $columns['source_of_funds']),
+                'source_of_funds' => $columns['source_of_funds'] === null
+                    ? null
+                    : $this->cellValue($cells, $columns['source_of_funds'], true),
                 'warnings' => $rowWarnings,
             ];
         }
 
-        return $rows;
+        return ['rows' => $rows, 'header_warnings' => $headerWarnings];
     }
 
     private function findHeader(array $table): ?array
     {
         $rowCount = count($table);
         for ($start = 0; $start < $rowCount; $start++) {
-            for ($height = 1; $height <= 3 && $start + $height <= $rowCount; $height++) {
-                $headers = [];
-                for ($row = $start; $row < $start + $height; $row++) {
-                    foreach ($table[$row] as $column => $value) {
-                        $headers[$column] = trim(($headers[$column] ?? '') . ' ' . $this->cleanText((string) $value));
-                    }
-                }
+            $headers = $this->combineHeaderRows([$table[$start]]);
+            $columns = $this->buildColumns($headers);
+            if ($columns['title'] === null || $columns['time_frame'] === null) {
+                continue;
+            }
 
-                $joined = mb_strtolower(implode(' ', $headers));
-                if (! str_contains($joined, 'program') || ! str_contains($joined, 'time frame')) {
-                    continue;
-                }
+            $headerEnd = $start;
+            while (isset($table[$headerEnd + 1]) && $this->isHeaderRow($table[$headerEnd + 1], $columns)) {
+                $headerEnd++;
+            }
+            $headers = $this->combineHeaderRows(array_slice($table, $start, $headerEnd - $start + 1));
+            $columns = $this->buildColumns($headers);
 
-                $columns = [
-                    'title' => null,
-                    'time_frame' => null,
-                    'facilities' => null,
-                    'delivery' => null,
-                    'sdgs' => null,
-                    'category' => null,
-                    'objectives' => null,
-                    'expected_outcome' => null,
-                    'target_participants' => null,
-                    'person_in_charge' => null,
-                    'estimated_budget' => null,
-                    'source_of_funds' => null,
-                ];
-                foreach ($headers as $index => $text) {
-                    $normalized = mb_strtolower(trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text) ?? $text));
-                    $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
-                    if ($columns['time_frame'] === null && str_contains($normalized, 'time frame')) {
-                        $columns['time_frame'] = $index;
-                    }
-                    if ($columns['title'] === null && (str_contains($normalized, 'program') || str_contains($normalized, 'activities') || str_contains($normalized, 'project'))) {
-                        $columns['title'] = $index;
-                    }
-                    if ($columns['facilities'] === null && (str_contains($normalized, 'facilities') || str_contains($normalized, 'materials'))) {
-                        $columns['facilities'] = $index;
-                    }
-                    if ($columns['delivery'] === null && str_contains($normalized, 'delivery strategy')) {
-                        $columns['delivery'] = $index;
-                    }
-                    if ($columns['sdgs'] === null && (str_contains($normalized, 'sdg') || str_contains($normalized, 'sustainable development goal') || str_contains($normalized, 'sustainable development'))) {
-                        $columns['sdgs'] = $index;
-                    }
-                    foreach ([
-                        'category' => ['category'],
-                        'objectives' => ['objective'],
-                        'expected_outcome' => ['expected outcome', 'expected result'],
-                        'target_participants' => ['target participant', 'participant', 'recipient'],
-                        'person_in_charge' => ['person in charge', 'persons in charge', 'in charge'],
-                        'estimated_budget' => ['estimated budget', 'budgetary requirement', 'budget'],
-                        'source_of_funds' => ['source of funds', 'funding source'],
-                    ] as $field => $aliases) {
-                        if ($columns[$field] === null && collect($aliases)->contains(fn ($alias) => str_contains($normalized, $alias))) {
-                            $columns[$field] = $index;
-                        }
-                    }
-                }
-
-                if ($columns['title'] !== null && $columns['time_frame'] !== null) {
-                    return [$start + $height - 1, $columns];
+            $headerWarnings = [];
+            foreach ([
+                'person_in_charge' => 'Persons Involved',
+                'facilities' => 'Facilities / Materials',
+                'estimated_budget' => 'Budget Allocation',
+            ] as $field => $label) {
+                if ($columns[$field] === null) {
+                    $headerWarnings[] = "Column not found: {$label}";
                 }
             }
+
+            return [$headerEnd, $columns, $headerWarnings];
         }
 
         return null;
     }
 
-    private function cellValue(array $cells, ?int $column): string
+    private function combineHeaderRows(array $rows): array
     {
-        return $column === null ? '' : $this->cleanText((string) ($cells[$column] ?? ''));
+        $headers = [];
+        foreach ($rows as $row) {
+            foreach ($row as $column => $value) {
+                $headers[$column] = trim(($headers[$column] ?? '') . ' ' . $this->cleanText((string) $value));
+            }
+        }
+
+        return $headers;
+    }
+
+    private function buildColumns(array $headers): array
+    {
+        $columns = array_fill_keys([
+            'title', 'time_frame', 'facilities', 'delivery', 'sdgs', 'category', 'objectives',
+            'expected_outcome', 'target_participants', 'person_in_charge', 'estimated_budget', 'source_of_funds',
+        ], null);
+
+        foreach ($headers as $index => $text) {
+            $normalized = mb_strtolower(trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text) ?? $text));
+            $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+            if ($columns['time_frame'] === null && str_contains($normalized, 'time frame')) {
+                $columns['time_frame'] = $index;
+            }
+            if ($columns['title'] === null && (str_contains($normalized, 'program') || str_contains($normalized, 'activities') || str_contains($normalized, 'project'))) {
+                $columns['title'] = $index;
+            }
+            if ($columns['facilities'] === null && (str_contains($normalized, 'facilities') || str_contains($normalized, 'materials'))) {
+                $columns['facilities'] = $index;
+            }
+            if ($columns['delivery'] === null && str_contains($normalized, 'delivery strategy')) {
+                $columns['delivery'] = $index;
+            }
+            if ($columns['sdgs'] === null && (str_contains($normalized, 'sdg') || str_contains($normalized, 'sustainable development goal') || str_contains($normalized, 'sustainable development'))) {
+                $columns['sdgs'] = $index;
+            }
+            foreach ([
+                'category' => ['category'],
+                'objectives' => ['objective'],
+                'expected_outcome' => ['expected outcome', 'expected result'],
+                'target_participants' => ['target participant', 'participant', 'recipient'],
+                'person_in_charge' => ['person in charge', 'persons in charge', 'in charge', 'persons involved', 'person involved', 'involved', 'responsible'],
+                'estimated_budget' => ['estimated budget', 'budgetary requirement', 'budget allocation', 'budget'],
+                'source_of_funds' => ['source of funds', 'funding source', 'fund source', 'source of fund', 'funds'],
+            ] as $field => $aliases) {
+                if ($columns[$field] === null && collect($aliases)->contains(fn ($alias) => str_contains($normalized, $alias))) {
+                    $columns[$field] = $index;
+                }
+            }
+        }
+
+        return $columns;
+    }
+
+    private function cellValue(array $cells, ?int $column, bool $multiline = false): string
+    {
+        if ($column === null) {
+            return '';
+        }
+
+        $value = (string) ($cells[$column] ?? '');
+
+        return $multiline ? $this->cleanMultiline($value) : $this->cleanText($value);
+    }
+
+    private function removeVenueLine(string $value): string
+    {
+        $lines = preg_split('/\R/u', $value) ?: [];
+        $lines = array_filter($lines, static fn (string $line): bool => preg_match('/^\s*Venue\s*:/i', $line) !== 1);
+
+        return $this->cleanMultiline(implode("\n", $lines));
+    }
+
+    private function normalizeCategory(string $category): ?string
+    {
+        if (trim($category) === '') {
+            return null;
+        }
+
+        foreach (array_keys((array) config('gpoa_activity_limits', [])) as $allowed) {
+            if (mb_strtolower(trim($category)) === mb_strtolower($allowed)) {
+                return $allowed;
+            }
+        }
+
+        return null;
     }
 
     private function extractSdgs(string $value): array
@@ -543,7 +607,12 @@ class GpoaImportParser
 
     private function monthNumber(string $month): int
     {
-        $date = DateTimeImmutable::createFromFormat('!F', ucfirst(strtolower($month)));
+        $month = rtrim(trim($month), '.');
+        if (mb_strtolower($month) === 'sept') {
+            $month = 'September';
+        }
+        $format = strlen($month) <= 3 ? '!M' : '!F';
+        $date = DateTimeImmutable::createFromFormat($format, ucfirst(strtolower($month)));
 
         return $date ? (int) $date->format('n') : 0;
     }
@@ -551,6 +620,14 @@ class GpoaImportParser
     private function cleanText(string $value): string
     {
         return trim(preg_replace('/\s+/u', ' ', str_replace(["\u{00A0}", "\t", "\r", "\n"], ' ', $value)) ?? $value);
+    }
+
+    private function cleanMultiline(string $value): string
+    {
+        $value = str_replace(["\u{00A0}", "\r\n", "\r", "\t"], [' ', "\n", "\n", ' '], $value);
+        $lines = array_map(static fn (string $line): string => trim(preg_replace('/[\p{Z}\s]+/u', ' ', $line) ?? $line), preg_split('/\n/u', $value) ?: []);
+
+        return trim(implode("\n", array_filter($lines, static fn (string $line): bool => $line !== '')));
     }
 
     private function isHeaderText(string $text): bool

@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\RunDueScheduledTasks;
 use App\Models\BackupArchive;
 use App\Models\BackupSetting;
 use App\Models\User;
 use App\Services\BackupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Spatie\Activitylog\Models\Activity as ActivityLog;
 use Tests\TestCase;
@@ -20,6 +22,8 @@ class BackupManagementTest extends TestCase
     public function test_admin_backup_page_renders_with_archive_download_tracking(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
+        BackupSetting::query()->firstOrFail()->update(['frequency' => 'monthly']);
+        Cache::put('scheduler_last_run_at', now()->subMinute());
 
         $this->actingAs($admin)
             ->get(route('admin.backups.index'))
@@ -27,7 +31,128 @@ class BackupManagementTest extends TestCase
             ->assertSee('Last successful backup')
             ->assertSee('Last Downloaded')
             ->assertSee('Never downloaded')
-            ->assertSee('php artisan schedule:run');
+            ->assertSee('Automatic backup is on. It runs whenever the system is in use.');
+    }
+
+    public function test_backup_page_shows_due_warning_and_next_due_date(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        BackupSetting::query()->firstOrFail()->update([
+            'frequency' => 'monthly',
+            'last_successful_at' => now()->subDays(45),
+        ]);
+        Cache::put('scheduler_last_run_at', now()->subMinute());
+
+        $this->actingAs($admin)
+            ->get(route('admin.backups.index'))
+            ->assertOk()
+            ->assertSee('Your backup is due.')
+            ->assertSee('Back up now')
+            ->assertSee('Next backup due');
+    }
+
+    public function test_backup_page_shows_amber_scheduler_status_for_stale_heartbeat(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        BackupSetting::query()->firstOrFail()->update(['frequency' => 'monthly']);
+        Cache::put('scheduler_last_run_at', now()->subHours(25));
+
+        $this->actingAs($admin)
+            ->get(route('admin.backups.index'))
+            ->assertOk()
+            ->assertSee('Automatic backup has not run recently. Open the system or ask your IT staff to check.');
+    }
+
+    public function test_backup_page_uses_five_minute_status_window_when_web_scheduler_is_disabled(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        BackupSetting::query()->firstOrFail()->update(['frequency' => 'monthly']);
+        config(['backup.web_scheduler' => false]);
+        Cache::put('scheduler_last_run_at', now()->subMinutes(4));
+
+        $this->actingAs($admin)
+            ->get(route('admin.backups.index'))
+            ->assertOk()
+            ->assertSee('Automatic backup is on. It runs whenever the system is in use.');
+
+        Cache::put('scheduler_last_run_at', now()->subMinutes(6));
+        $this->get(route('admin.backups.index'))
+            ->assertOk()
+            ->assertSee('Automatic backup has not run recently. Open the system or ask your IT staff to check.');
+    }
+
+    public function test_web_scheduler_dispatches_due_backup_only_once_per_minute(): void
+    {
+        config(['backup.web_scheduler_in_tests' => true]);
+        BackupSetting::query()->firstOrFail()->update([
+            'frequency' => 'monthly',
+            'last_successful_at' => now()->subDays(31),
+        ]);
+        Cache::forget('scheduler:web-tick');
+        $middleware = $this->fakeWebScheduler(true);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get(route('admin.backups.index'))->assertOk();
+        $this->get(route('admin.backups.index'))->assertOk();
+
+        $this->assertSame(1, $middleware->startAttempts);
+        $this->assertNotNull(Cache::get('scheduler_last_run_at'));
+    }
+
+    public function test_web_scheduler_skips_manual_frequency_and_disabled_setting(): void
+    {
+        config(['backup.web_scheduler_in_tests' => true]);
+        Cache::forget('scheduler:web-tick');
+        $middleware = $this->fakeWebScheduler(true);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get(route('admin.backups.index'))->assertOk();
+        $this->assertSame(0, $middleware->startAttempts);
+
+        BackupSetting::query()->firstOrFail()->update([
+            'frequency' => 'monthly',
+            'last_successful_at' => now()->subDays(31),
+        ]);
+        Cache::forget('scheduler:web-tick');
+        config(['backup.web_scheduler' => false]);
+
+        $this->get(route('admin.backups.index'))->assertOk();
+        $this->assertSame(0, $middleware->startAttempts);
+    }
+
+    public function test_web_scheduler_spawn_failure_does_not_break_request(): void
+    {
+        config(['backup.web_scheduler_in_tests' => true]);
+        BackupSetting::query()->firstOrFail()->update([
+            'frequency' => 'monthly',
+            'last_successful_at' => now()->subDays(31),
+        ]);
+        Cache::forget('scheduler:web-tick');
+        $middleware = $this->fakeWebScheduler(false);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get(route('admin.backups.index'))->assertOk();
+
+        $this->assertSame(1, $middleware->startAttempts);
+        $this->assertSame(1, $middleware->fallbackAttempts);
+    }
+
+    public function test_saving_an_overdue_schedule_prompts_for_backup_without_starting_one(): void
+    {
+        config(['backup.web_scheduler_in_tests' => true]);
+        Cache::forget('scheduler:web-tick');
+        $middleware = $this->fakeWebScheduler(true);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->put(route('admin.backups.schedule'), ['frequency' => 'monthly', 'retention_count' => 5])
+            ->assertRedirect(route('admin.backups.index'))
+            ->assertSessionHas('backup_due_after_schedule', true);
+
+        $this->get(route('admin.backups.index'))
+            ->assertOk()
+            ->assertSee('Your backup is due. Back up now?');
+        $this->assertSame(0, $middleware->startAttempts);
     }
 
     public function test_manual_backup_is_pruned_and_logged_with_admin_as_actor(): void
@@ -42,11 +167,34 @@ class BackupManagementTest extends TestCase
         $service->shouldReceive('pruneOldBackups')->once();
         $this->app->instance(BackupService::class, $service);
 
-        $this->actingAs($admin)->post(route('admin.backups.store'))->assertRedirect(route('admin.backups.index'));
+        $this->actingAs($admin)
+            ->post(route('admin.backups.store'))
+            ->assertRedirect(route('admin.backups.index'))
+            ->assertSessionHas('download_filename', 'backup_manual.zip');
 
         $log = ActivityLog::query()->where('event', 'backup_created')->firstOrFail();
         $this->assertSame($admin->id, $log->causer_id);
         $this->assertSame('backup_manual.zip', $log->properties['filename']);
+    }
+
+    public function test_scheduled_backup_logs_web_trigger_source(): void
+    {
+        $settings = BackupSetting::query()->firstOrFail();
+        $settings->update(['frequency' => 'monthly', 'last_successful_at' => now()->subDays(31)]);
+        $service = \Mockery::mock(BackupService::class);
+        $service->shouldReceive('isBackupDue')->twice()->andReturn(true);
+        $service->shouldReceive('createBackup')->once()->andReturn([
+            'filename' => 'backup_web_trigger.zip',
+            'path' => storage_path('app/backups/backup_web_trigger.zip'),
+            'size' => 128,
+        ]);
+        $service->shouldReceive('pruneOldBackups')->once();
+        $this->app->instance(BackupService::class, $service);
+
+        $this->artisan('backup:run', ['--source' => 'web-trigger'])->assertExitCode(0);
+
+        $log = ActivityLog::query()->where('event', 'backup_created')->firstOrFail();
+        $this->assertSame('web-trigger', $log->properties['source']);
     }
 
     public function test_manual_backup_failure_is_logged_and_visible_on_backup_settings(): void
@@ -203,5 +351,34 @@ class BackupManagementTest extends TestCase
             'description' => 'Deleted backup '.$filename,
         ]);
         $this->assertFileDoesNotExist($directory.DIRECTORY_SEPARATOR.$filename);
+    }
+
+    private function fakeWebScheduler(bool $spawnSucceeds): object
+    {
+        $middleware = new class(app(BackupService::class)) extends RunDueScheduledTasks
+        {
+            public int $startAttempts = 0;
+
+            public int $fallbackAttempts = 0;
+
+            public bool $spawnSucceeds = false;
+
+            protected function startDetachedProcess(): bool
+            {
+                $this->startAttempts++;
+
+                return $this->spawnSucceeds;
+            }
+
+            protected function runAfterResponse(): void
+            {
+                $this->fallbackAttempts++;
+            }
+        };
+
+        $middleware->spawnSucceeds = $spawnSucceeds;
+        $this->app->instance(RunDueScheduledTasks::class, $middleware);
+
+        return $middleware;
     }
 }

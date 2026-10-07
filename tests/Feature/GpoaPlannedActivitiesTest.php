@@ -92,6 +92,48 @@ class GpoaPlannedActivitiesTest extends TestCase
         $this->assertSame('11:00', $activity->end_time);
     }
 
+    public function test_store_accepts_missing_optional_category_and_source_of_funds(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+
+        $this->actingAs($user)->post(route('gpoa.store'), [
+            'colleges' => 'CICS',
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'prepared_by' => 'Jane Doe',
+            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'approved_confirmation' => '1',
+            'verify' => '1',
+            'planned_activities' => [$this->completeActivityPayload()],
+        ])->assertRedirect(route('dashboard'));
+
+        $activity = Gpoa::query()->firstOrFail()->activities()->firstOrFail();
+        $this->assertNull($activity->category);
+        $this->assertNull($activity->source_of_funds);
+    }
+
+    public function test_store_still_rejects_missing_person_in_charge(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $activity = $this->completeActivityPayload();
+        unset($activity['person_in_charge']);
+
+        $this->actingAs($user)->from(route('gpoa.create'))->post(route('gpoa.store'), [
+            'colleges' => 'CICS',
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'prepared_by' => 'Jane Doe',
+            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'approved_confirmation' => '1',
+            'verify' => '1',
+            'planned_activities' => [$activity],
+        ])->assertSessionHasErrors('planned_activities.0.person_in_charge');
+
+        $this->assertDatabaseCount('gpoas', 0);
+    }
+
     public function test_store_rejects_a_35th_planned_activity_with_existing_message(): void
     {
         Storage::fake('public');
@@ -224,5 +266,23 @@ class GpoaPlannedActivitiesTest extends TestCase
             'planned_activities.0.end_date' => 'Activity 1 end date cannot be before the start date.',
         ]);
         $this->assertDatabaseCount('gpoas', 0);
+    }
+
+    private function completeActivityPayload(): array
+    {
+        return [
+            'title' => 'Leadership Seminar',
+            'time_frame' => 'exact_date',
+            'date' => '2026-10-15',
+            'venue' => 'Main Hall',
+            'sdgs' => [4],
+            'objectives' => 'Build leadership skills.',
+            'expected_outcome' => 'Improved confidence.',
+            'plan_key_strategy' => 'Workshop and discussion.',
+            'target_participants' => 'Student leaders',
+            'person_in_charge' => 'Organization officers',
+            'facilities_materials' => 'Projector',
+            'estimated_budget' => '5000',
+        ];
     }
 }

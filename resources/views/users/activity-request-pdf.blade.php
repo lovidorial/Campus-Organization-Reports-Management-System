@@ -179,7 +179,7 @@
             $rows[] = [
                 'label' => 'Budgetary requirement',
                 'value' => number_format($amount, floor($amount) === $amount ? 0 : 2) . ' php',
-                'source' => $request->source_of_funds,
+                'source' => $request->source_of_funds ?? '—',
                 'type' => 'budget',
             ];
         }

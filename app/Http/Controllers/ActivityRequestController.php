@@ -438,7 +438,7 @@ class ActivityRequestController extends Controller
             return back()->withErrors(['gpoa_activity_id' => 'The selected planned GPOA activity could not be found.'])->withInput();
         }
 
-        $categoryLimit = config('gpoa_activity_limits.' . $validated['category']);
+        $categoryLimit = $this->categoryRequestLimit($validated['category']);
         if ($categoryLimit !== null) {
             $existingCount = ActivityRequest::where('user_id', auth()->id())
                 ->where('gpoa_id', $gpoa->id)
@@ -508,7 +508,6 @@ class ActivityRequestController extends Controller
                 'person_in_charge' => $validated['person_in_charge'],
                 'facilities_materials' => $validated['facilities_materials'],
                 'estimated_budget' => $validated['estimated_budget'],
-                'source_of_funds' => $validated['source_of_funds'],
             ]);
         }
 
@@ -523,6 +522,20 @@ class ActivityRequestController extends Controller
 
         return redirect()->route('activity-requests.show', $activityRequest)
             ->with('success', 'Activity request added.');
+    }
+
+    private function categoryRequestLimit(string $category): ?int
+    {
+        $categoryKeys = [
+            'Religious Activity' => 'Religious',
+            'Socio-Cultural and Sports' => 'Socio-Cultural',
+            'Makakalikasan (Clean and Green)' => 'Environmental',
+            'Extension Services Conducted' => 'Outreach',
+        ];
+        $limitCategory = $categoryKeys[$category] ?? $category;
+        $limit = config('gpoa_activity_limits.' . $limitCategory);
+
+        return $limit === null ? null : (int) $limit;
     }
 
     private function outstandingReportRedirect(Collection $outstandingReports, bool $withValidationErrors = false)

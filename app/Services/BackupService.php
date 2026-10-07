@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\BackupArchive;
 use App\Models\BackupSetting;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +16,75 @@ use ZipArchive;
 class BackupService
 {
     protected string $backupDirectory = 'backups';
+
+    public function isBackupDue(BackupSetting $settings, ?CarbonInterface $asOf = null): bool
+    {
+        $frequency = $settings->frequency;
+        if ($frequency === 'manual') {
+            return false;
+        }
+
+        $now = $asOf ? Carbon::instance($asOf) : now();
+        $lastRunAt = $settings->last_successful_at ?? $settings->last_run_at;
+        if (! $lastRunAt) {
+            return true;
+        }
+
+        return match ($frequency) {
+            'monthly' => Carbon::instance($lastRunAt)->addDays(30)->lte($now),
+            'per_semester' => $this->semesterKey($lastRunAt) !== $this->semesterKey($now),
+            'per_school_year' => $this->schoolYearKey($lastRunAt) !== $this->schoolYearKey($now),
+            default => false,
+        };
+    }
+
+    public function nextBackupDueAt(BackupSetting $settings, ?CarbonInterface $asOf = null): ?Carbon
+    {
+        if ($settings->frequency === 'manual') {
+            return null;
+        }
+
+        $now = $asOf ? Carbon::instance($asOf) : now();
+        $lastRunAt = $settings->last_successful_at ?? $settings->last_run_at;
+        if (! $lastRunAt) {
+            return $now;
+        }
+
+        $lastRunAt = Carbon::instance($lastRunAt);
+
+        return match ($settings->frequency) {
+            'monthly' => $lastRunAt->addDays(30),
+            'per_semester' => $this->semesterKey($lastRunAt) === $this->semesterKey($now)
+                ? $this->nextSemesterStart($now)
+                : $now,
+            'per_school_year' => $this->schoolYearKey($lastRunAt) === $this->schoolYearKey($now)
+                ? $this->nextSchoolYearStart($now)
+                : $now,
+            default => null,
+        };
+    }
+
+    private function semesterKey(CarbonInterface $date): string
+    {
+        return $date->format('Y').'-'.((int) $date->format('n') <= 6 ? '1' : '2');
+    }
+
+    private function schoolYearKey(CarbonInterface $date): int
+    {
+        return (int) $date->format('Y') - ((int) $date->format('n') < 8 ? 1 : 0);
+    }
+
+    private function nextSemesterStart(Carbon $date): Carbon
+    {
+        $month = (int) $date->format('n');
+
+        return $date->copy()->setDate((int) $date->format('Y') + ($month > 6 ? 1 : 0), $month <= 6 ? 7 : 1, 1)->startOfDay();
+    }
+
+    private function nextSchoolYearStart(Carbon $date): Carbon
+    {
+        return $date->copy()->setDate((int) $date->format('Y') + ((int) $date->format('n') >= 8 ? 1 : 0), 8, 1)->startOfDay();
+    }
 
     public function createBackup(string $prefix = 'backup_', bool $recordStatus = true): array
     {

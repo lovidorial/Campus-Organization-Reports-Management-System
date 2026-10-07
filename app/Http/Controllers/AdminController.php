@@ -4,17 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityReport;
 use App\Models\ActivityRequest;
+use App\Models\BackupSetting;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\MonitoringResult;
+use App\Services\BackupService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\AdminActivityMonitoringService;
 
 class AdminController extends Controller
 {
-    public function monitoringDashboard(AdminActivityMonitoringService $monitoringService)
+    public function monitoringDashboard(AdminActivityMonitoringService $monitoringService, BackupService $backupService)
     {
         $activities = $monitoringService->all();
         $stats = $monitoringService->counts($activities);
@@ -38,7 +41,12 @@ class AdminController extends Controller
             ->take(8)
             ->values();
 
-        return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress'));
+        $backupSetting = BackupSetting::query()->firstOrCreate([], ['frequency' => 'manual', 'retention_count' => 5]);
+        $backupWarning = $backupService->isBackupDue($backupSetting);
+        $schedulerLastRunAt = Cache::get('scheduler_last_run_at');
+        $nextDueAt = $backupService->nextBackupDueAt($backupSetting);
+
+        return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'backupWarning', 'nextDueAt', 'schedulerHealthy', 'schedulerLastRunAt'));
     }
 
     public function monitor(Request $request, AdminActivityMonitoringService $monitoringService)

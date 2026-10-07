@@ -14,31 +14,30 @@
     <body>
         <main class="login-page">
             <div class="login-card">
-                <section class="login-panel login-panel-left">
-                    <div class="login-logo"><img src="{{ asset('images/orgTracklogo.png') }}" alt="OSDW Orgtrack logo" loading="eager" decoding="async"></div>
-                    <h1 class="sr-only">OSDW</h1>
-                    <p class="login-subtitle">Cagayan State University</p>
-                    <div class="login-badge">OFFICE OF STUDENT DEVELOPMENT AND WELFARE</div>
-                    <div class="login-description">
-                        <img class="osdw-seal" src="{{ asset('images/osdw.logo.jpg') }}" alt="OSDW seal" onerror="this.style.display='none'">
-                        <span class="description-divider" aria-hidden="true"></span>
-                        <p>Orgtrack- Campus Student Organization Narrative &amp; Summary Reports — manage, monitor, and celebrate student activities.</p>
-                    </div>
-                </section>
+                <div class="login-panel login-panel-left">
+                    <span class="sr-only">OSDW – Cagayan State University – Office of Student Development and Welfare – Orgtrack</span>
+                </div>
 
-                <section class="login-panel login-panel-right">
+                <div class="login-panel login-panel-right">
                     <a href="{{ route('login') }}" class="login-back-link">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
                         Back to sign in
                     </a>
 
-                    <header class="login-header">
-                        <h1 class="login-heading">Reset your password</h1>
+                    <div class="login-header">
+                        <h1 class="login-heading">Reset your <span>password</span></h1>
                         <p class="login-subtext">Enter your account email and we’ll send a reset link.</p>
-                    </header>
+                    </div>
 
                     @if ($errors->any())
                         <div class="alert alert-error" role="alert">
+                            <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
                             <div>
                                 <strong>Please check the email address.</strong>
                                 <ul class="error-list">
@@ -51,7 +50,12 @@
                     @endif
 
                     @if (session('status'))
-                        <div class="alert alert-success" role="status">{{ session('status') }}</div>
+                        <div class="alert alert-success">
+                            <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            {{ session('status') }}
+                        </div>
                     @endif
 
                     <form method="POST" action="{{ route('password.email') }}" class="login-form">
@@ -61,10 +65,13 @@
                             <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="Email address" class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}">
                             @error('email')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
-                        <button type="submit" class="login-button w-full"><span>Email Password Reset Link</span><svg class="button-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+                        <button type="submit" class="login-button login-button--block"><span>Send Reset Link</span><svg class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
                     </form>
-                    <div class="login-help"><a href="{{ route('login') }}">Return to sign in</a></div>
-                </section>
+
+                    <div class="login-help">
+                        <a href="{{ route('login') }}">Return to sign in</a>
+                    </div>
+                </div>
             </div>
         </main>
     </body>

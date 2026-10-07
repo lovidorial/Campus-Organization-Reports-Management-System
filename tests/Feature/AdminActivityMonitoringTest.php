@@ -271,7 +271,7 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertSee('Communication Letter – Modal Preview Activity', false)
             ->assertSee('Open full page')
             ->assertSee('Narrative report awaiting review')
-            ->assertSee('Request revision');
+            ->assertSee('Return for revision');
     }
 
     public function test_admin_dashboard_uses_monitoring_counts(): void

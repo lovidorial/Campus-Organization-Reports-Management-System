@@ -90,6 +90,69 @@ class ActivityRequestAvailabilityTest extends TestCase
         $createResponse->assertSee('Community Outreach');
     }
 
+    public function test_activity_request_requires_category_and_source_and_prefills_existing_gpoa_values(): void
+    {
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Prefilled Activity', '2026-10-10', 'Main Hall');
+        $plannedActivity->update(['source_of_funds' => 'Organization Funds']);
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create-from-activity', $plannedActivity))
+            ->assertOk()
+            ->assertSee('<option value="Symposium" selected>Symposium</option>', false)
+            ->assertSee('<option value="Organization Funds" selected>Organization Funds</option>', false);
+
+        $payload = $this->activityRequestPayload($gpoa, $plannedActivity);
+        unset($payload['category'], $payload['source_of_funds']);
+
+        $this->from(route('activity-requests.create-from-activity', $plannedActivity))
+            ->post(route('activity-requests.store'), $payload)
+            ->assertSessionHasErrors(['category', 'source_of_funds']);
+    }
+
+    public function test_activity_request_keeps_category_and_source_on_the_request_only(): void
+    {
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Request-owned Values', '2026-10-10', 'Main Hall');
+        $plannedActivity->update(['source_of_funds' => 'Planned source']);
+
+        $this->actingAs($user)
+            ->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
+                'category' => 'Outreach',
+                'source_of_funds' => 'Request source',
+            ]))
+            ->assertRedirect();
+
+        $request = ActivityRequest::query()->where('title', 'Request-owned Values')->firstOrFail();
+        $this->assertSame('Outreach', $request->category);
+        $this->assertSame('Request source', $request->source_of_funds);
+        $this->assertSame('Symposium', $plannedActivity->fresh()->category);
+        $this->assertSame('Planned source', $plannedActivity->fresh()->source_of_funds);
+    }
+
+    public function test_category_limit_is_checked_when_category_is_selected_for_an_uncategorized_gpoa_item(): void
+    {
+        config(['gpoa_activity_limits.Environmental' => 1]);
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Limit Check Activity', '2026-10-10', 'Main Hall');
+        $plannedActivity->update(['category' => null]);
+        ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Existing Symposium Request',
+            'date' => '2026-10-09',
+            'venue' => 'Other Hall',
+            'category' => 'Makakalikasan (Clean and Green)',
+            'status' => ActivityRequest::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('activity-requests.create-from-activity', $plannedActivity))
+            ->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
+                'category' => 'Makakalikasan (Clean and Green)',
+            ]))
+            ->assertSessionHasErrors('category');
+
+        $this->assertDatabaseMissing('activity_requests', ['title' => 'Limit Check Activity']);
+    }
+
     public function test_past_activity_without_narrative_report_blocks_new_requests_and_shows_report_link(): void
     {
         $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
@@ -229,6 +292,8 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_add_from_activity_monitor_prefills_the_planned_activity_and_keeps_its_link(): void
     {
+        $this->travelTo('2026-10-01 09:00:00');
+
         $user = User::factory()->create([
             'term' => '1st Term',
             'school_year' => '2026-2027',
@@ -287,7 +352,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->assertSee('\\u0022source_of_funds\\u0022:\\u0022Organization Funds\\u0022', false)
             ->assertSee("plannedActivitySelect?.addEventListener('change', () =>", false)
             ->assertSee('prefillFromPlannedActivity(false)', false)
-            ->assertSee('Prefilled from your GPOA. Review and edit anything that changed.')
+            ->assertSee('All details were filled from your GPOA. Review them before submitting.')
             ->assertSee('Reset to GPOA values')
             ->assertDontSee('!!};', false)
             ->assertSee('<option value="UniFast"', false)
@@ -306,6 +371,8 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_activity_prefill_uses_its_own_gpoa_even_outside_the_users_current_term(): void
     {
+        $this->travelTo('2026-10-01 09:00:00');
+
         $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
@@ -342,10 +409,11 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->assertSee('value="Cross Term Planned Activity"', false)
             ->assertSee('name="gpoa_id" value="' . $gpoa->id . '"', false)
             ->assertSee('name="gpoa_activity_id" value="' . $activity->id . '"', false)
-            ->assertSee('value="' . $activity->date->format('Y-m-01') . '"', false)
+            ->assertSee('name="date"', false)
+            ->assertSee('id="date" type="date" name="date" value=""', false)
             ->assertSee('value="09:30"', false)
             ->assertSee('Cross-term objectives')
-            ->assertSee('Prefilled from your GPOA. Review and edit anything that changed.');
+            ->assertSee('Missing from your GPOA: Date. Complete the highlighted fields before submitting.');
 
         $this->withSession(['_old_input' => [
             'title' => 'Manually edited title',

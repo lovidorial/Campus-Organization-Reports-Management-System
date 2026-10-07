@@ -261,6 +261,16 @@ body {
 .login-button.w-full { width: 100%; }
 .button-icon { width: 18px; height: 18px; }
 
+.login-page .login-card .login-button.login-button--block {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 44px;
+    padding: 12px 24px;
+    white-space: nowrap;
+    text-align: center;
+}
+
 .login-help {
     display: flex;
     justify-content: flex-end;
@@ -1059,4 +1069,14 @@ body {
     .captcha-code { height: 32px; }
     .login-button { height: 36px; }
     .login-help { margin-top: 6px; }
+}
+
+.login-page .login-card .login-button.login-button--block {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 44px !important;
+    padding: 12px 24px !important;
+    white-space: nowrap !important;
+    text-align: center !important;
 }
