@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orgtrack | Campus Student Organization Narrative Accomplishment and Summary Reports</title>
+    <title>OrgTrack | Campus Student Organization Narrative Accomplishment and Summary Reports</title>
 
     {{-- Google Fonts: Sora + Inter --}}
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,8 +25,8 @@
     <nav class="site-navbar" x-data="{ mobileMenuOpen: false, orgChartMobileOpen: false }">
         <div class="navbar-inner">
             <a href="{{ url('/') }}" class="nav-brand">
-                <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo" class="nav-logo-img">
-                <span class="nav-brand-text">Orgtrack</span>
+                <img src="{{ asset('images/orgTracklogo.png') }}" alt="OrgTrack logo" class="nav-logo-img">
+                <span class="nav-brand-text">OrgTrack</span>
             </a>
 
             <ul class="nav-links">
@@ -119,7 +119,7 @@
         <div class="hero-container">
             <div class="hero-content">
                 <h1 class="hero-heading">Manage Student Organizations.<br>Simplify Every Activity.</h1>
-                <p class="hero-sub">Orgtrack helps student organizations plan, submit and track activity reports under their approved GPOA, while giving OSDW a centralized view of every organization's progress.</p>
+                <p class="hero-sub">OrgTrack helps student organizations plan, submit and track activity reports under their approved GPOA, while giving OSDW a centralized view of every organization's progress.</p>
                 <div class="hero-btns">
                     @auth
                         <a href="{{ route('user.submit') }}" class="btn-primary-cta">
@@ -163,7 +163,7 @@
     <section id="features" class="section-block section-benefits">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Why Use Orgtrack?</h2>
+                <h2 class="section-title">Why Use OrgTrack?</h2>
                 <p class="section-subtitle">Streamlined management for student organizations</p>
             </div>
 
@@ -196,7 +196,7 @@
     <section id="how-it-works" class="section-block section-light how-it-works-section">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">How Orgtrack Works</h2>
+                <h2 class="section-title">How OrgTrack Works</h2>
                 <p class="section-subtitle">A clear path from submission to completion</p>
             </div>
             <div class="workflow-steps">
@@ -233,14 +233,14 @@
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Get Started</h2>
-                <p class="section-subtitle">Learn about Orgtrack or follow your submissions</p>
+                <p class="section-subtitle">Learn about OrgTrack or follow your submissions</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-6">
                     <div class="feat-card">
                         <h5 class="feat-title">Learn More</h5>
                         <p class="feat-desc">
-                            Orgtrack simplifies how student organizations submit, track, and manage activities. Our platform provides verified reporting, and real-time updates, and streamlined workflows for seamless collaboration.
+                            OrgTrack simplifies how student organizations submit, track, and manage activities. Our platform provides verified reporting, and real-time updates, and streamlined workflows for seamless collaboration.
                         </p>
                         <a href="#" class="btn-feat btn-feat-teal" data-bs-toggle="modal" data-bs-target="#learnMoreModal">Learn More</a>
                     </div>
@@ -270,7 +270,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="footer-brand"><span style="color:#f5a623; font-weight:700;">Orgtrack</span></div>
+                    <div class="footer-brand"><span style="color:#f5a623; font-weight:700;">OrgTrack</span></div>
                     <p class="footer-desc">
                         Campus Student Organization Narrative & Summary Reports.<br>
                         A comprehensive platform for monitoring and managing student organization activities.
@@ -288,23 +288,23 @@
             </div>
             <hr class="footer-hr">
             <p class="footer-copy">
-                &copy; Orgtrack - Campus Student Organization Narrative and Summary Reports. All Rights Reserved.
+                &copy; OrgTrack - Campus Student Organization Narrative and Summary Reports. All Rights Reserved.
             </p>
         </div>
     </footer>
 
-    {{-- About Orgtrack Modal --}}
+    {{-- About OrgTrack Modal --}}
     <div class="modal fade" id="learnMoreModal" tabindex="-1" aria-labelledby="learnMoreModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="learnMoreModalLabel">About Orgtrack</h5>
+                    <h5 class="modal-title" id="learnMoreModalLabel">About OrgTrack</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body about-modal-body">
                     <div class="about-modal-section">
-                        <h6 class="about-section-title">What is Orgtrack?</h6>
-                        <p class="about-copy">Orgtrack is the Campus Student Organization Narrative and Summary Reports system of the Office of Student Development and Welfare (OSDW) at Cagayan State University - Aparri. It helps student organizations submit their approved GPOA, request activities and submit narrative reports, and gives OSDW one place to review reports and monitor every organization's progress.</p>
+                        <h6 class="about-section-title">What is OrgTrack?</h6>
+                        <p class="about-copy">OrgTrack is the Campus Student Organization Narrative and Summary Reports system of the Office of Student Development and Welfare (OSDW) at Cagayan State University - Aparri. It helps student organizations submit their approved GPOA, request activities and submit narrative reports, and gives OSDW one place to review reports and monitor every organization's progress.</p>
                     </div>
 
                     <div class="about-modal-section">
@@ -320,13 +320,13 @@
                     </div>
 
                     <div class="about-modal-section">
-                        <h6 class="about-section-title">Why Orgtrack</h6>
-                        <p class="about-copy">Orgtrack replaces scattered paper submissions with one organized record. Organizations always know where each submission stands, and OSDW can review and follow up from a single dashboard.</p>
+                        <h6 class="about-section-title">Why OrgTrack</h6>
+                        <p class="about-copy">OrgTrack replaces scattered paper submissions with one organized record. Organizations always know where each submission stands, and OSDW can review and follow up from a single dashboard.</p>
                     </div>
 
                     <div class="about-modal-section about-team-section">
                         <h6 class="about-section-title">Development Team</h6>
-                        <p class="about-team-intro">Orgtrack was developed by student developers of CSU - Aparri.</p>
+                        <p class="about-team-intro">OrgTrack was developed by student developers of CSU - Aparri.</p>
 
                         <div class="development-team-grid">
                             <div class="development-team-card">

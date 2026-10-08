@@ -23,7 +23,7 @@
         <span class="text-sm font-semibold text-gray-700">{{ $completionPercent }}% complete</span>
     </div>
     <div class="mb-4 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-        <div class="h-full rounded-full bg-emerald-500" style="width: {{ $completionPercent }}%"></div>
+        <div class="h-full rounded-full bg-emerald-500 w-[var(--completion-percent)]" @style(['--completion-percent' => $completionPercent . '%'])></div>
     </div>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         @foreach($monitoringCounts as $status => $count)

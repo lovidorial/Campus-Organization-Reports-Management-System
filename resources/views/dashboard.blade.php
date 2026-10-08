@@ -176,7 +176,7 @@
         </div>
 
         <div class="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow="{{ $overallPercent }}" aria-valuemin="0" aria-valuemax="100">
-            <span class="block min-w-0 h-full bg-emerald-500 transition-all duration-500" style="width: {{ $overallPercent }}%"></span>
+            <span class="block min-w-0 h-full bg-emerald-500 transition-all duration-500 w-[var(--overall-percent)]" @style(['--overall-percent' => $overallPercent . '%'])></span>
         </div>
     </div>
 

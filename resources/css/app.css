@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+.theme-header {
+    background: linear-gradient(135deg, var(--theme-light) 0%, var(--theme-color) 100%);
+}
+
+#sidebar nav a.sidebar-link-active {
+    color: #FFFFFF !important;
+    background: linear-gradient(90deg, rgba(255, 183, 77, 0.40), rgba(255, 183, 77, 0.12)) !important;
+    box-shadow: inset 3px 0 var(--sidebar-accent, #FFB74D);
+}
+
+#sidebar nav a.sidebar-link-active svg {
+    color: #FFFFFF;
+}
+
 [x-cloak] {
     display: none !important;
 }

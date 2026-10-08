@@ -34,7 +34,7 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPasswordNotification::class, function ($notification) use ($user) {
             $mail = $notification->toMail($user);
 
-            $this->assertSame('Reset your Orgtrack password', $mail->subject);
+            $this->assertSame('Reset your OrgTrack password', $mail->subject);
             $this->assertSame('Reset Password', $mail->actionText);
             $this->assertStringContainsString('60 minutes', implode(' ', array_merge($mail->introLines, $mail->outroLines)));
 

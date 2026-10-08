@@ -8,8 +8,10 @@ use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\GpoaImportParser;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -235,12 +237,17 @@ class GpoaController extends Controller
 
                 return $gpoa;
             });
-        } catch (Throwable) {
+        } catch (UniqueConstraintViolationException) {
             Storage::disk('private')->delete($documentPath);
 
             throw ValidationException::withMessages([
                 'term' => "A GPOA for {$validated['term']} / SY {$validated['school_year']} has already been submitted.",
             ]);
+        } catch (Throwable $exception) {
+            Storage::disk('private')->delete($documentPath);
+            Log::error($exception->getMessage(), ['user_id' => $user->id]);
+
+            throw $exception;
         }
 
         User::where('role', 'admin')->each(function (User $admin) use ($gpoa, $user) {

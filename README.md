@@ -1,8 +1,8 @@
-# Orgtrack
+# OrgTrack
 
-**Orgtrack: A Web-Based Monitoring System for Campus Student Organization Narrative, Accomplishment and Summary Reports.**
+**OrgTrack: Repository of Campus Student Organization Narrative and Summary Reports for the Office of the Student Development and Welfare at CSU-Aparri**
 
-Orgtrack helps campus student organizations and administrators track General Plan of Action (GPOA) submissions, planned activities, activity requests, and reports.
+OrgTrack helps campus student organizations and administrators track General Plan of Action (GPOA) submissions, planned activities, activity requests, and reports.
 
 ## Student Organizations
 
@@ -88,7 +88,7 @@ MAIL_PORT=587
 MAIL_USERNAME=<smtp-username>
 MAIL_PASSWORD=<smtp-password>
 MAIL_FROM_ADDRESS=<sender-address>
-MAIL_FROM_NAME="Orgtrack"
+MAIL_FROM_NAME="OrgTrack"
 ```
 
 Use the host, port, scheme, credentials, and sender address provided by your mail service. Keep real credentials out of source control. The environment example also notes Resend as a production mailer option.

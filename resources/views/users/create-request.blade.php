@@ -62,6 +62,41 @@
                         : [];
                 @endphp
 
+                <script type="application/json" id="activity-request-config">@json([
+                    'programFlows' => old('program_flows', $programFlows ?: [['time' => '', 'flow' => '', 'person_in_charge' => '']]),
+                    'prefill' => $prefill,
+                    'missingPrefillFields' => $missingPrefillFields,
+                    'prefillFieldLabels' => $prefillFieldLabels,
+                    'serverProgramFlows' => $programFlows,
+                    'plannedActivities' => $gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
+                        'title' => $activity->title,
+                        'category' => $activity->category,
+                        'sdgs' => $activity->sdgs ?? [],
+                        'date_requires_confirmation' => (bool) $activity->date_is_month_only || ($activity->date && $activity->date->lt(today())),
+                        'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
+                        'date_is_month_only' => (bool) $activity->date_is_month_only,
+                        'end_date' => $activity->end_date?->toDateString() ?? '',
+                        'start_time' => $activity->start_time ? substr((string) $activity->start_time, 0, 5) : '',
+                        'end_time' => $activity->end_time ? substr((string) $activity->end_time, 0, 5) : '',
+                        'venue' => $activity->venue,
+                        'objectives' => $activity->objectives,
+                        'expected_outcome' => $activity->expected_outcome,
+                        'plan_key_strategy' => $activity->plan_key_strategy,
+                        'target_participants' => $activity->target_participants,
+                        'person_in_charge' => $activity->person_in_charge,
+                        'facilities_materials' => $activity->facilities_materials,
+                        'estimated_budget' => $activity->estimated_budget,
+                        'source_of_funds' => $activity->source_of_funds,
+                        'program_flows' => $activity->getAttribute('program_flows') ?? [],
+                    ]])->all(),
+                    'sdgColors' => config('sdg'),
+                    'hasOldInput' => session()->hasOldInput(),
+                    'originalActivityId' => $gpoaActivity->id ?? null,
+                    'oldCategory' => old('category', $prefill['category'] ?? ''),
+                    'oldSourceOfFunds' => old('source_of_funds', $prefill['source_of_funds'] ?? ''),
+                ])</script>
+                <script>window.activityRequestData = JSON.parse(document.getElementById('activity-request-config').textContent);</script>
+
                 <div class="org-info-block" aria-label="Organization Information">
                     <div class="org-info-title">Organization Information</div>
                     <div class="org-info-grid">
@@ -242,7 +277,7 @@
 
                     <section class="mt-6 min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-4"
                              x-data="{
-                                rows: @js(old('program_flows', $programFlows ?: [['time' => '', 'flow' => '', 'person_in_charge' => '']])),
+                                rows: window.activityRequestData.programFlows,
                                 normalizeFlows(flows) {
                                     const normalizedRows = (flows || []).map(flow => ({
                                         time: flow.time ?? '',
@@ -379,45 +414,18 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    const serverPrefill = @js($prefill);
-    const missingPrefillFields = @js($missingPrefillFields);
-    const prefillFieldLabels = @js($prefillFieldLabels);
-    const serverProgramFlows = @js($programFlows);
-    const plannedActivities = @js($gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
-        'title' => $activity->title,
-        'category' => $activity->category,
-        'sdgs' => $activity->sdgs ?? [],
-        'date_requires_confirmation' => (bool) $activity->date_is_month_only || ($activity->date && $activity->date->lt(today())),
-        'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
-        'date_is_month_only' => (bool) $activity->date_is_month_only,
-        'end_date' => $activity->end_date?->toDateString() ?? '',
-        'start_time' => $activity->start_time ? substr((string) $activity->start_time, 0, 5) : '',
-        'end_time' => $activity->end_time ? substr((string) $activity->end_time, 0, 5) : '',
-        'venue' => $activity->venue,
-        'objectives' => $activity->objectives,
-        'expected_outcome' => $activity->expected_outcome,
-        'plan_key_strategy' => $activity->plan_key_strategy,
-        'target_participants' => $activity->target_participants,
-        'person_in_charge' => $activity->person_in_charge,
-        'facilities_materials' => $activity->facilities_materials,
-        'estimated_budget' => $activity->estimated_budget,
-        'source_of_funds' => $activity->source_of_funds,
-        'program_flows' => $activity->getAttribute('program_flows') ?? [],
-    ]])->all());
+    const { prefill: serverPrefill, missingPrefillFields, prefillFieldLabels, serverProgramFlows, plannedActivities, sdgColors, hasOldInput, originalActivityId } = window.activityRequestData;
     const plannedActivitySelect = document.getElementById('gpoa_activity_id');
     const sdgCheckboxContainer = document.getElementById('sdgCheckboxes');
     const sdgSummary = document.getElementById('sdgSummary');
-    const sdgColors = @json(config('sdg'));
     const sdgValidationError = document.getElementById('sdgValidationError');
     const requestForm = document.getElementById('requestForm');
-    const hasOldInput = @json(session()->hasOldInput());
     const dateInput = document.getElementById('date');
     const endDateInput = document.getElementById('end_date');
     const targetParticipantsInput = document.getElementById('target_participants');
     const estimatedBudgetInput = document.getElementById('estimated_budget');
     const plannedDateWarning = document.getElementById('plannedActivityPastDateWarning');
     const resetPrefillButton = document.getElementById('resetGpoaPrefill');
-    const originalActivityId = @js($gpoaActivity->id ?? null);
     const MAX_SDGS = 8;
     const MIN_SDGS = 1;
 
@@ -531,8 +539,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!sdgCheckboxContainer) return;
 
     if (hasOldInput) {
-        selectValue(document.getElementById('category'), @js(old('category', $prefill['category'] ?? '')), 'category');
-        selectValue(document.getElementById('source_of_funds'), @js(old('source_of_funds', $prefill['source_of_funds'] ?? '')), 'source_of_funds');
+        selectValue(document.getElementById('category'), window.activityRequestData.oldCategory, 'category');
+        selectValue(document.getElementById('source_of_funds'), window.activityRequestData.oldSourceOfFunds, 'source_of_funds');
     }
     setPastDateState(dateInput?.value || '', serverPrefill.date_requires_confirmation);
     dateInput?.addEventListener('change', () => setPastDateState(dateInput.value));

@@ -20,7 +20,7 @@
         <div class="login-page">
             <div class="login-card">
                 <div class="login-panel login-panel-left">
-                    <span class="sr-only">OSDW – Cagayan State University – Office of Student Development and Welfare – Orgtrack</span>
+                    <span class="sr-only">OSDW – Cagayan State University – Office of Student Development and Welfare – OrgTrack</span>
                 </div>
 
                 <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
@@ -259,7 +259,7 @@
                 refreshButton?.addEventListener('click', async function() {
                     refreshButton.disabled = true;
                     try {
-                        const response = await fetch(@json(route('login.captcha.refresh')), {
+                        const response = await fetch("{{ route('login.captcha.refresh') }}", {
                             headers: { Accept: 'application/json' },
                             credentials: 'same-origin',
                         });

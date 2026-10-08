@@ -163,11 +163,14 @@ class GpoaSubmissionRulesTest extends TestCase
             }
         });
 
-        $this->actingAs($user)->from(route('gpoa.create'))
-            ->post(route('gpoa.store'), $this->payload('1st Term', '2033-2034'))
-            ->assertSessionHasErrors([
-                'term' => 'A GPOA for 1st Term / SY 2033-2034 has already been submitted.',
-            ]);
+        $this->withoutExceptionHandling();
+        try {
+            $this->actingAs($user)->from(route('gpoa.create'))
+                ->post(route('gpoa.store'), $this->payload('1st Term', '2033-2034'));
+            $this->fail('Expected the planned activity sync exception to be rethrown.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Simulated planned activity sync failure.', $exception->getMessage());
+        }
 
         $this->assertTrue($activityInsertFailed);
         $this->assertDatabaseCount('gpoas', 0);

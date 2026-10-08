@@ -4,13 +4,13 @@
         .sdg-label-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
         .sdg-label-row label { margin: 0; flex-shrink: 0; }
         .sdg-summary-badges { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; padding: 6px 8px; background: #F3F4F6; border-radius: 4px; min-height: 24px; align-items: center; }
-        .sdg-badge { padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; display: inline-block; white-space: nowrap; }
+        .sdg-badge { padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; display: inline-block; white-space: nowrap; background-color: var(--sdg-color); color: var(--sdg-text-color); }
         .sdg-placeholder { color: #9CA3AF; font-size: 0.875rem; }
         .sdg-checkbox-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding: 8px; border: 1px solid #D1D5DB; border-radius: 4px; background: #FFFFFF; margin-bottom: 8px; }
         .sdg-checkbox-item { display: flex; align-items: center; gap: 8px; padding: 4px; cursor: pointer; user-select: none; }
-        .sdg-checkbox-item input[type="checkbox"] { cursor: pointer; }
+        .sdg-checkbox-item input[type="checkbox"] { cursor: pointer; accent-color: var(--sdg-color); }
         .sdg-checkbox-item label { cursor: pointer; margin: 0; font-size: 0.875rem; flex: 1; }
-        .sdg-number { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; flex: 0 0 1.35rem; border-radius: 50%; font-size: 0.7rem; font-weight: 700; }
+        .sdg-number { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; flex: 0 0 1.35rem; border-radius: 50%; font-size: 0.7rem; font-weight: 700; background-color: var(--sdg-color); color: var(--sdg-text-color); }
         .sdg-helper-text { font-size: 0.75rem; color: #6B7280; display: block; margin-bottom: 8px; font-weight: 500; }
         .sdg-validation-error { color: #DC2626; font-size: 0.875rem; margin-top: 6px; }
     </style>
@@ -39,6 +39,16 @@
         <script type="application/json" id="planned-activities-seed">
             @json(old('planned_activities', $plannedActivitySeed))
         </script>
+        <script type="application/json" id="gpoa-form-config">@json([
+            'maxActivities' => config('gpoa.max_planned_activities'),
+            'validationErrors' => $errors->getMessages(),
+            'schoolYear' => $gpoa->school_year,
+            'draftUserId' => (string) auth()->id(),
+            'draftOrganizationId' => (string) (auth()->user()->organization_id ?? ''),
+            'editingGpoaId' => (string) $gpoa->id,
+            'sdgColors' => config('sdg'),
+            'importPreviewUrl' => route('gpoa.import-preview'),
+        ])</script>
 
         <form action="{{ route('gpoa.update', $gpoa) }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm" x-data="Object.defineProperties(plannedActivities(), Object.getOwnPropertyDescriptors(window.gpoaImportReview()))" novalidate @submit.prevent="handleSubmit($event)">
             @csrf
@@ -201,11 +211,11 @@
                                         <p class="mt-1 text-xs text-slate-500">Optional. You will provide this when requesting the activity.</p>
                                     </div>
                                     <div class="form-group md:col-span-2">
-                                        <div class="sdg-widget" x-init="$nextTick(() => { const summary = $el.querySelector('[data-sdg-summary]'); const colors = @js(config('sdg')); const update = () => { const selected = activity.sdgs || []; summary.innerHTML = selected.length ? selected.map(number => `<span class='sdg-badge' style='background-color: ${colors[number].color}; color: ${colors[number].text}'>SDG ${number}</span>`).join('') : '<span class=&quot;sdg-placeholder&quot;>No SDGs selected yet</span>'; }; $el.addEventListener('change', update); update(); })">
+                                        <div class="sdg-widget" x-init="$nextTick(() => { const summary = $el.querySelector('[data-sdg-summary]'); const colors = window.gpoaFormConfig.sdgColors; const update = () => { const selected = activity.sdgs || []; summary.innerHTML = selected.length ? selected.map(number => `<span class='sdg-badge' style='--sdg-color: ${colors[number].color}; --sdg-text-color: ${colors[number].text}'>SDG ${number}</span>`).join('') : '<span class=&quot;sdg-placeholder&quot;>No SDGs selected yet</span>'; }; $el.addEventListener('change', update); update(); })">
                                             <div class="sdg-label-row"><label>SDGs *</label><div class="sdg-summary-badges" :id="'sdgSummary-' + index" data-sdg-summary><span class="sdg-placeholder">No SDGs selected yet</span></div></div>
                                             <div class="sdg-checkbox-list" :id="'sdgCheckboxes-' + index" data-sdg-checkboxes>
                                                 @foreach([1 => 'No Poverty', 2 => 'Zero Hunger', 3 => 'Good Health', 4 => 'Quality Education', 5 => 'Gender Equality', 6 => 'Clean Water', 7 => 'Affordable Energy', 8 => 'Decent Work', 9 => 'Industry, Innovation', 10 => 'Reduced Inequality', 11 => 'Sustainable Cities', 12 => 'Responsible Consumption', 13 => 'Climate Action', 14 => 'Life Below Water', 15 => 'Life on Land', 16 => 'Peace/Justice', 17 => 'Partnerships'] as $number => $label)
-                                                    <div class="sdg-checkbox-item"><input type="checkbox" :id="'planned-sdg-' + index + '-{{ $number }}'" :name="'planned_activities[' + index + '][sdgs][]'" value="{{ $number }}" x-model="activity.sdgs" :required="activity.sdgs.length === 0 && {{ $number }} === 1"><span class="sdg-number" style="background-color: {{ config('sdg.' . $number . '.color') }}; color: {{ config('sdg.' . $number . '.text') }}">{{ $number }}</span><label :for="'planned-sdg-' + index + '-{{ $number }}'">SDG {{ $number }} - {{ $label }}</label></div>
+                                                    <div class="sdg-checkbox-item"><input type="checkbox" :id="'planned-sdg-' + index + '-{{ $number }}'" :name="'planned_activities[' + index + '][sdgs][]'" value="{{ $number }}" x-model="activity.sdgs" :required="activity.sdgs.length === 0 && {{ $number }} === 1" @style(['--sdg-color' => config('sdg.' . $number . '.color')])><span class="sdg-number" @style(['--sdg-color' => config('sdg.' . $number . '.color'), '--sdg-text-color' => config('sdg.' . $number . '.text')])>{{ $number }}</span><label :for="'planned-sdg-' + index + '-{{ $number }}'">SDG {{ $number }} - {{ $label }}</label></div>
                                                 @endforeach
                                             </div>
                                             <span class="sdg-helper-text">Must select 1-8 SDGs aligned with the activity</span>
@@ -258,13 +268,14 @@
 
     @include('gpoa.partials.import-review-logic')
     <script>
+        window.gpoaFormConfig = JSON.parse(document.getElementById('gpoa-form-config').textContent);
         window.plannedActivities = () => ({
-            maxActivities: {{ config('gpoa.max_planned_activities') }},
-            validationErrors: @json($errors->getMessages()),
-            schoolYear: @json($gpoa->school_year),
-            draftUserId: @js((string) auth()->id()),
-            draftOrganizationId: @js((string) (auth()->user()->organization_id ?? '')),
-            editingGpoaId: @js((string) $gpoa->id),
+            maxActivities: window.gpoaFormConfig.maxActivities,
+            validationErrors: window.gpoaFormConfig.validationErrors,
+            schoolYear: window.gpoaFormConfig.schoolYear,
+            draftUserId: window.gpoaFormConfig.draftUserId,
+            draftOrganizationId: window.gpoaFormConfig.draftOrganizationId,
+            editingGpoaId: window.gpoaFormConfig.editingGpoaId,
             importing: false,
             importSummary: '',
             importNotes: [],
@@ -347,7 +358,7 @@
                     formData.append('file', file);
                     formData.append('school_year', document.querySelector('[name="school_year"]')?.value || this.schoolYear);
                     const token = document.querySelector('#gpoaForm input[name="_token"]')?.value || '';
-                    const response = await fetch(@json(route('gpoa.import-preview')), {
+                    const response = await fetch(window.gpoaFormConfig.importPreviewUrl, {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
                         body: formData,

@@ -130,7 +130,7 @@
                                     @elseif(!$reportPresent)
                                         <a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                                     @else
-                                        <button type="button" @click="$dispatch('show-activity-details', @js([
+                                        <button type="button" @click="$dispatch('show-activity-details', JSON.parse($el.dataset.activityDetails))" data-activity-details='@json([
                                             'title' => $activityRequest->title ?? $activity->title,
                                             'organization' => auth()->user()->org_name ?? auth()->user()->name,
                                             'college' => $activity->gpoa?->college ?? '—',
@@ -150,7 +150,7 @@
                                             'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
                                             'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
                                             'fullPageUrl' => $viewUrl,
-                                        ]))" class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</button>
+                                        ])' class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</button>
                                     @endif
                                     </div>
                                 </td>
@@ -179,7 +179,7 @@
                             @elseif($activityRequest->report?->status === 'needs_revision')<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
                             @elseif(!$reportPresent)<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                             @else
-                                <button type="button" @click="$dispatch('show-activity-details', @js([
+                                <button type="button" @click="$dispatch('show-activity-details', JSON.parse($el.dataset.activityDetails))" data-activity-details='@json([
                                     'title' => $activityRequest->title ?? $activity->title,
                                     'organization' => auth()->user()->org_name ?? auth()->user()->name,
                                     'college' => $activity->gpoa?->college ?? '—',
@@ -199,7 +199,7 @@
                                     'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
                                     'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
                                     'fullPageUrl' => route('activity-requests.show', $activityRequest),
-                                ]))" class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">View</button>
+                                ])' class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">View</button>
                             @endif
                         </div>
                     </article>

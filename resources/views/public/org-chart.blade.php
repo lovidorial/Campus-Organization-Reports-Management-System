@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Org Chart | Orgtrack</title>
+    <title>Org Chart | OrgTrack</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -196,7 +196,6 @@
             margin-bottom: 40px;
             text-align: center;
             color: white;
-            background-image: url('{{ asset('images/hero-bg.jpg') }}');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -360,8 +359,8 @@
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-                <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo">
-                <span class="navbar-brand-wordmark">Orgtrack</span>
+                <img src="{{ asset('images/orgTracklogo.png') }}" alt="OrgTrack logo">
+                <span class="navbar-brand-wordmark">OrgTrack</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -391,7 +390,7 @@
         </div>
     </nav>
 
-    <div class="page-header">
+    <div class="page-header" @style(['background-image' => "url('" . asset('images/hero-bg.jpg') . "')"] )>
         <div class="container">
             <h1>Org Chart</h1>
             <p>Meet the student leaders and officers behind each active campus organization.</p>

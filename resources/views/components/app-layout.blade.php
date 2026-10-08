@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orgtrack</title>
+    <title>OrgTrack</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         #sidebar { background: radial-gradient(circle at 100% 0%, #E65100 0%, rgba(230,81,0,0) 60%), linear-gradient(180deg, #3A1A06 0%, #2A1204 100%) !important; color: #FFFFFF; }
@@ -19,8 +19,6 @@
         #sidebar nav svg { color: rgba(255, 255, 255, 0.90); }
         #sidebar nav button[aria-expanded="true"] { color: #FFFFFF !important; background-color: rgba(255, 255, 255, 0.06) !important; }
         #sidebar nav button[aria-expanded="true"] svg:last-child { color: #FFB74D; }
-        #sidebar nav a[style*="border-left-color"], #sidebar nav a[style*="linear-gradient"], #sidebar nav a[style*="#FFB74D"] { color: #FFFFFF !important; background: linear-gradient(90deg, rgba(255,183,77,0.40), rgba(255,183,77,0.12)) !important; box-shadow: inset 3px 0 #FFB74D; }
-        #sidebar nav a[style*="border-left-color"] svg, #sidebar nav a[style*="linear-gradient"] svg, #sidebar nav a[style*="#FFB74D"] svg { color: #FFFFFF; }
         #sidebar > div:last-child p:first-child { color: #FFFFFF !important; }
         #sidebar > div:last-child p:last-child { color: rgba(255, 255, 255, 0.65) !important; }
         #sidebar > div:last-child button { color: #FFFFFF; }
@@ -38,9 +36,10 @@
 
     <!-- Sidebar -->
     <div
+        data-unread-count="{{ auth()->user()->unreadNotificationsCount() }}"
         x-data="{
             notificationsOpen: false,
-            unreadCount: @js(auth()->user()->unreadNotificationsCount()),
+            unreadCount: Number($el.dataset.unreadCount || 0),
             fetchUnreadCount() {
                 fetch('{{ route('notifications.unread-count') }}', {
                     credentials: 'same-origin',
@@ -78,13 +77,13 @@
             }
         }"
     >
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" style="background: radial-gradient(circle at 100% 0%, #E65100 0%, rgba(230,81,0,0) 60%), linear-gradient(180deg, #3A1A06 0%, #2A1204 100%);">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-20 flex flex-col" @style(['--sidebar-accent' => '#FFB74D', 'background' => 'radial-gradient(circle at 100% 0%, #E65100 0%, rgba(230,81,0,0) 60%), linear-gradient(180deg, #3A1A06 0%, #2A1204 100%)'])>
         <div class="p-5 border-b border-white/10">
             <div class="flex items-center gap-3">
-                <img src="{{ asset('images/orgTracklogo.png') }}" alt="Orgtrack logo" class="h-10 w-10 object-contain rounded-md">
+                <img src="{{ asset('images/orgTracklogo.png') }}" alt="OrgTrack logo" class="h-10 w-10 object-contain rounded-md">
                 <div>
-                    <h1 class="text-xl font-bold text-white">Orgtrack</h1>
-                    <p class="text-xs text-white/75 mt-0.5">Activity Tracking System</p>
+                    <h1 class="text-xl font-bold text-white">OrgTrack</h1>
+                    <p class="text-xs text-white/75 mt-0.5">Student Organization Reports</p>
                 </div>
             </div>
         </div>
@@ -95,8 +94,7 @@
                 <!-- USER MENU -->
                 <li>
                     <a href="{{ route('dashboard') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('dashboard') ? '#FFB74D' : 'transparent' }};">
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('dashboard') ? 'sidebar-link-active' : '' }}">
                          Dashboard
                     </a>
                 </li>
@@ -121,47 +119,40 @@
                          x-transition:leave-end="opacity-0 max-h-0"
                          class="overflow-hidden space-y-1 mt-1 pl-4">
                         <a href="{{ route('gpoa.index') }}"
-                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('gpoa.*') ? '#FFB74D' : 'transparent' }};">
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white {{ request()->routeIs('gpoa.*') ? 'sidebar-link-active' : '' }}">
                             My GPOA
                         </a>
                                 <a href="{{ route('activity-monitor.index') }}"
-                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                                    style="background-color: {{ request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? '#FFB74D' : 'transparent' }};">
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white {{ request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? 'sidebar-link-active' : '' }}">
                                      Activity Monitor
                         </a>
                         <a href="{{ route('activities.calendar') }}"
-                           class="block px-4 py-2 rounded-lg transition font-bold text-white"
-                           style="background-color: {{ request()->routeIs('activities.calendar') ? '#FFB74D' : 'transparent' }};">
+                           class="block px-4 py-2 rounded-lg transition font-bold text-white {{ request()->routeIs('activities.calendar') ? 'sidebar-link-active' : '' }}">
                             Activity Calendar
                         </a>
                     </div>
                 </li>
                 <li>
                     <a href="{{ route('organization.officers.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('organization.officers.*') ? '#FFB74D' : 'transparent' }};">
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('organization.officers.*') ? 'sidebar-link-active' : '' }}">
                          Officer Archive
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('organization.members.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('organization.members.*') ? '#FFB74D' : 'transparent' }};">
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('organization.members.*') ? 'sidebar-link-active' : '' }}">
                          Org Chart
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('profile.edit') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('profile.edit') ? '#FFB74D' : 'transparent' }};">
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('profile.edit') ? 'sidebar-link-active' : '' }}">
                          Edit Profile
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('my-backup.index') }}"
-                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white"
-                       style="background-color: {{ request()->routeIs('my-backup.*') ? '#FFB74D' : 'transparent' }};">
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('my-backup.*') ? 'sidebar-link-active' : '' }}">
                          My Data Backup
                     </a>
                 </li>
@@ -171,8 +162,7 @@
                         <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">MAIN</p>
                     </div>
                     <a href="{{ route('admin.dashboard') }}"
-                       class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}"
-                       style="{{ request()->routeIs('admin.dashboard') ? 'border-left-color: #FFB74D;' : '' }}">
+                       class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12.75V21h6.75v-6.75h4.5V21H21v-8.25M4.5 9.75 12 3l7.5 6.75"/></svg>
                         <span>Dashboard</span>
                     </a>
@@ -182,7 +172,7 @@
                     <div class="px-3 pb-1 pt-2">
                         <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">DOCUMENTS &amp; ACTIVITIES</p>
                     </div>
-                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/[0.08] hover:text-white" :class="open ? 'bg-white/[0.06] text-white' : 'text-white'">
+                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition text-white">
                         <span class="flex items-center gap-3">
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5h7.5L19.5 8.25v9.75A2.25 2.25 0 0 1 17.25 20.25h-10.5A2.25 2.25 0 0 1 4.5 18V6.75A2.25 2.25 0 0 1 6.75 4.5h1.5Zm7.5 0v3.75h3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12h7.5M8.25 15.75h5.25"/></svg>
                             Documents &amp; Activities
@@ -191,19 +181,19 @@
                     </button>
 
                     <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
-                        <a href="{{ route('admin.gpoa.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.gpoa.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.gpoa.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                        <a href="{{ route('admin.gpoa.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.gpoa.*') ? 'sidebar-link-active' : 'text-white' }}">
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 19.5h13.5M7.5 16.5V8.25h9v8.25M9 11.25h6"/></svg>
                             <span>GPOA Monitoring</span>
                         </a>
-                        <a href="{{ route('admin.activities') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.activities') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.activities') ? 'border-left-color: #FFB74D;' : '' }}">
+                        <a href="{{ route('admin.activities') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.activities') ? 'sidebar-link-active' : 'text-white' }}">
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 18.75V7.5A1.5 1.5 0 0 1 6 6h12a1.5 1.5 0 0 1 1.5 1.5v11.25M7.5 10.5h9M7.5 14.25h6"/></svg>
                             <span>Activity Monitoring</span>
                         </a>
-                        <a href="{{ route('activities.calendar') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('activities.calendar') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('activities.calendar') ? 'border-left-color: #FFB74D;' : '' }}">
+                        <a href="{{ route('activities.calendar') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('activities.calendar') ? 'sidebar-link-active' : 'text-white' }}">
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.25M16.5 3.75v2.25M4.5 8.25h15M6 20.25h12A1.5 1.5 0 0 0 19.5 18.75V8.25H4.5v10.5A1.5 1.5 0 0 0 6 20.25Z"/></svg>
                             <span>Activity Calendar</span>
                         </a>
-                        <a href="{{ route('admin.document-deadlines.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.document-deadlines.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.document-deadlines.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                        <a href="{{ route('admin.document-deadlines.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.document-deadlines.*') ? 'sidebar-link-active' : 'text-white' }}">
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 5.25h9L18.75 9v9.75A1.5 1.5 0 0 1 17.25 20.25h-9A1.5 1.5 0 0 1 6.75 18.75V6.75A1.5 1.5 0 0 1 8.25 5.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v3.75h3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6M9 15.75h6"/></svg>
                             <span>Document Deadlines</span>
                         </a>
@@ -214,19 +204,19 @@
                     <div class="px-3 pb-1 pt-2">
                         <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">ORGANIZATION</p>
                     </div>
-                    <a href="{{ route('admin.officers.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.officers.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                    <a href="{{ route('admin.officers.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75v-1.5A3 3 0 0 0 13.5 14.25H10.5a3 3 0 0 0-3 3v1.5M12 11.25a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25Z"/></svg>
                         <span>Officer Directory</span>
                     </a>
-                    <a href="{{ route('admin.officers.index', ['tab' => 'members']) }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? 'border-left-color: #FFB74D;' : '' }}">
+                    <a href="{{ route('admin.officers.index', ['tab' => 'members']) }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') && request('tab') === 'members' ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 18.75v-1.5A3.75 3.75 0 0 1 7.5 13.5h.75M15.75 13.5h.75A3.75 3.75 0 0 1 20.25 17.25v1.5M12 11.25a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/></svg>
                         <span>Org Chart</span>
                     </a>
-                    <a href="{{ route('admin.summary-report') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.summary-report*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.summary-report*') ? 'border-left-color: #FFB74D;' : '' }}">
+                    <a href="{{ route('admin.summary-report') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.summary-report*') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 5.25h9L18.75 9v9.75A1.5 1.5 0 0 1 17.25 20.25h-9A1.5 1.5 0 0 1 6.75 18.75V6.75A1.5 1.5 0 0 1 8.25 5.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v3.75h3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75h6M9 15.75h6"/></svg>
                         <span>Activity Overview Report</span>
                     </a>
-                    <a href="{{ route('admin.organizations.index') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.organizations.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.organizations.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                    <a href="{{ route('admin.organizations.index') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.organizations.*') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 14.25V6.75A1.5 1.5 0 0 1 6 5.25h12a1.5 1.5 0 0 1 1.5 1.5v7.5M4.5 14.25h15M18.75 19.5h-13.5v-5.25h13.5v5.25Z"/></svg>
                         <span>Organizations</span>
                     </a>
@@ -236,13 +226,13 @@
                     <div class="px-3 pb-1 pt-2">
                         <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">ACCOUNT &amp; SUPPORT</p>
                     </div>
-                    <a href="{{ route('faq') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('faq') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('faq') ? 'border-left-color: #FFB74D;' : '' }}">
+                    <a href="{{ route('faq') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('faq') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75A2.25 2.25 0 0 1 12 7.5a2.25 2.25 0 1 1 2.25 3.75c-.96.59-1.5 1.29-1.5 2.25M12 17.25h.01M20.25 12a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z"/></svg>
                         <span>FAQ</span>
                     </a>
 
                     <div x-data="{ open: {{ request()->routeIs('admin.backups.*') || request()->routeIs('admin.maintenance.*') || request()->routeIs('admin.activity-logs.*') ? 'true' : 'false' }} }" class="mt-1">
-                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/[0.08] hover:text-white" :class="open ? 'bg-white/[0.06] text-white' : 'text-white'">
+                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition text-white">
                             <span class="flex items-center gap-3">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.55 2.55l-.1-.1a1.8 1.8 0 0 0-3.07 1.27v.18a1.8 1.8 0 0 1-3.6 0v-.15a1.8 1.8 0 0 0-3.07-1.27l-.1.1A1.8 1.8 0 0 1 4.46 15.1l.1-.1a1.8 1.8 0 0 0-1.27-3.07H3.1a1.8 1.8 0 0 1 0-3.6h.15a1.8 1.8 0 0 0 1.27-3.07l-.1-.1a1.8 1.8 0 0 1 2.55-2.55l.1.1a1.8 1.8 0 0 0 3.07-1.27V1.4a1.8 1.8 0 0 1 3.6 0v.15a1.8 1.8 0 0 0 3.07 1.27l.1-.1a1.8 1.8 0 0 1 2.55 2.55l-.1.1a1.8 1.8 0 0 0 1.27 3.07h.18a1.8 1.8 0 0 1 0 3.6h-.15A1.8 1.8 0 0 0 19.4 15Z"/></svg>
                                 <span>Settings</span>
@@ -251,15 +241,15 @@
                         </button>
 
                         <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
-                            <a href="{{ route('admin.backups.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.backups.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.backups.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                            <a href="{{ route('admin.backups.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.backups.*') ? 'sidebar-link-active' : 'text-white' }}">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25V7.5A4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 4.5 4.5v.75M5.25 10.5h13.5v9h-13.5z"/></svg>
                                 <span>Backup &amp; Restore</span>
                             </a>
-                            <a href="{{ route('admin.maintenance.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.maintenance.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.maintenance.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                            <a href="{{ route('admin.maintenance.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.maintenance.*') ? 'sidebar-link-active' : 'text-white' }}">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75v4.5M12 15.75v4.5M3.75 12h4.5M15.75 12h4.5M6.75 6.75l3.18 3.18M14.07 14.07l3.18 3.18M17.25 6.75 14.07 9.93M9.93 14.07 6.75 17.25"/></svg>
                                 <span>System Maintenance</span>
                             </a>
-                            <a href="{{ route('admin.activity-logs.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.activity-logs.*') ? 'border-l-[3px] bg-[#FFB74D] text-white' : 'text-white hover:bg-white/[0.08] hover:text-white' }}" style="{{ request()->routeIs('admin.activity-logs.*') ? 'border-left-color: #FFB74D;' : '' }}">
+                            <a href="{{ route('admin.activity-logs.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.activity-logs.*') ? 'sidebar-link-active' : 'text-white' }}">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.75h9M7.5 16.5h6M8.25 4.5h7.5L19.5 8.25v9.75A2.25 2.25 0 0 1 17.25 20.25h-10.5A2.25 2.25 0 0 1 4.5 18V6.75A2.25 2.25 0 0 1 6.75 4.5h1.5Zm7.5 0v3.75h3.75"/></svg>
                                 <span>Activity Logs</span>
                             </a>
@@ -272,7 +262,7 @@
                 <li class="pt-4 mt-4 border-t border-white/10">
                     <a href="{{ route('logout') }}"
                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white hover:bg-white/[0.08] hover:text-[#FFB74D] w-full text-left"
+                       class="block px-4 py-2.5 rounded-lg transition font-bold text-white w-full text-left"
                        style="background-color: transparent;">
                          Logout
                     </a>
@@ -288,7 +278,7 @@
                     @php
                         $sidebarAvatarUrl = auth()->user()->avatar_url;
                     @endphp
-                    <img src="{{ $sidebarAvatarUrl }}" alt="Profile photo" class="w-9 h-9 rounded-full object-cover border-2 border-white/10" onerror="this.onerror=null; this.src='{{ asset('images/osdw.logo.jpg') }}';"/>
+                    <img src="{{ $sidebarAvatarUrl }}" data-fallback-src="{{ asset('images/osdw.logo.jpg') }}" alt="Profile photo" class="w-9 h-9 rounded-full object-cover border-2 border-white/10" onerror="this.onerror=null; this.src=this.dataset.fallbackSrc;"/>
                     <div class="min-w-0">
                         <p class="text-sm font-bold text-white truncate">{{ auth()->user()->name }}</p>
                         <p class="text-xs text-white/65 uppercase">{{ auth()->user()->role }}</p>
@@ -377,11 +367,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
-            <span class="font-bold text-gray-800">Orgtrack</span>
+            <span class="font-bold text-gray-800">OrgTrack</span>
             @php
                 $mobileAvatarUrl = auth()->user()->avatar_url;
             @endphp
-            <img src="{{ $mobileAvatarUrl }}" alt="Profile photo" class="w-9 h-9 rounded-full object-cover" onerror="this.onerror=null; this.src='{{ asset('images/osdw.logo.jpg') }}';"/>
+            <img src="{{ $mobileAvatarUrl }}" data-fallback-src="{{ asset('images/osdw.logo.jpg') }}" alt="Profile photo" class="w-9 h-9 rounded-full object-cover" onerror="this.onerror=null; this.src=this.dataset.fallbackSrc;"/>
         </header>
 
         <!-- Page Content -->

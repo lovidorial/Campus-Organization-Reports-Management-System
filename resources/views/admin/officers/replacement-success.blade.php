@@ -9,7 +9,7 @@
                 <p class="text-sm font-medium text-slate-600">Temporary password</p>
                 <div class="mt-2 flex items-center justify-between gap-3 rounded-xl bg-slate-100 px-3 py-2">
                     <span class="font-mono text-lg font-semibold tracking-wide text-slate-900">{{ session('replacement_password') }}</span>
-                    <button type="button" onclick="navigator.clipboard?.writeText('{{ session('replacement_password') }}')" class="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">Copy</button>
+                    <button type="button" data-password="{{ session('replacement_password') }}" onclick="navigator.clipboard?.writeText(this.dataset.password)" class="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">Copy</button>
                 </div>
             </div>
 

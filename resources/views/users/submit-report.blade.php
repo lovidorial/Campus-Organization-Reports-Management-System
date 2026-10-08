@@ -14,7 +14,7 @@
 @endphp
 
 <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-8 max-w-xl">
-    <form action="{{ route('activity-reports.store', $activityRequest) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('activity-reports.store', $activityRequest) }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-has-existing-upload="{{ $hasExistingUpload ? 'true' : 'false' }}">
         @csrf
 
         <div class="bg-gray-50 rounded-lg p-4 text-sm">
@@ -115,7 +115,7 @@
     const narrativeEditorSection = document.getElementById('narrativeEditorSection');
     const narrativeReportFile = document.getElementById('narrativeReportFile');
     const narrativeContent = document.getElementById('narrative_content');
-    const hasExistingUpload = @json($hasExistingUpload);
+    const hasExistingUpload = document.querySelector('form[data-has-existing-upload]')?.dataset.hasExistingUpload === 'true';
 
     function updateNarrativeSourceFields() {
         const source = document.querySelector('input[name="narrative_source"]:checked')?.value;
