@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Gpoa;
+use App\Models\GpoaActivity;
+use App\Models\ActivityRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -92,6 +94,50 @@ class GpoaPlannedActivitiesTest extends TestCase
         $this->assertSame('11:00', $activity->end_time);
     }
 
+    public function test_editing_gpoa_does_not_delete_a_planned_activity_with_a_submitted_request(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $owner = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'document_path' => 'uploads/gpoa/existing.pdf',
+            'prepared_by' => 'Jane Doe',
+            'status' => 'approved',
+        ]);
+        $submittedActivity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            ...$this->completeActivityPayload(),
+        ]);
+        $request = ActivityRequest::create([
+            'user_id' => $owner->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $submittedActivity->id,
+            'title' => $submittedActivity->title,
+            'date' => $submittedActivity->date,
+            'venue' => $submittedActivity->venue,
+            'category' => 'Symposium',
+            'communication_letter' => 'letters/submitted.pdf',
+            'status' => 'pending',
+        ]);
+        $submittedActivity->update(['activity_request_id' => $request->id]);
+        $replacementRow = $this->completeActivityPayload();
+        $replacementRow['title'] = 'Replacement Plan Row';
+
+        $this->actingAs($admin)
+            ->put(route('gpoa.update', $gpoa), [
+                'colleges' => 'CICS',
+                'prepared_by' => 'Jane Doe',
+                'planned_activities' => [$replacementRow],
+            ])
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('gpoa_activities', ['id' => $submittedActivity->id, 'gpoa_id' => $gpoa->id]);
+        $this->assertDatabaseHas('activity_requests', ['id' => $request->id, 'gpoa_activity_id' => $submittedActivity->id]);
+    }
+
     public function test_store_accepts_missing_optional_category_and_source_of_funds(): void
     {
         Storage::fake('public');
@@ -106,7 +152,8 @@ class GpoaPlannedActivitiesTest extends TestCase
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [$this->completeActivityPayload()],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('dashboard'))
+            ->assertSessionHas('clearGpoaDraftKey', 'gpoa-draft:' . $user->id . ':2026-2027');
 
         $activity = Gpoa::query()->firstOrFail()->activities()->firstOrFail();
         $this->assertNull($activity->category);
@@ -118,7 +165,7 @@ class GpoaPlannedActivitiesTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
         $activity = $this->completeActivityPayload();
-        unset($activity['person_in_charge']);
+        $activity['person_in_charge'] = '';
 
         $this->actingAs($user)->from(route('gpoa.create'))->post(route('gpoa.store'), [
             'colleges' => 'CICS',
@@ -132,6 +179,28 @@ class GpoaPlannedActivitiesTest extends TestCase
         ])->assertSessionHasErrors('planned_activities.0.person_in_charge');
 
         $this->assertDatabaseCount('gpoas', 0);
+    }
+
+    public function test_store_accepts_empty_facilities_materials(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $activity = $this->completeActivityPayload();
+        $activity['facilities_materials'] = '';
+
+        $this->actingAs($user)->post(route('gpoa.store'), [
+            'colleges' => 'CICS',
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'prepared_by' => 'Jane Doe',
+            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'approved_confirmation' => '1',
+            'verify' => '1',
+            'planned_activities' => [$activity],
+        ])->assertRedirect(route('dashboard'));
+
+        $activity = Gpoa::query()->firstOrFail()->activities()->firstOrFail();
+        $this->assertSame('', $activity->facilities_materials);
     }
 
     public function test_store_rejects_a_35th_planned_activity_with_existing_message(): void
@@ -165,11 +234,14 @@ class GpoaPlannedActivitiesTest extends TestCase
         $this->assertStringContainsString('A GPOA may contain no more than 34 planned activities.', $response->getSession()->get('errors')->get('planned_activities')[0]);
     }
 
-    public function test_store_accepts_a_row_with_only_title_and_time_frame(): void
+    public function test_store_accepts_a_row_with_all_required_fields(): void
     {
         Storage::fake('public');
 
         $user = User::factory()->create();
+        $activityData = $this->completeActivityPayload();
+        $activityData['title'] = 'Leadership Seminar';
+        $activityData['date'] = today()->addDays(2)->toDateString();
 
         $response = $this->actingAs($user)->post(route('gpoa.store'), [
             'colleges' => 'CICS',
@@ -179,11 +251,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
             'approved_confirmation' => '1',
             'verify' => '1',
-            'planned_activities' => [[
-                'title' => 'Leadership Seminar',
-                'time_frame' => 'exact_date',
-                'date' => '2026-09-15',
-            ]],
+            'planned_activities' => [$activityData],
         ]);
 
         $response->assertRedirect(route('dashboard'));
@@ -192,9 +260,9 @@ class GpoaPlannedActivitiesTest extends TestCase
 
         $this->assertNotNull($activity);
         $this->assertSame('Leadership Seminar', $activity->title);
-        $this->assertSame('2026-09-15', $activity->date->toDateString());
+        $this->assertSame($activityData['date'], $activity->date->toDateString());
         $this->assertSame('exact_date', $activity->time_frame);
-        $this->assertNull($activity->venue);
+        $this->assertSame('Main Hall', $activity->venue);
         $this->assertNull($activity->end_date);
     }
 
@@ -203,6 +271,9 @@ class GpoaPlannedActivitiesTest extends TestCase
         Storage::fake('public');
 
         $user = User::factory()->create();
+        $monthDate = today()->addMonth()->startOfMonth();
+        $rangeStart = today()->addDays(2);
+        $rangeEnd = today()->addDays(3);
 
         $this->actingAs($user)->post(route('gpoa.store'), [
             'colleges' => 'CICS',
@@ -216,13 +287,29 @@ class GpoaPlannedActivitiesTest extends TestCase
                 [
                     'title' => 'Month Only Activity',
                     'time_frame' => 'month_only',
-                    'date' => '2024-11',
+                    'date' => $monthDate->format('Y-m'),
+                    'venue' => 'Main Hall',
+                    'sdgs' => [4],
+                    'objectives' => 'Support student development.',
+                    'expected_outcome' => 'Students gain experience.',
+                    'plan_key_strategy' => 'Guided discussion.',
+                    'target_participants' => 'Students',
+                    'person_in_charge' => 'Organization officers',
+                    'estimated_budget' => '1000',
                 ],
                 [
                     'title' => 'Range Activity',
                     'time_frame' => 'date_range',
-                    'date' => '2026-10-21',
-                    'end_date' => '2026-10-22',
+                    'date' => $rangeStart->toDateString(),
+                    'end_date' => $rangeEnd->toDateString(),
+                    'venue' => 'Activity Hall',
+                    'sdgs' => [4],
+                    'objectives' => 'Support student development.',
+                    'expected_outcome' => 'Students gain experience.',
+                    'plan_key_strategy' => 'Guided discussion.',
+                    'target_participants' => 'Students',
+                    'person_in_charge' => 'Organization officers',
+                    'estimated_budget' => '1000',
                 ],
             ],
         ]);
@@ -231,12 +318,12 @@ class GpoaPlannedActivitiesTest extends TestCase
         $rangeActivity = Gpoa::first()->activities()->where('title', 'Range Activity')->first();
 
         $this->assertNotNull($monthOnlyActivity);
-        $this->assertSame('2024-11-01', $monthOnlyActivity->date->toDateString());
+        $this->assertSame($monthDate->toDateString(), $monthOnlyActivity->date->toDateString());
         $this->assertTrue((bool) $monthOnlyActivity->date_is_month_only);
 
         $this->assertNotNull($rangeActivity);
-        $this->assertSame('2026-10-21', $rangeActivity->date->toDateString());
-        $this->assertSame('2026-10-22', $rangeActivity->end_date->toDateString());
+        $this->assertSame($rangeStart->toDateString(), $rangeActivity->date->toDateString());
+        $this->assertSame($rangeEnd->toDateString(), $rangeActivity->end_date->toDateString());
         $this->assertFalse((bool) $rangeActivity->date_is_month_only);
     }
 

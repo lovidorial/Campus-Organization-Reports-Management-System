@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
+use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\GpoaImportParser;
@@ -239,7 +240,8 @@ class GpoaController extends Controller
         });
 
         return redirect()->route('dashboard')
-            ->with('success', 'GPOA submitted successfully.');
+            ->with('success', 'GPOA submitted successfully.')
+            ->with('clearGpoaDraftKey', 'gpoa-draft:'.$user->id.':'.$validated['school_year']);
     }
 
     public function edit(Gpoa $gpoa)
@@ -303,7 +305,8 @@ class GpoaController extends Controller
         $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
 
         return redirect()->route('dashboard')
-            ->with('success', 'GPOA updated successfully.');
+            ->with('success', 'GPOA updated successfully.')
+            ->with('clearGpoaDraftKey', 'gpoa-draft:'.auth()->id().':gpoa:'.$gpoa->id.':'.$gpoa->school_year);
     }
 
     public function show(Gpoa $gpoa)
@@ -378,7 +381,18 @@ class GpoaController extends Controller
             $retainedIds[] = $gpoa->activities()->create($normalizedActivity)->id;
         }
 
-        $gpoa->activities()->whereNotIn('id', $retainedIds)->delete();
+        $removedActivities = $gpoa->activities()
+            ->whereNotIn('id', $retainedIds)
+            ->get();
+
+        foreach ($removedActivities as $activity) {
+            $hasSubmittedRequest = $activity->activityRequest()->exists()
+                || ActivityRequest::query()->where('gpoa_activity_id', $activity->id)->exists();
+
+            if (! $hasSubmittedRequest) {
+                $activity->delete();
+            }
+        }
     }
 
     private function normalizePlannedActivityData(array $activityData): array
@@ -522,7 +536,6 @@ class GpoaController extends Controller
                     'plan_key_strategy' => 'Delivery Strategy',
                     'target_participants' => 'Target Participants',
                     'person_in_charge' => 'Person in Charge',
-                    'facilities_materials' => 'Facilities / Materials',
                 ] as $field => $label) {
                     if (trim((string) ($activity[$field] ?? '')) === '') {
                         $validator->errors()->add("planned_activities.{$index}.{$field}", "Activity {$activityNumber}: {$label} is required.");

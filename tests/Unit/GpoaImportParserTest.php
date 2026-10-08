@@ -93,7 +93,84 @@ class GpoaImportParserTest extends TestCase
         $this->assertNotContains('Column not found: Source of Funds', $row['warnings']);
     }
 
-    private function twoRowHeaderDocx(): UploadedFile
+    public function test_venue_only_facilities_cell_keeps_materials_empty(): void
+    {
+        $row = $this->parseFirstDocxRow('Venue: CICS Love Hall');
+
+        $this->assertSame('CICS Love Hall', $row['venue']);
+        $this->assertSame('', $row['facilities_materials']);
+    }
+
+    public function test_facilities_and_person_lines_are_joined_after_venue_extraction(): void
+    {
+        $row = $this->parseFirstDocxRow(
+            "Venue: X\nCertificate\nToken",
+            "Officer One\nOfficer Two",
+            "First-year students\nSecond-year students"
+        );
+
+        $this->assertSame('X', $row['venue']);
+        $this->assertSame('Certificate / Token', $row['facilities_materials']);
+        $this->assertSame('Officer One / Officer Two', $row['person_in_charge']);
+        $this->assertSame('First-year students / Second-year students', $row['target_participants']);
+    }
+
+    public function test_real_gpoa_2026_2027_docx_imports_all_rows_and_expected_details(): void
+    {
+        $filePath = base_path('tests/fixtures/GPOA-2026-2027.docx');
+        $file = new UploadedFile(
+            $filePath,
+            'GPOA-2026-2027.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true
+        );
+
+        $parsed = (new GpoaImportParser())->parse($file, '2026-2027');
+        $allTitles = array_merge(array_column($parsed['rows'], 'title'), $parsed['skipped_rows']);
+        $firstRow = $parsed['rows'][0];
+        $teachersDay = collect($parsed['rows'])->first(fn (array $row): bool => str_contains(mb_strtolower($row['title']), 'teachers'));
+
+        $this->assertCount(39, $allTitles);
+        $this->assertStringStartsWith('Induction and Oath Taking of Newly Elected College Student Council and', $firstRow['title']);
+        $this->assertSame('2026-10-03', $firstRow['date']);
+        $this->assertSame('CICS Love Hall', $firstRow['venue']);
+        $this->assertNotNull($teachersDay);
+        $this->assertSame('13:00', $teachersDay['start_time']);
+        $this->assertSame('15:00', $teachersDay['end_time']);
+
+        foreach (['Intramurals', 'Simba Bigayan', 'Year-End Party', 'KKK'] as $titleFragment) {
+            $row = collect($parsed['rows'])->first(fn (array $activity): bool => str_contains(mb_strtolower($activity['title']), mb_strtolower($titleFragment)));
+            $this->assertNotNull($row, "Expected row containing {$titleFragment}.");
+            $this->assertNull($row['venue'], "Expected {$titleFragment} to have no inferred venue.");
+        }
+
+        foreach ($parsed['rows'] as $row) {
+            $this->assertStringNotContainsString('Category', implode(' ', $row['warnings']));
+            $this->assertStringNotContainsString('Source of Funds', implode(' ', $row['warnings']));
+        }
+    }
+
+    private function parseFirstDocxRow(
+        string $facilities,
+        string $personInCharge = 'Responsible Officer',
+        string $targetParticipants = 'CICS students'
+    ): array
+    {
+        $file = $this->twoRowHeaderDocx($facilities, $personInCharge, $targetParticipants);
+
+        try {
+            return (new GpoaImportParser())->parse($file, '2026-2027')['rows'][0];
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    private function twoRowHeaderDocx(
+        string $facilities = "Venue: CICS Love Hall\nCertificate / Token for the Speaker",
+        string $personInCharge = '1.CICS elected and appointed officers / 2.Academic Achievers...',
+        string $targetParticipants = 'CICS students'
+    ): UploadedFile
     {
         $filePath = tempnam(sys_get_temp_dir(), 'gpoa-import-') . '.docx';
         $zip = new ZipArchive();
@@ -138,11 +215,11 @@ class GpoaImportParserTest extends TestCase
                 $cell('SDGs 4, 5, 10, 16, 17'),
                 $cell('Build leadership skills', '<w:gridSpan w:val="2"/>'),
                 $cell('Students are prepared'),
-                $cell('CICS students'),
+                $cell($targetParticipants),
                 $cell('October 3, 2026'),
                 $cell('Interactive program'),
-                $cell('1.CICS elected and appointed officers / 2.Academic Achievers...'),
-                $cell("Venue: CICS Love Hall\nCertificate / Token for the Speaker"),
+                $cell($personInCharge),
+                $cell($facilities),
                 $cell('200.00'),
             ]),
         ];

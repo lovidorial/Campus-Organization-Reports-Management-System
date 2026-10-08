@@ -98,6 +98,7 @@
                                 <td class="px-4 py-3">
                                     <div class="font-semibold text-slate-900">{{ $activity->title }}</div>
                                     <div class="text-xs text-slate-500">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</div>
+                                    <div class="text-xs text-slate-500">Submitted by {{ $activity->gpoa?->user?->name ?? '—' }}</div>
                                     @if($activity->last_submitted_at)<time class="text-xs text-slate-500" datetime="{{ $activity->last_submitted_at->toIso8601String() }}" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif
                                     <details class="mt-1 text-xs text-slate-600"><summary class="cursor-pointer text-sky-700">Activity details and remarks</summary><div class="mt-2 space-y-1"><p>{{ $activity->category ?: 'Category not set' }} · {{ $activity->venue ?: 'Venue not set' }}</p><p>{{ $activity->gpoa?->term }} / {{ $activity->gpoa?->school_year }}</p>@if($activity->monitoringResult)<p>{{ $activity->monitoringResult->compliance_notes }}</p>@endif
                                         @if($activity->activityRequest && $activity->activityRequest->programFlows->isNotEmpty())
@@ -148,7 +149,7 @@
                             : route('admin.gpoa.show', $activity->gpoa_id);
                     @endphp
                     <article class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-                        <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activity->title }}</h2><p class="text-xs text-slate-500">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitoring_status" /></div>
+                        <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activity->title }}</h2><p class="text-xs text-slate-500">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</p><p class="text-xs text-slate-500">Submitted by {{ $activity->gpoa?->user?->name ?? '—' }}</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitoring_status" /></div>
                         <p class="text-sm text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</p>
                         <div class="flex items-center justify-between">
                             <div class="flex gap-2">

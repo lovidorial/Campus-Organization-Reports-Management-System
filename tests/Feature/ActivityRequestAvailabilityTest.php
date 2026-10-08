@@ -589,7 +589,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             'person_in_charge' => 'Organization officers',
             'facilities_materials' => 'Sound system',
             'estimated_budget' => 2500.00,
-            'source_of_funds' => 'Organization Funds',
+            'source_of_funds' => null,
             'preceding_activity' => 'Orientation',
         ]);
         $this->assertDatabaseHas('activity_requests', [

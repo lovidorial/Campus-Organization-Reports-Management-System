@@ -19,8 +19,7 @@ class GpoaActivityMonitoringStatusTest extends TestCase
     {
         parent::setUp();
 
-        $deadlineCache = new \ReflectionProperty(GpoaActivity::class, 'monitoringDeadlineCache');
-        $deadlineCache->setValue(null, []);
+        DocumentDeadline::query()->delete();
     }
 
     public function test_no_deadline_settings_means_a_past_activity_is_not_late(): void

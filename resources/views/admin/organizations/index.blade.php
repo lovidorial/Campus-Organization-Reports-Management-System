@@ -9,6 +9,20 @@
         <a href="{{ route('admin.organizations.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:flex-shrink-0 sm:whitespace-nowrap">+ Add Organization</a>
     </div>
 
+    @php
+        $tabQuery = request()->except('page');
+        $activeTabQuery = array_merge($tabQuery, ['tab' => 'active']);
+        $inactiveTabQuery = array_merge($tabQuery, ['tab' => 'inactive']);
+    @endphp
+    <nav class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Organization account status">
+        <a href="{{ route('admin.organizations.index', $activeTabQuery) }}" @if($tab === 'active') aria-current="page" @endif class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold {{ $tab === 'active' ? 'border-sky-700 bg-sky-700 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
+            Active <span class="rounded-full px-2 py-0.5 text-xs {{ $tab === 'active' ? 'bg-white/20' : 'bg-slate-100' }}">{{ $summary['active'] }}</span>
+        </a>
+        <a href="{{ route('admin.organizations.index', $inactiveTabQuery) }}" @if($tab === 'inactive') aria-current="page" @endif class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold {{ $tab === 'inactive' ? 'border-sky-700 bg-sky-700 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
+            Inactive <span class="rounded-full px-2 py-0.5 text-xs {{ $tab === 'inactive' ? 'bg-white/20' : 'bg-slate-100' }}">{{ $summary['inactive'] }}</span>
+        </a>
+    </nav>
+
     <!-- Information Card -->
     <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="min-w-0">
@@ -18,55 +32,43 @@
     </div>
 
     <!-- Summary Cards Grid -->
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <!-- Total Organizations -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Total Organizations</p>
-            <p class="mt-2 text-xs text-slate-500">All registered organizations</p>
-            <p class="mt-4 text-3xl font-bold text-slate-900">{{ $summary['total'] ?? 0 }}</p>
-        </div>
-
-        <!-- Active Accounts -->
-        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500">Active</p>
-            <p class="mt-2 text-xs text-slate-500">Active organization accounts</p>
-            <p class="mt-4 text-3xl font-bold text-emerald-600">{{ $summary['active'] ?? 0 }}</p>
-        </div>
+    <div class="grid grid-cols-3 gap-3">
+        @foreach([['Total', $summary['total'], 'text-slate-900'], ['Active', $summary['active'], 'text-emerald-600'], ['Inactive', $summary['inactive'], 'text-rose-600']] as [$label, $count, $color])
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase text-slate-500">{{ $label }}</p>
+                <p class="mt-3 text-3xl font-bold {{ $color }}">{{ $count }}</p>
+            </div>
+        @endforeach
     </div>
 
     <!-- Filter Section -->
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="space-y-4">
-            <!-- Search Field -->
-            <div class="relative">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search organizations..."
-                       class="w-full rounded-3xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100" />
-                <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" /></svg>
-                </span>
+    <form method="GET" action="{{ route('admin.organizations.index') }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <input type="hidden" name="tab" value="{{ $tab }}">
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_auto] xl:items-end">
+            <div>
+                <label for="organization-search" class="mb-1 block text-xs font-semibold text-slate-600">Search</label>
+                <input id="organization-search" type="search" name="search" value="{{ $search }}" placeholder="Organization, name or email" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100">
             </div>
-
-            <!-- College Dropdown -->
-            <select name="college" class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100">
-                <option value="">All Colleges</option>
-            </select>
-
-            <!-- Type Dropdown -->
-            <select name="type" onchange="this.form.submit()" class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100">
-                <option value="">All Types</option>
-                <option value="Student Council" {{ request('type')=='Student Council' ? 'selected' : '' }}>Student Council</option>
-                <option value="Academic Org" {{ request('type')=='Academic Org' ? 'selected' : '' }}>Academic Org</option>
-                <option value="Cultural Org" {{ request('type')=='Cultural Org' ? 'selected' : '' }}>Cultural Org</option>
-                <option value="Sports Org" {{ request('type')=='Sports Org' ? 'selected' : '' }}>Sports Org</option>
-                <option value="Religious Org" {{ request('type')=='Religious Org' ? 'selected' : '' }}>Religious Org</option>
-                <option value="Publication" {{ request('type')=='Publication' ? 'selected' : '' }}>Publication</option>
-                <option value="Other" {{ request('type')=='Other' ? 'selected' : '' }}>Other</option>
-            </select>
-
+            <div>
+                <label for="organization-college" class="mb-1 block text-xs font-semibold text-slate-600">College</label>
+                <select id="organization-college" name="college" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
+                    <option value="">All colleges</option>
+                    @foreach($collegeOptions as $option)<option value="{{ $option }}" @selected($college === $option)>{{ $option }}</option>@endforeach
+                </select>
+            </div>
+            <div>
+                <label for="organization-type" class="mb-1 block text-xs font-semibold text-slate-600">Type</label>
+                <select id="organization-type" name="type" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
+                    <option value="">All types</option>
+                    @foreach($typeOptions as $option)<option value="{{ $option }}" @selected($type === $option)>{{ $option }}</option>@endforeach
+                </select>
+            </div>
+            <button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Apply filters</button>
         </div>
-    </div>
+    </form>
 
     <!-- Organizations Table -->
+    @if($tab === 'active')
     <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
@@ -97,7 +99,7 @@
                             </div>
                         </td>
                         <td class="px-4 py-3 align-middle w-48">
-                            @if($org->members->count())
+                            @if($org->members->isNotEmpty())
                                 <div class="flex flex-col justify-center h-full">
                                     <p class="text-sm font-medium text-slate-900 truncate">{{ $org->members->first()->name }}</p>
                                     <p class="mt-1 text-xs text-slate-500 truncate">{{ $org->members->first()->email }}</p>
@@ -113,12 +115,10 @@
                         </td>
                         <td class="px-4 py-3 align-middle text-slate-700">{{ $org->college ?? '—' }}</td>
                         <td class="px-4 py-3 align-middle">
-                            @if(! $org->members->count())
-                                <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">Pending</span>
-                            @elseif($org->is_active)
-                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">Active</span>
-                            @else
+                            @if($org->account_term_ended)
                                 <span class="inline-flex items-center rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700">Inactive</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">Active</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-center align-middle">
@@ -129,13 +129,6 @@
                                 <a href="{{ route('admin.organizations.edit', $org) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-slate-200 transition" title="Edit" aria-label="Edit">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h6m3 0a2 2 0 012 2v6m0 3v1a2 2 0 01-2 2H9m6-3l-5 5m0 0l-5-5m5 5V5" /></svg>
                                 </a>
-                                <form action="{{ route('admin.organizations.destroy', $org) }}" method="POST" class="inline" data-confirm data-confirm-title="Delete organization permanently?" data-confirm-message="Deleting {{ $org->name }} will permanently remove its account(s), GPOA, activities, requests, and submitted documents. This cannot be undone. To keep the records, use Deactivate account instead." data-confirm-label="Delete permanently" data-confirm-variant="danger" data-confirm-type="{{ $org->name }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-700 hover:bg-rose-100 transition" title="Delete" aria-label="Delete">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                                    </button>
-                                </form>
                             </div>
                         </td>
                     </tr>
@@ -161,5 +154,22 @@
     <div class="mt-6">
         {{ $organizations->links() }}
     </div>
+    @else
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Organization</th><th class="px-4 py-3">College</th><th class="px-4 py-3">Term</th><th class="px-4 py-3">School Year</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($inactiveAccounts as $account)
+                        <tr>
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ $account->name }}</td><td class="px-4 py-3 text-slate-700">{{ $account->email }}</td><td class="px-4 py-3">{{ $account->organization?->name ?? $account->org_name ?? '—' }}</td><td class="px-4 py-3">{{ $account->college ?? $account->organization?->college ?? '—' }}</td><td class="px-4 py-3">{{ $account->term ?? '—' }}</td><td class="px-4 py-3">{{ $account->school_year ?? '—' }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-4 py-12 text-center text-sm text-slate-500">No inactive accounts yet</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-6">{{ $inactiveAccounts->links() }}</div>
+    @endif
 </div>
 </x-app-layout>

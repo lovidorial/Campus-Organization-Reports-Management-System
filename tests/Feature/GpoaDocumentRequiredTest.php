@@ -25,12 +25,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
             'planned_activities' => [[
-                'title' => 'Student Leadership Summit',
-                'time_frame' => 'exact_date',
-                'date' => '2026-10-01',
-                'venue' => 'Main Hall',
-                'category' => 'Symposium',
-                'sdgs' => [4],
+                ...$this->completePlannedActivity(),
             ]],
             'approved_confirmation' => '1',
             'verify' => '1',
@@ -52,12 +47,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'prepared_by' => 'Jane Doe',
             'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
             'planned_activities' => [[
-                'title' => 'Student Leadership Summit',
-                'time_frame' => 'exact_date',
-                'date' => '2026-10-01',
-                'venue' => 'Main Hall',
-                'category' => 'Symposium',
-                'sdgs' => [4],
+                ...$this->completePlannedActivity(),
             ]],
             'verify' => '1',
         ]);
@@ -78,12 +68,7 @@ class GpoaDocumentRequiredTest extends TestCase
             'prepared_by' => 'Jane Doe',
             'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
             'planned_activities' => [[
-                'title' => 'Student Leadership Summit',
-                'time_frame' => 'exact_date',
-                'date' => '2026-10-01',
-                'venue' => 'Main Hall',
-                'category' => 'Symposium',
-                'sdgs' => [4],
+                ...$this->completePlannedActivity(),
             ]],
             'approved_confirmation' => '1',
             'verify' => '1',
@@ -131,17 +116,12 @@ class GpoaDocumentRequiredTest extends TestCase
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
             'planned_activities' => [
-                [
-                    'title' => 'Student Leadership Summit',
-                    'time_frame' => 'exact_date',
-                    'date' => '2026-10-01',
-                    'venue' => 'Main Hall',
-                    'category' => 'Symposium',
-                    'sdgs' => [4],
-                ],
-                [
-                    'sdgs' => [3],
-                ],
+                $this->completePlannedActivity(),
+                array_merge($this->completePlannedActivity(), [
+                    'title' => '',
+                    'time_frame' => '',
+                    'date' => '',
+                ]),
             ],
             'verify' => '1',
         ]);
@@ -150,8 +130,8 @@ class GpoaDocumentRequiredTest extends TestCase
             'planned_activities.1.title',
             'planned_activities.1.time_frame',
         ]);
-        $this->assertStringContainsString('Activity 2 title is required', $response->getSession()->get('errors')->get('planned_activities.1.title')[0]);
-        $this->assertStringContainsString('Activity 2 time frame is required', $response->getSession()->get('errors')->get('planned_activities.1.time_frame')[0]);
+        $this->assertSame('Activity 2: Title is required.', $response->getSession()->get('errors')->get('planned_activities.1.title')[0]);
+        $this->assertSame('Activity 2: Date or time frame is required.', $response->getSession()->get('errors')->get('planned_activities.1.time_frame')[0]);
         $this->assertDatabaseCount('gpoas', 0);
     }
 
@@ -213,13 +193,20 @@ class GpoaDocumentRequiredTest extends TestCase
             'document_path' => 'uploads/gpoa/existing.pdf',
             'status' => 'approved',
         ]);
+        $activityDate = today()->addDays(2)->toDateString();
         $activity = $gpoa->activities()->create([
             'title' => 'Existing planned activity',
             'time_frame' => 'exact_date',
-            'date' => '2026-10-01',
+            'date' => $activityDate,
             'venue' => 'Main Hall',
             'category' => 'Symposium',
             'sdgs' => [4],
+            'objectives' => 'Develop leadership skills.',
+            'expected_outcome' => 'Participants gain confidence.',
+            'plan_key_strategy' => 'Guided workshop.',
+            'target_participants' => 'Student leaders',
+            'person_in_charge' => 'Organization officers',
+            'estimated_budget' => 2500,
         ]);
 
         $this->actingAs($admin)->get(route('gpoa.edit', $gpoa))->assertOk();
@@ -230,14 +217,38 @@ class GpoaDocumentRequiredTest extends TestCase
                 'id' => $activity->id,
                 'title' => $activity->title,
                 'time_frame' => 'exact_date',
-                'date' => '2026-10-01',
+                'date' => $activityDate,
                 'venue' => 'Main Hall',
                 'category' => 'Symposium',
                 'sdgs' => [4],
+                'objectives' => 'Develop leadership skills.',
+                'expected_outcome' => 'Participants gain confidence.',
+                'plan_key_strategy' => 'Guided workshop.',
+                'target_participants' => 'Student leaders',
+                'person_in_charge' => 'Organization officers',
+                'estimated_budget' => 2500,
             ]],
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertSame('Admin Updated', $gpoa->fresh()->prepared_by);
+    }
+
+    private function completePlannedActivity(): array
+    {
+        return [
+            'title' => 'Student Leadership Summit',
+            'time_frame' => 'exact_date',
+            'date' => today()->addDays(2)->toDateString(),
+            'venue' => 'Main Hall',
+            'category' => 'Symposium',
+            'sdgs' => [4],
+            'objectives' => 'Develop leadership skills.',
+            'expected_outcome' => 'Participants gain confidence.',
+            'plan_key_strategy' => 'Guided workshop.',
+            'target_participants' => 'Student leaders',
+            'person_in_charge' => 'Organization officers',
+            'estimated_budget' => 2500,
+        ];
     }
 
     public function test_org_gpoa_document_route_is_owner_scoped_and_private(): void

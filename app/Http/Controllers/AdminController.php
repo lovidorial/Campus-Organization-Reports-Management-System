@@ -46,7 +46,7 @@ class AdminController extends Controller
         $schedulerLastRunAt = Cache::get('scheduler_last_run_at');
         $nextDueAt = $backupService->nextBackupDueAt($backupSetting);
 
-        return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'backupWarning', 'nextDueAt', 'schedulerHealthy', 'schedulerLastRunAt'));
+       return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'backupWarning', 'nextDueAt', 'schedulerLastRunAt'));
     }
 
     public function monitor(Request $request, AdminActivityMonitoringService $monitoringService)
@@ -294,7 +294,7 @@ class AdminController extends Controller
         }
 
         $activities = $monitoringService->filtered($request);
-        $headers = ['Activity ID', 'Title', 'Organization', 'Venue', 'Date', 'Monitoring Status', 'Late', 'Communication Letter', 'Narrative Report', 'Term', 'School Year'];
+        $headers = ['Activity ID', 'Title', 'Organization', 'Submitted By', 'Venue', 'Date', 'Monitoring Status', 'Late', 'Communication Letter', 'Narrative Report', 'Term', 'School Year'];
         $csvStream = fopen('php://temp', 'r+');
         $sanitizeForSpreadsheet = static function ($value): string {
             $value = (string) $value;
@@ -311,6 +311,7 @@ class AdminController extends Controller
                 $activity->id,
                 $activity->title,
                 $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? 'N/A',
+                $activity->gpoa?->user?->name ?? 'N/A',
                 $activity->venue ?: '—',
                 $activity->date?->toDateString() ?? '',
                 $activity->monitoring_status,

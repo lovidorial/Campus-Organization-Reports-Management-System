@@ -16,15 +16,12 @@ class UserActivityMonitorTest extends TestCase
 
     public function test_user_activity_monitor_shows_current_gpoa_activities_without_approval_gate(): void
     {
-        $user = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-        ]);
+        $user = User::factory()->create();
 
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $user->term,
+            'school_year' => $user->school_year,
             'college' => 'CICS',
             'status' => 'pending',
         ]);
@@ -72,14 +69,12 @@ class UserActivityMonitorTest extends TestCase
     public function test_user_monitor_view_opens_details_with_uploaded_document_viewer_links(): void
     {
         $user = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
             'org_name' => 'CICS Student Council',
         ]);
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $user->term,
+            'school_year' => $user->school_year,
             'college' => 'CICS',
             'status' => 'approved',
         ]);
@@ -123,14 +118,11 @@ class UserActivityMonitorTest extends TestCase
 
     public function test_archived_activities_are_hidden_by_default_and_shown_by_status_filter(): void
     {
-        $user = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-        ]);
+        $user = User::factory()->create();
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $user->term,
+            'school_year' => $user->school_year,
             'college' => 'CICS',
             'status' => 'approved',
         ]);
@@ -156,14 +148,11 @@ class UserActivityMonitorTest extends TestCase
 
     public function test_org_monitor_orders_submissions_and_only_lists_the_owners_activities(): void
     {
-        $user = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-        ]);
+        $user = User::factory()->create();
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $user->term,
+            'school_year' => $user->school_year,
             'college' => 'CICS',
             'status' => 'approved',
         ]);
@@ -194,14 +183,11 @@ class UserActivityMonitorTest extends TestCase
             $activity->update(['activity_request_id' => $request->id]);
         }
 
-        $otherUser = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-        ]);
+        $otherUser = User::factory()->create();
         $otherGpoa = Gpoa::create([
             'user_id' => $otherUser->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $otherUser->term,
+            'school_year' => $otherUser->school_year,
             'college' => 'CET',
             'status' => 'approved',
         ]);
@@ -222,14 +208,11 @@ class UserActivityMonitorTest extends TestCase
 
     public function test_org_monitor_pagination_preserves_filters(): void
     {
-        $user = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-        ]);
+        $user = User::factory()->create();
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $user->term,
+            'school_year' => $user->school_year,
             'college' => 'CICS',
             'status' => 'approved',
         ]);

@@ -18,6 +18,7 @@
                         <p class="mt-1 text-sm text-slate-500">
                             {{ $orgName }} — {{ $gpoa->term }} / SY {{ $gpoa->school_year }}
                         </p>
+                        <p class="mt-1 text-sm text-slate-600">Submitted by {{ $gpoa->user->name }}</p>
                     </div>
                 </div>
             </div>

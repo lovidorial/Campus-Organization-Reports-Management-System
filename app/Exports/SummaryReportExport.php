@@ -61,6 +61,7 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
     {
         return [
             'Organization',
+            'Submitted By',
             'Term / SY',
             'Activity # / Title',
             'Category',
@@ -88,6 +89,7 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
 
         return [
             $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—',
+            $activity->gpoa?->user?->name ?? '—',
             trim(($activity->gpoa?->term ?? '—') . ' / ' . ($activity->gpoa?->school_year ?? '—'), ' / '),
             'Activity #' . ($activity->activity_number ?? '—') . ': ' . $activity->title,
             $activity->category ?: '—',
@@ -111,11 +113,11 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
         $lastRow = max(1, $sheet->getHighestRow());
 
         return [
-            "A1:K{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
+            "A1:L{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
             '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
-            'G' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
             'H' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            'K' => ['numberFormat' => ['formatCode' => '"PHP "#,##0.00']],
+            'I' => ['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            'L' => ['numberFormat' => ['formatCode' => '"PHP "#,##0.00']],
         ];
     }
 
@@ -137,7 +139,7 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
                     . ' | Generated=' . now()->format('M d, Y h:i A');
 
                 $sheet->fromArray([$filterText], null, 'A1');
-                $sheet->mergeCells('A1:K1');
+                $sheet->mergeCells('A1:L1');
                 $sheet->getStyle('A1')->getFont()->setBold(true);
                 $sheet->freezePane('A3');
 
@@ -151,19 +153,19 @@ class SummaryReportDataSheet implements FromCollection, ShouldAutoSize, WithEven
                         default => 'FFF3F4F6',
                     };
 
-                    $sheet->getStyle("G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($statusColor);
+                    $sheet->getStyle("H{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($statusColor);
 
                     if ($activity->monitoring_late) {
-                        $sheet->getStyle("H{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFE4E6');
-                        $sheet->getStyle("H{$row}")->getFont()->getColor()->setARGB('FF9F1239');
+                        $sheet->getStyle("I{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFE4E6');
+                        $sheet->getStyle("I{$row}")->getFont()->getColor()->setARGB('FF9F1239');
                     }
 
                     $request = $activity->activityRequest;
                     if (filled($request?->communication_letter)) {
-                        $this->setHyperlink($sheet->getCell("I{$row}"), route('admin.file.view', [$request->id, 'communication']));
+                        $this->setHyperlink($sheet->getCell("J{$row}"), route('admin.file.view', [$request->id, 'communication']));
                     }
                     if (filled($request?->report?->narrative_report) || filled($request?->report?->narrative_content)) {
-                        $this->setHyperlink($sheet->getCell("J{$row}"), route('admin.file.view', [$request->id, 'narrative']));
+                        $this->setHyperlink($sheet->getCell("K{$row}"), route('admin.file.view', [$request->id, 'narrative']));
                     }
                 }
             },

@@ -9,19 +9,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\View\View;
+use Illuminate\Http\Response;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): Response
     {
         $captcha = $this->generateCaptcha();
         request()->session()->put('login_captcha', $captcha);
 
-        return view('auth.login', compact('captcha'));
+        return response()
+            ->view('auth.login', compact('captcha'))
+            ->header('Cache-Control', 'no-store');
     }
 
     public function refreshCaptcha(Request $request)
@@ -60,16 +62,6 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $user = Auth::user();
-
-        if ($user && $user->officer_status === 'archived') {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return redirect()->route('login')->withErrors([
-                'email' => 'This account\'s term has ended and can no longer log in. If you are the outgoing officer, your organization\'s new Secretary should have received new login credentials from OSDW. If you believe this was done in error, please contact OSDW at osdwcsuaparri@gmail.com or via the CSUAparri-OSDW Facebook page for assistance.',
-            ]);
-        }
 
         $request->session()->regenerate();
         $intendedUrl = $request->session()->pull('url.intended');

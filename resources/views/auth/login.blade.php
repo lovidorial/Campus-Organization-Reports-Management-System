@@ -24,6 +24,10 @@
                 </div>
 
                 <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
+                    @php($termEndedLogin = $errors->first('email') === \App\Models\User::TERM_ENDED_MESSAGE)
+                    @if($termEndedLogin)
+                        @php($termEndedParts = explode(' Questions? Contact ', \App\Models\User::TERM_ENDED_MESSAGE, 2))
+                    @endif
                     <a href="{{ route('welcome') }}" class="login-back-link">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -37,25 +41,42 @@
                     </div>
 
                     @if ($errors->any())
-                        <div class="alert alert-error" @if (session()->has('login_retry_after')) x-show="remaining > 0" @endif>
-                            <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            <div>
-                                <strong>Login Failed</strong>
-                                <ul class="error-list">
-                                    @if (session()->has('login_retry_after'))
-                                        <li x-text="lockoutMessage">{{ $errors->first('email') }}</li>
-                                    @else
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    @endif
-                                </ul>
-                            </div>
-                        </div>
+                            @if ($termEndedLogin)
+                                <div class="alert alert-error !mb-0 !gap-2 !p-3 text-sm">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="alert-icon !m-0 !h-4 !w-4 !basis-4" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                            <strong>Account no longer active</strong>
+                                        </div>
+                                        <p class="mt-1 text-sm">{{ $termEndedParts[0] }}</p>
+                                        <p class="mt-1 text-xs">Questions? Contact {{ $termEndedParts[1] ?? '' }}</p>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-error" @if (session()->has('login_retry_after')) x-show="remaining > 0" @endif>
+                                    <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <div>
+                                        <strong>Login Failed</strong>
+                                        <ul class="error-list">
+                                            @if (session()->has('login_retry_after'))
+                                                <li x-text="lockoutMessage">{{ $errors->first('email') }}</li>
+                                            @else
+                                                @foreach ($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
+                                                @endforeach
+                                            @endif
+                                        </ul>
+                                    </div>
+                                </div>
+                            @endif
                     @endif
 
                     @if (session('status'))
@@ -84,10 +105,10 @@
                                         autofocus
                                         autocomplete="username"
                                         placeholder="Email address"
-                                        class="form-input {{ $errors->has('email') ? 'form-input--error' : '' }}"
+                                        class="form-input {{ $errors->has('email') && ! $termEndedLogin ? 'form-input--error' : '' }}"
                                     />
                                 </div>
-                                @if (! session()->has('login_retry_after'))
+                                @if (! session()->has('login_retry_after') && ! $termEndedLogin)
                                     @error('email')
                                         <span class="form-error">{{ $message }}</span>
                                     @enderror

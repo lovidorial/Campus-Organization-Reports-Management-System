@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -35,7 +36,9 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $activeSecretaryUsers = $query->orderBy('organization_id')->orderByDesc('updated_at')->get();
+        $activeSecretaryUsers = $query->orderBy('organization_id')->orderByDesc('updated_at')->get()
+            ->reject(fn (User $user) => $user->isTermEnded())
+            ->values();
 
         $activeOfficers = $activeSecretaryUsers->groupBy('organization_id')->map(function ($group) {
             $officer = $group->sortByDesc('updated_at')->first();
@@ -79,8 +82,8 @@ class OfficerController extends Controller
             'name' => '',
             'email' => '',
             'position' => $officer?->position ?? $request->input('position', ''),
-            'term' => $officer?->term ?? $request->input('term', ''),
-            'school_year' => $officer?->school_year ?? $request->input('school_year', ''),
+            'term' => $officer?->organization?->term ?? $officer?->term ?? $request->input('term', ''),
+            'school_year' => $officer?->organization?->school_year ?? $officer?->school_year ?? $request->input('school_year', ''),
             'organization_id' => $officer?->organization_id ?? $request->input('organization_id', ''),
             'org_name' => $officer?->org_name ?? $request->input('org_name', ''),
             'org_type' => $officer?->org_type ?? $request->input('org_type', ''),
@@ -113,21 +116,37 @@ class OfficerController extends Controller
         ]);
 
         $temporaryPassword = Str::random(10);
+        $user = DB::transaction(function () use ($validated, $temporaryPassword): User {
+            $organization = Organization::findOrFail($validated['organization_id']);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($temporaryPassword),
-            'role' => 'user',
-            'position' => $validated['position'],
-            'term' => $validated['term'] ?? null,
-            'school_year' => $validated['school_year'] ?? null,
-            'organization_id' => $validated['organization_id'],
-            'org_name' => $validated['org_name'] ?? null,
-            'org_type' => $validated['org_type'] ?? null,
-            'college' => $validated['college'] ?? null,
-            'officer_status' => 'active',
-        ]);
+            if (strcasecmp($validated['position'], 'Secretary') === 0) {
+                User::query()
+                    ->where('organization_id', $validated['organization_id'])
+                    ->where('role', 'user')
+                    ->where('position', 'Secretary')
+                    ->active()
+                    ->update([
+                        'officer_status' => 'archived',
+                        'archived_at' => now(),
+                        'archived_reason' => 'Replaced by new officer: '.$validated['name'],
+                    ]);
+            }
+
+            return User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($temporaryPassword),
+                'role' => 'user',
+                'position' => $validated['position'],
+                'term' => $organization->term ?? $validated['term'] ?? null,
+                'school_year' => $organization->school_year ?? $validated['school_year'] ?? null,
+                'organization_id' => $validated['organization_id'],
+                'org_name' => $validated['org_name'] ?? null,
+                'org_type' => $validated['org_type'] ?? null,
+                'college' => $validated['college'] ?? null,
+                'officer_status' => 'active',
+            ]);
+        });
 
         return redirect()->route('admin.officers.replacement.success')
             ->with('replacement_name', $user->name)
@@ -217,7 +236,10 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $officers = $query->orderByDesc('updated_at')->get()->take(1)->map(function ($officer) {
+        $officers = $query->orderByDesc('updated_at')->get()
+            ->reject(fn (User $officer) => $officer->isTermEnded())
+            ->take(1)
+            ->map(function ($officer) {
             $officer->term = $officer->term ?? $officer->organization?->term;
             $officer->school_year = $officer->school_year ?? $officer->organization?->school_year;
 
@@ -248,7 +270,6 @@ class OfficerController extends Controller
 
         $query = User::query()
             ->where('organization_id', $user->organization_id)
-            ->where('officer_status', 'archived')
             ->with('organization');
 
         if ($request->filled('term')) {
@@ -259,7 +280,9 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()->map(function ($user) {
+        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()
+            ->filter(fn (User $officer) => $officer->isTermEnded())
+            ->map(function ($user) {
             $user->term = $user->term ?? $user->organization?->term;
             $user->school_year = $user->school_year ?? $user->organization?->school_year;
 
@@ -284,10 +307,13 @@ class OfficerController extends Controller
 
     public function restore(User $user)
     {
+        $currentPeriod = $user->currentPeriod();
         $user->update([
             'officer_status' => 'active',
             'archived_at' => null,
             'archived_reason' => null,
+            'term' => $currentPeriod[0] ?? $user->term,
+            'school_year' => $currentPeriod[1] ?? $user->school_year,
         ]);
 
         return back()->with('success', $user->name . ' was restored to active status.');
@@ -295,7 +321,7 @@ class OfficerController extends Controller
 
     public function history(Request $request): View
     {
-        $query = User::query()->archived()->with('organization');
+        $query = User::query()->with('organization');
 
         if (! Auth::user()?->isAdmin()) {
             $query->where('organization_id', Auth::user()->organization_id ?? 0);
@@ -313,7 +339,9 @@ class OfficerController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()->map(function ($user) {
+        $history = $query->orderBy('school_year')->orderBy('term')->orderBy('org_name')->get()
+            ->filter(fn (User $officer) => $officer->isTermEnded())
+            ->map(function ($user) {
             $user->term = $user->term ?? $user->organization?->term;
             $user->school_year = $user->school_year ?? $user->organization?->school_year;
 

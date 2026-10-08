@@ -29,7 +29,10 @@
         <tbody>
             @forelse($gpoas as $gpoa)
             <tr class="border-b hover:bg-gray-50">
-                <td class="p-3">{{ $gpoa->user->org_name ?? $gpoa->user->name }}</td>
+                <td class="p-3">
+                    <div>{{ $gpoa->user->org_name ?? $gpoa->user->name }}</div>
+                    <div class="mt-1 text-xs text-slate-500">Submitted by {{ $gpoa->user->name }}</div>
+                </td>
                 <td class="p-3">{{ $gpoa->term }}<br><span class="text-xs text-gray-500">{{ $gpoa->school_year }}</span></td>
                 <td class="p-3">{{ $gpoa->college ?? '—' }}</td>
                 <td class="p-3">{{ $gpoa->activities_count }}</td>

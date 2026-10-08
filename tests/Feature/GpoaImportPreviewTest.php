@@ -32,6 +32,26 @@ class GpoaImportPreviewTest extends TestCase
             ->assertJsonValidationErrors('file');
     }
 
+    public function test_gpoa_create_page_shows_import_review_and_draft_controls(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->get(route('gpoa.create'))
+            ->assertOk()
+            ->assertSee('Import from Word/Excel')
+            ->assertDontSee('Download GPOA template')
+            ->assertSee('Review imported activities')
+            ->assertSee('Import OK rows only')
+            ->assertSee('Resume your draft')
+            ->assertSee('Discard this draft?')
+            ->assertSee('This will permanently delete the saved entries.')
+            ->assertSee('@click="discardConfirmOpen = true"', false)
+            ->assertSee('@click="cancelDiscardDraft()"', false)
+            ->assertSee('@click="discardDraft()"', false)
+            ->assertSee("Your uploaded PDF can't be restored. Please choose it again.", false)
+            ->assertSee('Expand all')
+            ->assertSee('Collapse all');
+    }
+
     public function test_import_preview_returns_missing_column_warnings_and_titles_past_the_row_limit(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

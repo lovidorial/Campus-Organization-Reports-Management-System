@@ -23,9 +23,13 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $currentPeriod = (new \App\Models\User())->currentPeriod();
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'term' => $currentPeriod[0] ?? null,
+            'school_year' => $currentPeriod[1] ?? null,
             'email_verified_at' => now(),
             'terms_accepted_at' => now(),
             'password' => static::$password ??= Hash::make('password'),

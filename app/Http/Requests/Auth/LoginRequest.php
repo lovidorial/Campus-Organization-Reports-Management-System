@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -50,6 +51,21 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        $user = Auth::user();
+        if ($user?->isTermEnded()) {
+            activity('auth')
+                ->performedOn($user)
+                ->withProperties(['user_id' => $user->id])
+                ->log('login blocked: term ended');
+
+            Auth::logout();
+            $this->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => User::TERM_ENDED_MESSAGE,
+            ]);
+        }
     }
 
     /**

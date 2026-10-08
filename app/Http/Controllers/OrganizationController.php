@@ -8,44 +8,51 @@ use App\Models\User;
 use App\Services\OrganizationClassifierService;
 use App\Services\ImageThemeColorService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class OrganizationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Organization::with('members');
+        $tab = $request->query('tab') === 'inactive' ? 'inactive' : 'active';
+        $search = trim((string) $request->query('search', ''));
+        $college = trim((string) $request->query('college', ''));
+        $type = trim((string) $request->query('type', ''));
 
-        if ($request->filled('search')) {
-            $term = $request->search;
+        $allUsers = User::query()
+            ->where('role', '!=', 'admin')
+            ->with('organization')
+            ->get();
+        $query = Organization::query()
+            ->with([
+                'members' => fn ($members) => $members->where('role', '!=', 'admin'),
+                'members.organization',
+            ]);
 
-            $query->where(function ($q) use ($term) {
-                $q->where('name', 'like', "%{$term}%")
-                  ->orWhere('college', 'like', "%{$term}%")
-                  ->orWhere('type', 'like', "%{$term}%")
-                  ->orWhereHas('members', function ($query) use ($term) {
-                      $query->where('name', 'like', "%{$term}%")
-                            ->orWhere('email', 'like', "%{$term}%")
-                            ->orWhere('student_number', 'like', "%{$term}%");
-                  });
+        if ($search !== '') {
+            $query->where(function ($q) use ($search, $activeUsers) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('college', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhereHas('members', function ($members) use ($search) {
+                        $members->where(function ($memberSearch) use ($search) {
+                            $memberSearch->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%")
+                                ->orWhere('student_number', 'like', "%{$search}%");
+                        });
+                    });
             });
         }
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
+        if ($college !== '') {
+            $query->where('college', $college);
         }
 
-        if ($request->filled('status')) {
-            if ($request->status === 'active') {
-                $query->where('is_active', true);
-            } elseif ($request->status === 'inactive') {
-                $query->where('is_active', false);
-            } elseif ($request->status === 'pending') {
-                $query->whereDoesntHave('members');
-            }
+        if ($type !== '') {
+            $query->where('type', $type);
         }
 
         $sort = $request->get('sort', 'name');
@@ -61,16 +68,67 @@ class OrganizationController extends Controller
             $query->orderBy('created_at', 'desc');
         }
 
-        $organizations = $query->paginate(12)->withQueryString();
+        $classifiedOrganizations = $query->get()->map(function (Organization $organization): Organization {
+            $secretary = $organization->members->first();
+            $termEnded = $secretary?->isTermEnded() ?? false;
+            $organization->setAttribute('account_term_ended', $termEnded);
 
+            return $organization;
+        });
+        $activeOrganizations = $classifiedOrganizations
+            ->reject(fn (Organization $organization) => $organization->account_term_ended)
+            ->values()
+            ->map(function (Organization $organization): Organization {
+                $organization->setRelation(
+                    'members',
+                    $organization->members
+                        ->filter(fn (User $user) => ! $user->isTermEnded())
+                        ->values()
+                );
+
+                return $organization;
+            });
+        $inactiveOrganizations = $classifiedOrganizations
+            ->filter(fn (Organization $organization) => $organization->account_term_ended)
+            ->values();
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $paginationOptions = [
+            'path' => $request->url(),
+            'query' => $request->query(),
+        ];
+        $organizations = new LengthAwarePaginator(
+            $activeOrganizations->forPage($currentPage, 12)->values(),
+            $activeOrganizations->count(),
+            12,
+            $currentPage,
+            $paginationOptions
+        );
+        $inactivePage = $currentPage;
+        $inactiveAccounts = new LengthAwarePaginator(
+            $inactiveOrganizations->forPage($inactivePage, 12)->map(
+                fn (Organization $organization) => $organization->members->first()
+            )->filter()->values(),
+            $inactiveOrganizations->count(),
+            12,
+            $inactivePage,
+            ['path' => $request->url(), 'query' => array_merge($request->query(), ['tab' => 'inactive'])]
+        );
+
+        $collegeOptions = Organization::query()->pluck('college')
+            ->merge($allUsers->pluck('college'))
+            ->filter()->unique()->sort()->values();
+        $typeOptions = Organization::query()->pluck('type')
+            ->merge($allUsers->pluck('org_type'))
+            ->filter()->unique()->sort()->values();
         $summary = [
-            'total' => Organization::count(),
-            'active' => Organization::where('is_active', true)->count(),
-            'inactive' => Organization::where('is_active', false)->count(),
-            'pending' => Organization::whereDoesntHave('members')->count(),
+            'total' => $classifiedOrganizations->count(),
+            'active' => $activeOrganizations->count(),
+            'inactive' => $inactiveOrganizations->count(),
         ];
 
-        return view('admin.organizations.index', compact('organizations', 'summary'));
+        return view('admin.organizations.index', compact(
+            'organizations', 'inactiveAccounts', 'summary', 'tab', 'collegeOptions', 'typeOptions', 'search', 'college', 'type'
+        ));
     }
 
     public function create()
@@ -237,11 +295,6 @@ class OrganizationController extends Controller
 
         $organization->update($validated);
 
-        $organization->members()->update([
-            'term' => $organization->term,
-            'school_year' => $organization->school_year,
-        ]);
-
         return redirect()->route('admin.organizations.index')
             ->with('success', 'Organization updated.');
     }
@@ -298,12 +351,6 @@ class OrganizationController extends Controller
             return back()->withErrors(['confirm_name' => 'The organization name did not match. Nothing was deleted.']);
         }
 
-        DB::transaction(function () use ($organization) {
-            $organization->members()->delete();
-            $organization->delete();
-        });
-
-        return redirect()->route('admin.organizations.index')
-            ->with('success', 'Organization and linked account(s) deleted.');
+        return back()->with('error', 'Organizations, user accounts, and submitted records cannot be deleted. Deactivate the organization to prevent new access while preserving its history.');
     }
 }

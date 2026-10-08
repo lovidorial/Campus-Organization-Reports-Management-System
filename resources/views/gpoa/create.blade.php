@@ -39,7 +39,7 @@
 
             <script type="application/json" id="planned-activities-seed">@json(old('planned_activities', []))</script>
 
-            <form action="{{ route('gpoa.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm">
+            <form action="{{ route('gpoa.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm" x-data="Object.defineProperties(plannedActivities(), Object.getOwnPropertyDescriptors(window.gpoaImportReview()))" novalidate @submit.prevent="handleSubmit($event)">
                 @csrf
 
                 <section class="form-section">
@@ -123,6 +123,7 @@
                         <label for="document_path">Approved GPOA Document (PDF) *</label>
                         <input type="file" id="document_path" name="document_path" accept=".pdf,application/pdf" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           <p x-show="pdfMustReupload" x-cloak class="mt-1 text-xs font-medium text-amber-800">Please choose the uploaded PDF again; browser drafts do not store files.</p>
                         @error('document_path')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -131,7 +132,8 @@
 
                     <div class="form-group mt-6">
                         <label>Planned Activities</label>
-                        <div id="planned-activities-preview" x-data="plannedActivities()">
+                        <div id="planned-activities-preview">
+                            @include('gpoa.partials.draft-and-errors')
                             <div class="mb-4 rounded-lg border border-gray-200 bg-white p-4">
                                 <div class="flex flex-wrap items-center gap-3">
                                     <button type="button" class="btn-secondary" @click="$refs.importFile.click()" :disabled="importing">Import from Word/Excel</button>
@@ -154,17 +156,24 @@
                                     <p class="help-text">Enter the official planned activity index for this GPOA directly in the form.</p>
                             </template>
 
+                            <div x-show="activities.length" class="mb-2 flex justify-end gap-2">
+                                <button type="button" @click="expandAllActivities()" class="inline-flex min-h-11 items-center rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700">Expand all</button>
+                                <button type="button" @click="collapseAllActivities()" class="inline-flex min-h-11 items-center rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700">Collapse all</button>
+                            </div>
+
                             <template x-for="(activity, index) in activities" :key="activity._key">
-                                <div class="mt-4 rounded-xl border border-gray-300 bg-gray-50 p-4">
-                                    <div class="mb-3 flex items-center justify-between">
-                                        <strong class="text-sm text-gray-700">Activity <span x-text="index + 1"></span></strong>
-                                        <div class="flex items-center gap-2">
-                                            <span x-show="activityComplete(activity)" class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">Details complete</span>
-                                            <span x-show="!activityComplete(activity)" class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Details missing</span>
-                                            <span x-show="activity.importWarnings && activity.importWarnings.length" class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Check this row</span>
-                                            <button type="button" @click="removeActivity(index)" class="btn-secondary btn-small">Remove</button>
-                                        </div>
+                                <div data-activity-card class="mt-3 rounded-lg border border-gray-300 bg-gray-50 p-3 sm:p-4">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" @click="activity.detailsOpen = !activity.detailsOpen" class="grid min-h-11 min-w-0 flex-1 grid-cols-[auto_minmax(5rem,1fr)_minmax(5rem,auto)_auto_auto] items-center gap-2 rounded-md px-1 text-left hover:bg-white sm:gap-3">
+                                            <span class="text-xs font-semibold text-slate-500">#<span x-text="index + 1"></span></span>
+                                            <span class="truncate text-sm font-semibold text-slate-900" x-text="activity.title || 'Untitled activity'"></span>
+                                            <span class="hidden truncate text-xs text-slate-600 sm:block" x-text="activitySummaryDate(activity)"></span>
+                                            <span x-show="activityComplete(activity)" class="rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Complete</span>
+                                            <span x-show="!activityComplete(activity)" class="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Details missing</span>
+                                        </button>
+                                        <button type="button" @click="removeActivity(index)" class="inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-sm font-semibold text-red-700 hover:bg-red-50">Remove</button>
                                     </div>
+                                    <div x-show="activity.detailsOpen || detailsHaveErrors(index)" x-cloak class="pt-3">
                                     <p x-show="activity.importWarnings && activity.importWarnings.length" x-text="(activity.importWarnings || []).join('; ')" class="mb-3 text-xs text-amber-800"></p>
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -282,8 +291,8 @@
                                                     <p x-show="fieldError(index, 'person_in_charge')" x-text="fieldError(index, 'person_in_charge')" class="text-xs text-red-600"></p>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label>Facilities / Materials *</label>
-                                                    <input type="text" :name="'planned_activities[' + index + '][facilities_materials]'" x-model="activity.facilities_materials" required class="w-full rounded-lg border border-gray-300 px-3 py-2">
+                                                    <label>Facilities / Materials (optional)</label>
+                                                    <input type="text" :name="'planned_activities[' + index + '][facilities_materials]'" x-model="activity.facilities_materials" class="w-full rounded-lg border border-gray-300 px-3 py-2">
                                                     <p x-show="fieldError(index, 'facilities_materials')" x-text="fieldError(index, 'facilities_materials')" class="text-xs text-red-600"></p>
                                                 </div>
                                                 <div class="form-group">
@@ -309,6 +318,7 @@
                                             </div>
                                         </div>
                                     </details>
+                                    </div>
                                 </div>
                             </template>
 
@@ -316,6 +326,7 @@
                                 <button type="button" @click="addActivity()" x-show="activities.length < maxActivities" class="btn-secondary">Add row</button>
                                 <span x-show="activities.length >= maxActivities" class="help-text">Maximum of 34 planned activities reached.</span>
                             </div>
+                            @include('gpoa.partials.import-review-modal')
                         </div>
                     </div>
 
@@ -344,11 +355,15 @@
         </div>
     </main>
 
+    @include('gpoa.partials.import-review-logic')
     <script>
         window.plannedActivities = () => ({
             maxActivities: {{ config('gpoa.max_planned_activities') }},
             validationErrors: @json($errors->getMessages()),
             schoolYear: @json(old('school_year', auth()->user()->school_year ?? '')),
+            draftUserId: @js((string) auth()->id()),
+            draftOrganizationId: @js((string) (auth()->user()->organization_id ?? '')),
+            editingGpoaId: null,
             importing: false,
             importSummary: '',
             importNotes: [],
@@ -416,36 +431,6 @@
                 });
             },
             detailFields: ['objectives', 'expected_outcome', 'plan_key_strategy', 'target_participants', 'person_in_charge', 'facilities_materials', 'estimated_budget', 'source_of_funds'],
-            fieldError(index, field) {
-                return this.validationErrors[`planned_activities.${index}.${field}`]?.[0] || '';
-            },
-            detailsHaveErrors(index) {
-                return this.detailFields.some(field => this.fieldError(index, field)) || Boolean(this.fieldError(index, 'sdgs'));
-            },
-            activityComplete(activity) {
-                const validDate = activity.time_frame === 'exact_date' ? Boolean(activity.date)
-                    : activity.time_frame === 'date_range' ? Boolean(activity.date && activity.end_date)
-                    : activity.time_frame === 'month_only' ? Boolean(activity.date) : false;
-                return Boolean(activity.title?.trim() && validDate && activity.venue?.trim() && activity.sdgs?.length
-                    && activity.objectives?.trim() && activity.expected_outcome?.trim() && activity.plan_key_strategy?.trim()
-                    && activity.target_participants?.trim() && activity.person_in_charge?.trim() && activity.facilities_materials?.trim()
-                    && activity.estimated_budget !== '' && activity.estimated_budget !== null);
-            },
-            copyDetailsFrom(index, sourceIndex) {
-                if (sourceIndex === '' || sourceIndex === null) return;
-                const source = this.activities[Number(sourceIndex)];
-                if (!source) return;
-                ['title', 'time_frame', 'date', 'end_date', 'start_time', 'end_time', 'venue', 'category', ...this.detailFields]
-                    .forEach(field => { this.activities[index][field] = source[field] ?? ''; });
-                this.activities[index].sdgs = [...(source.sdgs || [])];
-            },
-            copyFieldToAll(index, field) {
-                const value = this.activities[index][field];
-                this.activities.forEach((activity, activityIndex) => { if (activityIndex !== index) activity[field] = value; });
-            },
-            copyCommonDetailsToAll(index) {
-                ['target_participants', 'person_in_charge', 'source_of_funds', 'facilities_materials'].forEach(field => this.copyFieldToAll(index, field));
-            },
             async importFile(event) {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -455,19 +440,6 @@
                 this.importNotes = [];
                 this.skippedRows = [];
                 this.repeatedTitleHint = '';
-
-                if (this.activities.some(activity => ['title', 'date', 'end_date', 'start_time', 'end_time', 'venue', 'category', ...this.detailFields].some(field => String(activity[field] ?? '').trim() !== '') || activity.sdgs?.length)) {
-                    const replaceConfirmed = await window.orgConfirm({
-                        title: 'Replace planned activities?',
-                        message: 'Replace the planned activity rows currently entered with the imported rows?',
-                        label: 'Replace rows',
-                        variant: 'warning',
-                    });
-                    if (!replaceConfirmed) {
-                        event.target.value = '';
-                        return;
-                    }
-                }
 
                 this.importing = true;
                 try {
@@ -483,32 +455,7 @@
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.message || 'The selected file could not be read.');
 
-                    this.activities = result.rows.map((row, index) => ({
-                        _key: `import-${Date.now()}-${index}`,
-                        title: row.title || '',
-                        time_frame: ({ exact: 'exact_date', range: 'date_range', month: 'month_only' })[row.time_frame] || '',
-                        date: row.time_frame === 'month' && row.date ? row.date.slice(0, 7) : (row.date || ''),
-                        end_date: row.end_date || '',
-                        start_time: row.start_time || '',
-                        end_time: row.end_time || '',
-                        venue: row.venue || '',
-                        category: row.category || '',
-                        sdgs: Array.isArray(row.sdgs) ? row.sdgs.map(Number) : [],
-                        objectives: row.objectives || '',
-                        expected_outcome: row.expected_outcome || '',
-                        plan_key_strategy: row.plan_key_strategy || '',
-                        target_participants: row.target_participants || '',
-                        person_in_charge: row.person_in_charge || '',
-                        facilities_materials: row.facilities_materials || '',
-                        estimated_budget: row.estimated_budget ?? '',
-                        source_of_funds: row.source_of_funds || '',
-                        importWarnings: row.warnings || [],
-                    }));
-                    this.importSummary = `Imported ${this.activities.length} activities`;
-                    this.importNotes = result.warnings || [];
-                    this.skippedRows = result.skipped_rows || [];
-                    const repeatedTitles = (result.repeated_titles || []).map(item => `${item.title} x${item.count}`);
-                    this.repeatedTitleHint = repeatedTitles.length ? `Repeated titles (check if intentional): ${repeatedTitles.join('; ')}` : '';
+                    this.stageImport(result);
                 } catch (error) {
                     this.importError = error.message || 'This file could not be read. Choose a valid DOCX or XLSX file.';
                 } finally {
@@ -516,9 +463,7 @@
                     event.target.value = '';
                 }
             },
-            removeActivity(index) {
-                this.activities.splice(index, 1);
-            }
+            removeActivity(index) { this.activities.splice(index, 1); }
         });
 
     </script>

@@ -38,7 +38,7 @@ Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('publ
 
 require __DIR__ . '/auth.php';
 
-Route::middleware(['auth', \App\Http\Middleware\EnforceOrganizationStorageLimit::class])->group(function () {
+Route::middleware(['auth', 'account.active', \App\Http\Middleware\EnforceOrganizationStorageLimit::class])->group(function () {
 
     Route::get('/terms', [\App\Http\Controllers\TermsController::class, 'show'])->name('terms.accept');
     Route::post('/terms/accept', [\App\Http\Controllers\TermsController::class, 'accept'])->name('terms.accept.store');

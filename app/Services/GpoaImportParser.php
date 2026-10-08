@@ -207,7 +207,7 @@ class GpoaImportParser
                 ? $this->extractSdgs((string) ($cells[$columns['sdgs']] ?? ''))
                 : [];
             $facilitiesRaw = $this->cellValue($cells, $columns['facilities'], true);
-            $facilitiesMaterials = $this->removeVenueLine($facilitiesRaw);
+            $facilitiesMaterials = $this->joinLines($this->removeVenueLine($facilitiesRaw));
             $deliveryStrategy = $this->cellValue($cells, $columns['delivery'], true);
             $budget = $this->cellValue($cells, $columns['estimated_budget']);
             $budgetNumber = preg_match('/-?\d[\d,]*(?:\.\d+)?/', $budget, $budgetMatch)
@@ -233,8 +233,8 @@ class GpoaImportParser
                 'objectives' => $this->cellValue($cells, $columns['objectives'], true),
                 'expected_outcome' => $this->cellValue($cells, $columns['expected_outcome'], true),
                 'plan_key_strategy' => $deliveryStrategy,
-                'target_participants' => $this->cellValue($cells, $columns['target_participants'], true),
-                'person_in_charge' => $this->cellValue($cells, $columns['person_in_charge'], true),
+                'target_participants' => $this->joinLines($this->cellValue($cells, $columns['target_participants'], true)),
+                'person_in_charge' => $this->joinLines($this->cellValue($cells, $columns['person_in_charge'], true)),
                 'facilities_materials' => $facilitiesMaterials,
                 'estimated_budget' => $budgetNumber,
                 'source_of_funds' => $columns['source_of_funds'] === null
@@ -353,6 +353,14 @@ class GpoaImportParser
         $lines = array_filter($lines, static fn (string $line): bool => preg_match('/^\s*Venue\s*:/i', $line) !== 1);
 
         return $this->cleanMultiline(implode("\n", $lines));
+    }
+
+    private function joinLines(string $value): string
+    {
+        $lines = preg_split('/\R/u', $value) ?: [];
+        $lines = array_filter(array_map('trim', $lines), static fn (string $line): bool => $line !== '');
+
+        return implode(' / ', $lines);
     }
 
     private function normalizeCategory(string $category): ?string

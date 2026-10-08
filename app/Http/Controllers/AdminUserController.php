@@ -82,8 +82,8 @@ class AdminUserController extends Controller
         if ($user->isAdmin()) {
             return back()->with('error', 'Cannot delete an admin user.');
         }
-        $user->delete();
-        return back()->with('success', 'User deleted.');
+
+        return back()->with('error', 'User accounts and submitted records cannot be deleted. Archive the officer to block access while preserving their records.');
     }
 
     private function applyOrganizationClassification(array $validated, OrganizationClassifierService $classifier): array

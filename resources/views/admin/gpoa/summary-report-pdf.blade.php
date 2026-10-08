@@ -83,7 +83,7 @@
 
     <h2>Planned Activities</h2>
     <table>
-        <thead><tr><th>Organization</th><th>Term / School Year</th><th>Activity # / Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th>Assessment</th><th>Communication Letter</th><th>Narrative Report</th><th class="number">Estimated Budget</th></tr></thead>
+        <thead><tr><th>Organization</th><th>Submitted by</th><th>Term / School Year</th><th>Activity # / Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th>Assessment</th><th>Communication Letter</th><th>Narrative Report</th><th class="number">Estimated Budget</th></tr></thead>
         <tbody>
             @forelse($activities as $activity)
                 @php
@@ -105,6 +105,7 @@
                 @endphp
                 <tr>
                     <td>{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>
+                    <td>{{ $activity->gpoa?->user?->name ?? '—' }}</td>
                     <td>{{ $activity->gpoa?->term ?? '—' }} / {{ $activity->gpoa?->school_year ?? '—' }}</td>
                     <td>Activity #{{ $activity->activity_number ?? '—' }}: {{ $activity->title }}</td>
                     <td>{{ $activity->category ?: '—' }}</td>
@@ -117,10 +118,10 @@
                     <td class="number">PHP {{ number_format((float) ($activity->estimated_budget ?? 0), 2) }}</td>
                 </tr>
             @empty
-                <tr><td colspan="11">No planned activities match the selected filters.</td></tr>
+                <tr><td colspan="12">No planned activities match the selected filters.</td></tr>
             @endforelse
         </tbody>
-        <tfoot><tr><td colspan="10"><strong>Total Estimated Budget</strong></td><td class="number"><strong>PHP {{ number_format((float) $totalBudget, 2) }}</strong></td></tr></tfoot>
+        <tfoot><tr><td colspan="11"><strong>Total Estimated Budget</strong></td><td class="number"><strong>PHP {{ number_format((float) $totalBudget, 2) }}</strong></td></tr></tfoot>
     </table>
 </body>
 </html>

@@ -16,7 +16,11 @@ class AdminActivityCsvExportTest extends TestCase
     public function test_activity_csv_escapes_fields_and_neutralizes_spreadsheet_formulas(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $organization = User::factory()->create(['org_name' => '=HYPERLINK("https://example.com")']);
+        $organization = User::factory()->create([
+            'name' => 'Archived Submitter Name',
+            'org_name' => '=HYPERLINK("https://example.com")',
+            'officer_status' => 'archived',
+        ]);
         $gpoa = Gpoa::create([
             'user_id' => $organization->id,
             'term' => '1st Term',
@@ -44,12 +48,13 @@ class AdminActivityCsvExportTest extends TestCase
         fclose($stream);
 
         $this->assertSame([
-            'Activity ID', 'Title', 'Organization', 'Venue', 'Date', 'Monitoring Status',
+            'Activity ID', 'Title', 'Organization', 'Submitted By', 'Venue', 'Date', 'Monitoring Status',
             'Late', 'Communication Letter', 'Narrative Report', 'Term', 'School Year',
         ], $headers);
         $this->assertSame("Title, with \"quotes\"\nand a second line", $row[1]);
         $this->assertSame("'=HYPERLINK(\"https://example.com\")", $row[2]);
-        $this->assertSame("'@SUM(A1:A2)", $row[3]);
-        $this->assertSame('Pending', $row[5]);
+        $this->assertSame('Archived Submitter Name', $row[3]);
+        $this->assertSame("'@SUM(A1:A2)", $row[4]);
+        $this->assertSame('Pending', $row[6]);
     }
 }

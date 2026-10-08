@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ActivityReport;
 use App\Models\ActivityRequest;
+use App\Models\DocumentDeadline;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
@@ -16,15 +17,12 @@ class DashboardMonitoringFlowTest extends TestCase
 
     public function test_dashboard_uses_monitoring_status_instead_of_approval_workflow(): void
     {
-        $user = User::factory()->create([
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
-        ]);
+        $user = User::factory()->create();
 
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
-            'term' => '1st Semester',
-            'school_year' => '2025-2026',
+            'term' => $user->term,
+            'school_year' => $user->school_year,
             'college' => 'CICS',
             'status' => 'pending',
         ]);
@@ -81,6 +79,14 @@ class DashboardMonitoringFlowTest extends TestCase
             'school_year' => '2026-2027',
             'college' => 'CICS',
             'status' => 'approved',
+        ]);
+
+        DocumentDeadline::create([
+            'document_type' => DocumentDeadline::TYPE_ACTIVITY_REPORT,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'deadline_date' => '2026-09-30',
+            'grace_days' => 0,
         ]);
 
         $pending = GpoaActivity::create([
@@ -149,16 +155,14 @@ class DashboardMonitoringFlowTest extends TestCase
             ->assertSee('Completed')
             ->assertSee('Late')
             ->assertSee('Archived')
-            ->assertSee('text-3xl font-bold text-slate-700">3</p>', false)
-            ->assertSee('text-4xl font-bold text-amber-700">1</p>', false)
-            ->assertSee('text-3xl font-bold text-sky-700">1</p>', false)
-            ->assertSee('text-3xl font-bold text-emerald-700">1</p>', false)
-            ->assertSee('text-3xl font-bold text-rose-700">2</p>', false)
-            ->assertSee('text-3xl font-bold text-slate-600">1</p>', false)
-            ->assertSee('your planned activities')
-            ->assertSee('1 of 3')
-            ->assertSee('flag, not a separate status')
-            ->assertSee('not counted in Total')
+            ->assertSee('text-2xl font-bold text-slate-700">3</p>', false)
+            ->assertSee('text-2xl font-bold text-amber-600">1</p>', false)
+            ->assertSee('text-2xl font-bold text-sky-600">1</p>', false)
+            ->assertSee('text-2xl font-bold text-emerald-600">1</p>', false)
+            ->assertSee('Latest status from your GPOA entries.')
+            ->assertSee('Narrative report missing after the deadline.')
+            ->assertSee('Late 2')
+            ->assertSee('Archived 1')
             ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted'])), false)
             ->assertSee(e(route('activity-monitor.index', ['tab' => 'todo'])), false)
             ->assertSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Ongoing'])), false)
@@ -181,7 +185,7 @@ class DashboardMonitoringFlowTest extends TestCase
             ->assertSee('Completed')
             ->assertSee('Late')
             ->assertSee('Archived')
-            ->assertSee('not counted in Total')
+            ->assertSee('Archived 0')
             ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'todo'])), false)
             ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Ongoing'])), false)
             ->assertDontSee(e(route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Completed'])), false)
@@ -229,9 +233,9 @@ class DashboardMonitoringFlowTest extends TestCase
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Communication Letter</th>', false)
-            ->assertSee('Narrative Report</th>', false)
-            ->assertSee('bg-emerald-100 text-emerald-800 ring-emerald-200', false)
+            ->assertSee('Letter</th>', false)
+            ->assertSee('Report</th>', false)
+            ->assertSee('bg-emerald-50 text-emerald-700 border border-emerald-200', false)
             ->assertSee('Uploaded')
             ->assertSee('Approved')
             ->assertDontSee('static.xx.fbcdn.net');

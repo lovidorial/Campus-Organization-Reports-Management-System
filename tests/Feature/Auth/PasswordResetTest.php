@@ -131,7 +131,7 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPasswordNotification::class);
     }
 
-    public function test_archived_officer_gets_generic_success_without_a_notification(): void
+    public function test_archived_officer_can_still_request_a_password_reset(): void
     {
         Notification::fake();
         $user = User::factory()->create(['officer_status' => 'archived']);
@@ -139,7 +139,7 @@ class PasswordResetTest extends TestCase
         $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
 
         $response->assertSessionHas('status', __('passwords.sent'));
-        Notification::assertNotSentTo($user, ResetPasswordNotification::class);
+        Notification::assertSentTo($user, ResetPasswordNotification::class);
     }
 
     public function test_mail_transport_exception_still_returns_generic_success(): void

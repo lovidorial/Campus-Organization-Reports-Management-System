@@ -224,7 +224,7 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect('/');
     }
 
-    public function test_deleting_an_organization_removes_its_linked_login_accounts(): void
+    public function test_organization_deletion_preserves_linked_accounts(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $organization = Organization::create([
@@ -245,21 +245,12 @@ class AuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->delete(route('admin.organizations.destroy', $organization), [
                 'confirm_name' => $organization->name,
-            ]);
+            ])
+            ->assertSessionHas('error');
 
-        $this->assertDatabaseMissing('users', ['id' => $secretary->id]);
-
-        $this->post('/logout');
-        $this->assertGuest();
-
-        $this->withSession(['login_captcha' => 'ABCDE'])->post('/login', [
-            'email' => $secretary->email,
-            'password' => 'password',
-            'role' => 'student',
-            'captcha' => 'ABCDE',
-        ]);
-
-        $this->assertGuest();
+        $this->assertDatabaseHas('users', ['id' => $secretary->id]);
+        $this->assertDatabaseHas('organizations', ['id' => $organization->id]);
+        $this->assertAuthenticatedAs($admin);
     }
 
     public function test_deleting_an_organization_requires_its_exact_name(): void

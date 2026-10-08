@@ -7,10 +7,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Support\Facades\Storage;
+use App\Models\OrganizationWorkflow;
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
+
+    public const TERM_ENDED_MESSAGE = "This account's term has ended. If you are the outgoing officer, your organization's new Secretary should have received new login credentials from OSDW. Questions? Contact osdwcsuaparri@gmail.com or the CSUAparri-OSDW Facebook page.";
 
     // Sensitive fields such as role, organization_id, officer_status, archived_at,
     // and archived_reason must only ever be set via explicit, authorized controller
@@ -116,6 +119,73 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isTermEnded(): bool
+    {
+        if ($this->isAdmin()) {
+            return false;
+        }
+
+        if ($this->officer_status === 'archived' || $this->archived_at !== null) {
+            return true;
+        }
+
+        if (! filled($this->term) || ! filled($this->school_year)) {
+            return false;
+        }
+
+        $currentPeriod = $this->currentPeriod();
+        if (! $currentPeriod) {
+            return false;
+        }
+
+        return $this->periodKey($this->term, $this->school_year)
+            < $this->periodKey($currentPeriod[0], $currentPeriod[1]);
+    }
+
+    public function currentPeriod(): ?array
+    {
+        if ($this->organization && filled($this->organization->term) && filled($this->organization->school_year)) {
+            return [$this->organization->term, $this->organization->school_year];
+        }
+
+        return $this->currentPeriodWithoutOrganization();
+    }
+
+    private function currentPeriodWithoutOrganization(): ?array
+    {
+        $workflow = OrganizationWorkflow::query()->latest()->first(['term', 'school_year']);
+        if ($workflow && filled($workflow->term) && filled($workflow->school_year)) {
+            return [$workflow->term, $workflow->school_year];
+        }
+
+        $month = now()->month;
+        $schoolYearStart = $month >= 8 ? now()->year : now()->year - 1;
+        $term = match (true) {
+            $month >= 8 => '1st Term',
+            $month <= 5 => '2nd Term',
+            default => 'Summer',
+        };
+
+        return [$term, $schoolYearStart.'-'.($schoolYearStart + 1)];
+    }
+
+    private function periodKey(string $term, string $schoolYear): int
+    {
+        preg_match('/(\d{4})/', $schoolYear, $yearMatch);
+        $year = (int) ($yearMatch[1] ?? 0);
+        $normalizedTerm = strtolower($term);
+        $termRank = match (true) {
+            str_contains($normalizedTerm, '1st'), str_contains($normalizedTerm, 'first') => 1,
+            str_contains($normalizedTerm, '2nd'), str_contains($normalizedTerm, 'second') => 2,
+            str_contains($normalizedTerm, '3rd'), str_contains($normalizedTerm, 'third') => 3,
+            str_contains($normalizedTerm, '4th'), str_contains($normalizedTerm, 'fourth') => 4,
+            str_contains($normalizedTerm, 'summer') => 5,
+            default => 0,
+        };
+
+        return ($year * 10) + $termRank;
     }
 
     public function sendPasswordResetNotification($token): void

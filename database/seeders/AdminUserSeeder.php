@@ -20,32 +20,5 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        // Additional test users — avoid duplicates by using firstOrCreate
-        User::firstOrCreate(
-            ['email' => 'paolo@gmail.com'],
-            [
-                'name' => 'paolo contist',
-                'password' => Hash::make('paolo123'),
-                'role' => 'user',
-            ]
-        );
-
-        User::firstOrCreate(
-            ['email' => 'jade@gmail.com'],
-            [
-                'name' => 'jade Unciano',
-                'password' => Hash::make('jade123'),
-                'role' => 'user',
-            ]
-        );
-
-        User::firstOrCreate(
-            ['email' => 'jums@gmail.com'],
-            [
-                'name' => 'adrian Villena',
-                'password' => Hash::make('jumong'),
-                'role' => 'user',
-            ]
-        );
     }
 }
