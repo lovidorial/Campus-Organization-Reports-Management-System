@@ -77,6 +77,7 @@ class AdminDocumentDeadlineController extends Controller
 
         if ($graceDays === null && $deadlineDate === null) {
             DocumentDeadline::where($period)->delete();
+            \App\Models\GpoaActivity::flushMonitoringDeadlineCache();
         } else {
             DocumentDeadline::updateOrCreate($period, [
                 'grace_days' => $graceDays,

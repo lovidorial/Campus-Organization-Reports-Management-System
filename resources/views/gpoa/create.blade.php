@@ -19,11 +19,11 @@
         <div class="gpoa-card">
             <div class="card-header">
                 <div>
-                    <p class="eyebrow">Submit General Plan of Activities</p>
-                    <h1>Submit General Plan of Activities (GPOA)</h1>
+                    <p class="eyebrow">Submit General Plan of Action</p>
+                    <h1>Submit General Plan of Action (GPOA)</h1>
                     <p class="page-description">Record your planned activities to begin monitoring their progress.</p>
                 </div>
-                <a href="{{ route('gpoa.index') }}" class="icon-close">×</a>
+                <a href="{{ route('gpoa.index') }}" class="icon-close"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.16998 14.83L14.83 9.17004" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.83 14.83L9.16998 9.17004" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
             </div>
 
             @if($errors->any())
@@ -39,14 +39,14 @@
 
             <script type="application/json" id="planned-activities-seed">@json(old('planned_activities', []))</script>
 
-            <form action="{{ route('gpoa.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm" x-data="Object.defineProperties(plannedActivities(), Object.getOwnPropertyDescriptors(window.gpoaImportReview()))" novalidate @submit.prevent="handleSubmit($event)">
+            <form action="{{ route('gpoa.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm" data-prevent-double-submit="true" x-data="Object.defineProperties(plannedActivities(), Object.getOwnPropertyDescriptors(window.gpoaImportReview()))" novalidate @submit.prevent="handleSubmit($event)">
                 @csrf
 
                 <section class="form-section">
                     <div class="section-heading">
                         <div>
                             <h2 class="section-title">GPOA Information</h2>
-                            <p class="section-description">Complete the following fields to record your General Plan of Activities for the term.</p>
+                            <p class="section-description">Complete the following fields to record your General Plan of Action for the term.</p>
                         </div>
                     </div>
 
@@ -348,7 +348,7 @@
 
                     <!-- Submit Button -->
                     <div class="form-actions mt-8">
-                        <button type="submit" class="btn-primary">Submit GPOA</button>
+                                <button type="submit" class="btn-primary" :disabled="submitting" x-text="submitting ? 'Submitting...' : 'Submit GPOA'">Submit GPOA</button>
                     </div>
                 </section>
             </form>
@@ -359,6 +359,7 @@
     <script>
         window.plannedActivities = () => ({
             maxActivities: {{ config('gpoa.max_planned_activities') }},
+            submitting: false,
             validationErrors: @json($errors->getMessages()),
             schoolYear: @json(old('school_year', auth()->user()->school_year ?? '')),
             draftUserId: @js((string) auth()->id()),

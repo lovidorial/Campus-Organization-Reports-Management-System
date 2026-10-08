@@ -18,7 +18,7 @@
     <main class="page-wrapper">
         <div class="page-header">
             <div>
-                <p class="eyebrow">Edit General Plan of Activities</p>
+                <p class="eyebrow">Edit General Plan of Action</p>
                 <h1>Edit GPOA</h1>
                 <p class="page-description">Update your GPOA information and planned activities.</p>
             </div>

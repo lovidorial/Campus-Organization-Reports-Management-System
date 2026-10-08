@@ -33,7 +33,7 @@ class OrganizationController extends Controller
             ]);
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search, $activeUsers) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('college', 'like', "%{$search}%")
                     ->orWhere('type', 'like', "%{$search}%")

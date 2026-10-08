@@ -12,6 +12,11 @@ class GpoaActivity extends Model
 {
     protected static array $monitoringDeadlineCache = [];
 
+    public static function flushMonitoringDeadlineCache(): void
+    {
+        self::$monitoringDeadlineCache = [];
+    }
+
     protected $fillable = [
         'gpoa_id',
         'activity_request_id',

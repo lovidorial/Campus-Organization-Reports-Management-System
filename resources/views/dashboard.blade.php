@@ -131,14 +131,28 @@
     </div>
 
     <div class="mt-2.5 flex flex-wrap items-center gap-2">
+        @if($gpoa)
         <a href="{{ route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Late']) }}" title="Narrative report missing after the deadline." class="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
             <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold">!</span>
             Late {{ $activityCounts['Late'] ?? 0 }}
         </a>
+        @else
+        <span title="Narrative report missing after the deadline." class="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
+            <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold">!</span>
+            Late {{ $activityCounts['Late'] ?? 0 }}
+        </span>
+        @endif
+        @if($gpoa)
         <a href="{{ route('activity-monitor.index', ['tab' => 'submitted', 'status' => 'Archived']) }}" title="Completed activities archived from the active monitoring list; excluded from Total." class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
             <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold">•</span>
             Archived {{ $activityCounts['Archived'] ?? 0 }}
         </a>
+        @else
+        <span title="Completed activities archived from the active monitoring list; excluded from Total." class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+            <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold">•</span>
+            Archived {{ $activityCounts['Archived'] ?? 0 }}
+        </span>
+        @endif
     </div>
 </section>
 
@@ -205,7 +219,7 @@
                     <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">Not submitted</span>
                 @endif
             </div>
-            <p class="mt-1 text-sm text-slate-500">General Plan of Activities</p>
+            <p class="mt-1 text-sm text-slate-500">General Plan of Action</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\GpoaImportParser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -217,18 +218,30 @@ class GpoaController extends Controller
 
         $documentPath = $request->file('document_path')->store('uploads/gpoa', 'private');
 
-        $gpoa = Gpoa::create([
-            'user_id'       => auth()->id(),
-            'term'          => $validated['term'],
-            'school_year'   => $validated['school_year'],
-            'college'       => $validated['colleges'],
-            'document_path' => $documentPath,
-            'prepared_by'   => $validated['prepared_by'],
-            'status'        => 'approved',
-            'approved_at'   => now(),
-        ]);
+        try {
+            $gpoa = DB::transaction(function () use ($user, $validated, $documentPath, $request): Gpoa {
+                $gpoa = Gpoa::create([
+                    'user_id'       => $user->id,
+                    'term'          => $validated['term'],
+                    'school_year'   => $validated['school_year'],
+                    'college'       => $validated['colleges'],
+                    'document_path' => $documentPath,
+                    'prepared_by'   => $validated['prepared_by'],
+                    'status'        => 'approved',
+                    'approved_at'   => now(),
+                ]);
 
-        $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
+                $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
+
+                return $gpoa;
+            });
+        } catch (Throwable) {
+            Storage::disk('private')->delete($documentPath);
+
+            throw ValidationException::withMessages([
+                'term' => "A GPOA for {$validated['term']} / SY {$validated['school_year']} has already been submitted.",
+            ]);
+        }
 
         User::where('role', 'admin')->each(function (User $admin) use ($gpoa, $user) {
             UserNotification::create([

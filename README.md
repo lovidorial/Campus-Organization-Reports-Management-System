@@ -1,77 +1,110 @@
-Orgtrack: A Web-Based Monitoring System for Campus Student Organization Narrative, Accomplishment and Summary Reports.
+# Orgtrack
 
+**Orgtrack: A Web-Based Monitoring System for Campus Student Organization Narrative, Accomplishment and Summary Reports.**
 
- CSORMS  is an integrated platform designed to simplify the documentation, monitoring, and evaluation of organizational activities and General Plan of Activities (GPOA). It provides specific features for two types of users: organizations or departments that submit activities, and administrators who monitor and review submissions.
+Orgtrack helps campus student organizations and administrators track General Plan of Action (GPOA) submissions, planned activities, activity requests, and reports.
 
+## Student Organizations
 
+- Submit a GPOA PDF and enter planned activities, or import activity rows from a DOCX or XLSX file for review before submission.
+- View GPOAs and activity progress from the dashboard and activity monitor. Activities are tracked as pending, ongoing, completed, late, or archived where applicable.
+- Create activity requests for planned activities, provide scheduling and venue details, submit communication letters, and follow request and document status.
+- Submit narrative reports as uploaded PDFs or generate them from report text. Supporting photos and attendance sheets can also be submitted.
+- Use the activity calendar, maintain organization officers and members, and export personal backup data.
 
+## Administrators (OSDW)
 
-For Users (STUDENT ORGANIZATION) 
+- Monitor GPOAs, planned activities, activity requests, reports, and organization progress through dashboards and filtered activity lists.
+- Record activity compliance assessments and remarks; view submitted documents and evidence.
+- Review narrative reports and approve them or request revisions. GPOA records are currently marked approved when submitted by the application.
+- View and export summary reports, manage organizations, user accounts, officers, organization classifications, and document deadlines.
+- Review the activity calendar and venue availability, and manage database/file backups and activity logs.
 
-The system offers a user-friendly interface that allows organizations to easily submit and manage their activity documents and reports.
+The current project focus is monitoring and tracking. Broader approval workflows are planned after the defense; the existing narrative-report review actions are limited to the behavior described above.
 
+## Requirements
 
-1. GPOA Document Management
+- PHP 8.2 or newer with the GD and ZIP extensions enabled.
+- Composer.
+- Node.js and npm.
+- MySQL.
+- On Windows, XAMPP can provide the local PHP/MySQL stack. Ensure the PHP executable used by Composer and Artisan has the required extensions enabled.
 
-Users can manually encode their GPOA details directly into the system.
-The system also supports bulk uploading of digital GPOA files.
-Uploaded documents are automatically converted into editable formats for easier modification.
-Users can update and monitor their GPOA submissions in real time.
+TODO: Confirm and document supported Composer and Node.js/npm versions; the project manifests do not pin them.
 
+## Installation
 
+```text
+git clone <repository-url>
+cd <repository-directory>
+composer install
+npm install
+```
 
-2. Activities Management
+Copy the example environment file, then configure the local application URL and MySQL connection values in `.env`:
 
-The system provides ready-made templates for submitting activity information, including:
-Activity objectives
-Scheduled dates
-Venue or location details
-Users can upload a soft copy of their Narrative Report using a standardized format.
-Communication letters can also be submitted through template-based documents.
-A centralized dashboard allows users to track the status of all their submitted activities.
+```powershell
+Copy-Item .env.example .env
+```
 
+Create an empty MySQL database and set `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in `.env` for that database. Then initialize the application:
 
+```text
+php artisan key:generate
+php artisan migrate
+php artisan storage:link
+npm run build
+```
 
+TODO: Replace `<repository-url>` with the project's clone URL and `<repository-directory>` with the directory created by that clone.
 
+## Running Locally
 
-For Administrators(OSDW) 
+Run the Laravel application and Vite development server in separate terminals:
 
-The admin panel provides complete monitoring and management tools for reviewing organizational submissions.
+```text
+php artisan serve
+```
 
+```text
+npm run dev
+```
 
-1. GPOA Monitoring System
+## Running Tests
 
-A centralized dashboard allows administrators to review all submitted GPOA documents.
-Activities are automatically categorized by the system.
-Real-time analytics display the number of activities under each category.
-Administrators can view detailed information for every submission.
+```text
+php artisan test
+```
 
+## Mail Setup
 
+Password reset messages use Laravel mail configuration. Set the SMTP values in `.env` for your mail provider:
 
-2. Activities Monitoring System
+```dotenv
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=<smtp-host>
+MAIL_PORT=587
+MAIL_USERNAME=<smtp-username>
+MAIL_PASSWORD=<smtp-password>
+MAIL_FROM_ADDRESS=<sender-address>
+MAIL_FROM_NAME="Orgtrack"
+```
 
-Communication letters go through a verification process before approval.
-Administrators can review narrative reports and related communication letters for each activity.
-Submission status is clearly displayed using visual indicators such as checkmarks or links for:
-Communication letter submissions
-Narrative report submissions
-Activities are presented in a table format with the following details:
-| Activity | Date | Venue | Communication Letter | Narrative |
+Use the host, port, scheme, credentials, and sender address provided by your mail service. Keep real credentials out of source control. The environment example also notes Resend as a production mailer option.
 
+## Backup and Restore
 
-3. Date and Venue Monitoring System
+See [Backup and Recovery](docs/backup-recovery.md) for archive creation, restore steps, requirements for MySQL client tools, and recovery limitations.
 
-The system detects schedule conflicts between activities.
-Venue availability can be checked easily (for example, searching “GYM” will display all activities scheduled in that venue).
-Administrators must confirm schedules before approving communication letters.
-The system also keeps records of previously conducted activities.
+## Default Roles and First Administrator
 
+The application uses the `admin` role for administrators and the `user` role for student organization accounts. Public registration creates a regular user; it does not create an administrator.
 
-4. Advanced Dashboard and Reporting
+The `AdminUserSeeder` creates or updates the initial administrator account. After configuring the database and running migrations, seed it with:
 
-Displays the total number of accredited organizations in real time.
-Provides visual analytics charts showing organizational activity performance, such as:
-Major and specialized activity distribution
-Organization rankings based on activity count
-Allows administrators to export data and generate printable reports.
-Includes monitoring tools for evaluating organizational performance.
+```text
+php artisan db:seed --class=AdminUserSeeder
+```
+
+The seeder currently sets the email to `osdw@gmail.com` and the initial password to `admin123`. Change that password immediately after the first login and before using the application outside a local development environment.

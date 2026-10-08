@@ -2,7 +2,7 @@
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">My GPOA</h2>
-        <p class="text-sm text-gray-500">General Plan of Activities</p>
+        <p class="text-sm text-gray-500">General Plan of Action</p>
     </div>
     @if($canSubmitGpoa)
         <a href="{{ route('gpoa.create') }}"

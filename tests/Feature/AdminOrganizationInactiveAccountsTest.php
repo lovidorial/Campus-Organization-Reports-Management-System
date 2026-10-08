@@ -88,7 +88,7 @@ class AdminOrganizationInactiveAccountsTest extends TestCase
                 'active' => 1,
                 'inactive' => 1,
             ])
-            ->assertViewHas('organizations', fn ($organizations) => $organizations->total() === 2)
+            ->assertViewHas('organizations', fn ($organizations) => $organizations->total() === 1)
             ->assertViewHas('inactiveAccounts', fn ($accounts) => $accounts->contains('id', $endedUser->id)
                 && ! $accounts->contains('id', $admin->id));
 

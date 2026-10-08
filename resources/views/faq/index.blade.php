@@ -77,7 +77,7 @@
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">What is a GPOA, and how do I submit or update it?</summary>
-                        <p class="mt-2 text-sm text-gray-600">A General Plan of Activities (GPOA) records your organization’s planned activities for a term and school year. After submission, a GPOA is locked. Finish all activities in the previous GPOA before submitting another plan. Contact your administrator if you need to request changes.</p>
+                        <p class="mt-2 text-sm text-gray-600">A General Plan of Action (GPOA) records your organization’s planned activities for a term and school year. After submission, a GPOA is locked. Finish all activities in the previous GPOA before submitting another plan. Contact your administrator if you need to request changes.</p>
                     </details>
                     <details class="py-3" x-show="!query || $el.querySelector('summary').textContent.toLowerCase().includes(query.toLowerCase())">
                         <summary class="cursor-pointer font-semibold text-gray-800">How do I submit an Activity Request?</summary>

@@ -31,6 +31,12 @@ class DocumentDeadline extends Model
         'grace_days' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(fn () => GpoaActivity::flushMonitoringDeadlineCache());
+        static::deleted(fn () => GpoaActivity::flushMonitoringDeadlineCache());
+    }
+
     public static function forPeriod(
         string $documentType,
         string $term,

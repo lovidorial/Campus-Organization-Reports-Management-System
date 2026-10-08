@@ -7,8 +7,10 @@ use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -125,6 +127,52 @@ class GpoaSubmissionRulesTest extends TestCase
         $this->actingAs($otherUser)->post(route('gpoa.store'), $this->payload('2nd Term', '2035-2036'))
             ->assertRedirect(route('dashboard', absolute: false));
         $this->assertDatabaseHas('gpoas', ['user_id' => $otherUser->id, 'term' => '1st Term', 'school_year' => '2027-2028']);
+    }
+
+    public function test_second_submission_for_the_same_period_returns_validation_error_and_keeps_one_gpoa(): void
+    {
+        Storage::fake('private');
+        $user = User::factory()->create(['role' => 'user', 'term' => '1st Term', 'school_year' => '2032-2033']);
+        $payload = $this->payload('1st Term', '2032-2033');
+
+        $this->actingAs($user)->post(route('gpoa.store'), $payload)
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $user->gpoas()->first()->activities()->update(['archived_at' => now()]);
+
+        $this->actingAs($user)->from(route('gpoa.create'))
+            ->post(route('gpoa.store'), $this->payload('1st Term', '2032-2033'))
+            ->assertSessionHasErrors([
+                'term' => 'A GPOA for 1st Term / SY 2032-2033 has already been submitted.',
+            ]);
+
+        $this->assertDatabaseCount('gpoas', 1);
+        $this->assertCount(1, Storage::disk('private')->allFiles('uploads/gpoa'));
+    }
+
+    public function test_planned_activity_sync_failure_rolls_back_gpoa_and_uploaded_pdf(): void
+    {
+        Storage::fake('private');
+        $user = User::factory()->create(['role' => 'user', 'term' => '1st Term', 'school_year' => '2033-2034']);
+        $activityInsertFailed = false;
+
+        DB::listen(function (QueryExecuted $query) use (&$activityInsertFailed): void {
+            if (! $activityInsertFailed && str_contains(strtolower($query->sql), 'insert into "gpoa_activities"')) {
+                $activityInsertFailed = true;
+                throw new \RuntimeException('Simulated planned activity sync failure.');
+            }
+        });
+
+        $this->actingAs($user)->from(route('gpoa.create'))
+            ->post(route('gpoa.store'), $this->payload('1st Term', '2033-2034'))
+            ->assertSessionHasErrors([
+                'term' => 'A GPOA for 1st Term / SY 2033-2034 has already been submitted.',
+            ]);
+
+        $this->assertTrue($activityInsertFailed);
+        $this->assertDatabaseCount('gpoas', 0);
+        $this->assertDatabaseCount('gpoa_activities', 0);
+        $this->assertSame([], Storage::disk('private')->allFiles('uploads/gpoa'));
     }
 
     public function test_duplicate_index_migration_reports_records_without_deleting_them(): void

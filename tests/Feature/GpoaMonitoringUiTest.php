@@ -63,7 +63,7 @@ class GpoaMonitoringUiTest extends TestCase
         $response = $this->actingAs($user)->get(route('gpoa.index'));
 
         $response->assertOk();
-        $response->assertSee('General Plan of Activities');
+        $response->assertSee('General Plan of Action');
         $response->assertSee('Pending');
         $response->assertSee('Ongoing');
         $response->assertSee('Completed');

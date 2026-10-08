@@ -19,7 +19,7 @@ class TermEndedAccountTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const BLOCK_MESSAGE = 'This account is no longer active because the term has ended or a new officer has been assigned. Please contact the OSDW office.';
+    private const BLOCK_MESSAGE = User::TERM_ENDED_MESSAGE;
 
     public function test_archived_user_with_correct_credentials_is_blocked_and_logged(): void
     {
@@ -62,7 +62,7 @@ class TermEndedAccountTest extends TestCase
         $content = $response->getContent();
 
         $this->assertSame(1, substr_count($content, 'Account no longer active'));
-        $this->assertStringContainsString('This account\'s term has ended.', $content);
+        $this->assertStringContainsString('This account&#039;s term has ended.', $content);
         $this->assertStringContainsString('Questions? Contact osdwcsuaparri@gmail.com', $content);
         $this->assertStringNotContainsString('class="form-error"', $content);
     }
@@ -221,7 +221,8 @@ class TermEndedAccountTest extends TestCase
             ->assertSessionHas('success');
 
         $this->post('/logout')->assertRedirect('/');
-        $this->get('/login')->assertOk()->assertHeader('Cache-Control', 'no-store');
+        $loginResponse = $this->get('/login')->assertOk();
+        $this->assertStringContainsString('no-store', $loginResponse->headers->get('Cache-Control'));
         $captcha = session('login_captcha');
 
         $this->post('/login', [

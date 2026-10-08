@@ -100,6 +100,7 @@ window.gpoaImportReview = () => ({
     },
     handleSubmit(event) {
         const form = event.target;
+        if (form.dataset.preventDoubleSubmit === 'true' && this.submitting) return;
         this.clientValidationErrors = {};
         const nonActivityInvalidField = Array.from(form.querySelectorAll('[required]'))
             .find(field => !field.name.startsWith('planned_activities[') && !field.checkValidity());
@@ -131,6 +132,14 @@ window.gpoaImportReview = () => ({
         if (this.errorSummaryOpen) {
             this.focusActivityError(this.activityErrorItems[0]);
             return;
+        }
+        if (form.dataset.preventDoubleSubmit === 'true') {
+            this.submitting = true;
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+            }
         }
         form.submit();
     },
