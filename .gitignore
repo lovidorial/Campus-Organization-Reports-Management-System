@@ -22,7 +22,6 @@
 /storage/*.key
 /storage/app/backups
 /storage/pail
-/vendor
 corms
 corms_db
 Homestead.json
