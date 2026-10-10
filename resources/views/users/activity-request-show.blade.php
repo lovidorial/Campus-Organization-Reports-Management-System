@@ -17,7 +17,7 @@
                 <h1 class="truncate text-lg font-bold text-slate-900">{{ $request->title }}</h1>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('activity-requests.pdf', $request) }}" class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Download PDF</a>
+                <a href="{{ route('activity-requests.pdf', $request) }}" data-download-loading class="rounded bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800">Download PDF</a>
                 <a href="{{ route('activity-requests.index') }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Back to requests</a>
             </div>
         </header>

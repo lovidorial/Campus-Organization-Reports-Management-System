@@ -15,7 +15,7 @@
 
             <div class="flex flex-wrap items-center gap-2">
                 <a id="generateExcelReport" href="{{ route('admin.summary-report.download', array_merge($exportQuery, ['include_category_summary' => 1])) }}" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Export Excel</a>
-                <a id="generatePdfReport" href="{{ route('admin.summary-report.pdf', array_merge($exportQuery, ['include_category_summary' => 1])) }}" class="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-800">Export PDF</a>
+                <a id="generatePdfReport" href="{{ route('admin.summary-report.pdf', array_merge($exportQuery, ['include_category_summary' => 1])) }}" data-download-loading class="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-800">Export PDF</a>
             </div>
         </header>
 

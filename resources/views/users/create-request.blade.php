@@ -10,7 +10,7 @@
                     <p class="page-description">Submit a detailed activity request under your approved GPOA.</p>
                 </div>
             </div>
-            <form action="{{ route('activity-requests.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="requestForm">
+            <form action="{{ route('activity-requests.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="requestForm" data-loading data-loading-text="Uploading…">
                 @csrf
 
                 {{-- Organization Information (read-only reference) --}}
@@ -62,39 +62,42 @@
                         : [];
                 @endphp
 
-                <script type="application/json" id="activity-request-config">@json([
-                    'programFlows' => old('program_flows', $programFlows ?: [['time' => '', 'flow' => '', 'person_in_charge' => '']]),
-                    'prefill' => $prefill,
-                    'missingPrefillFields' => $missingPrefillFields,
-                    'prefillFieldLabels' => $prefillFieldLabels,
-                    'serverProgramFlows' => $programFlows,
-                    'plannedActivities' => $gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
-                        'title' => $activity->title,
-                        'category' => $activity->category,
-                        'sdgs' => $activity->sdgs ?? [],
-                        'date_requires_confirmation' => (bool) $activity->date_is_month_only || ($activity->date && $activity->date->lt(today())),
-                        'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
-                        'date_is_month_only' => (bool) $activity->date_is_month_only,
-                        'end_date' => $activity->end_date?->toDateString() ?? '',
-                        'start_time' => $activity->start_time ? substr((string) $activity->start_time, 0, 5) : '',
-                        'end_time' => $activity->end_time ? substr((string) $activity->end_time, 0, 5) : '',
-                        'venue' => $activity->venue,
-                        'objectives' => $activity->objectives,
-                        'expected_outcome' => $activity->expected_outcome,
-                        'plan_key_strategy' => $activity->plan_key_strategy,
-                        'target_participants' => $activity->target_participants,
-                        'person_in_charge' => $activity->person_in_charge,
-                        'facilities_materials' => $activity->facilities_materials,
-                        'estimated_budget' => $activity->estimated_budget,
-                        'source_of_funds' => $activity->source_of_funds,
-                        'program_flows' => $activity->getAttribute('program_flows') ?? [],
-                    ]])->all(),
-                    'sdgColors' => config('sdg'),
-                    'hasOldInput' => session()->hasOldInput(),
-                    'originalActivityId' => $gpoaActivity->id ?? null,
-                    'oldCategory' => old('category', $prefill['category'] ?? ''),
-                    'oldSourceOfFunds' => old('source_of_funds', $prefill['source_of_funds'] ?? ''),
-                ])</script>
+                @php
+                    $activityRequestConfig = [
+                        'programFlows' => old('program_flows', $programFlows ?: [['time' => '', 'flow' => '', 'person_in_charge' => '']]),
+                        'prefill' => $prefill,
+                        'missingPrefillFields' => $missingPrefillFields,
+                        'prefillFieldLabels' => $prefillFieldLabels,
+                        'serverProgramFlows' => $programFlows,
+                        'plannedActivities' => $gpoa->activities->mapWithKeys(fn ($activity) => [$activity->id => [
+                            'title' => $activity->title,
+                            'category' => $activity->category,
+                            'sdgs' => $activity->sdgs ?? [],
+                            'date_requires_confirmation' => (bool) $activity->date_is_month_only || ($activity->date && $activity->date->lt(today())),
+                            'date' => $activity->date ? ($activity->date_is_month_only ? $activity->date->format('Y-m-01') : $activity->date->toDateString()) : '',
+                            'date_is_month_only' => (bool) $activity->date_is_month_only,
+                            'end_date' => $activity->end_date?->toDateString() ?? '',
+                            'start_time' => $activity->start_time ? substr((string) $activity->start_time, 0, 5) : '',
+                            'end_time' => $activity->end_time ? substr((string) $activity->end_time, 0, 5) : '',
+                            'venue' => $activity->venue,
+                            'objectives' => $activity->objectives,
+                            'expected_outcome' => $activity->expected_outcome,
+                            'plan_key_strategy' => $activity->plan_key_strategy,
+                            'target_participants' => $activity->target_participants,
+                            'person_in_charge' => $activity->person_in_charge,
+                            'facilities_materials' => $activity->facilities_materials,
+                            'estimated_budget' => $activity->estimated_budget,
+                            'source_of_funds' => $activity->source_of_funds,
+                            'program_flows' => $activity->getAttribute('program_flows') ?? [],
+                        ]])->all(),
+                        'sdgColors' => config('sdg'),
+                        'hasOldInput' => session()->hasOldInput(),
+                        'originalActivityId' => $gpoaActivity->id ?? null,
+                        'oldCategory' => old('category', $prefill['category'] ?? ''),
+                        'oldSourceOfFunds' => old('source_of_funds', $prefill['source_of_funds'] ?? ''),
+                    ];
+                @endphp
+                <script type="application/json" id="activity-request-config">@json($activityRequestConfig)</script>
                 <script>window.activityRequestData = JSON.parse(document.getElementById('activity-request-config').textContent);</script>
 
                 <div class="org-info-block" aria-label="Organization Information">

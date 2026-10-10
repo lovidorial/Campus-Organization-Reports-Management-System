@@ -14,7 +14,7 @@
 @endphp
 
 <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-8 max-w-xl">
-    <form action="{{ route('activity-reports.store', $activityRequest) }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-has-existing-upload="{{ $hasExistingUpload ? 'true' : 'false' }}">
+    <form action="{{ route('activity-reports.store', $activityRequest) }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-has-existing-upload="{{ $hasExistingUpload ? 'true' : 'false' }}" data-loading data-loading-text="Uploading…">
         @csrf
 
         <div class="bg-gray-50 rounded-lg p-4 text-sm">

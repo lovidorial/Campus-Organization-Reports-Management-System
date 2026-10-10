@@ -115,7 +115,7 @@
                                 <td class="min-w-[170px] px-4 py-3 text-right">
                                     <div class="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
                                     @if($activityRequest)
-                                        <a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">PDF</a>
+                                        <a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">PDF</a>
                                     @endif
                                     @if($activity->archived_at)
                                         <form method="POST" action="{{ route('activities.restore', $activity) }}" class="inline-flex">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Restore</button></form>
@@ -130,27 +130,30 @@
                                     @elseif(!$reportPresent)
                                         <a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                                     @else
-                                        <button type="button" @click="$dispatch('show-activity-details', JSON.parse($el.dataset.activityDetails))" data-activity-details='@json([
-                                            'title' => $activityRequest->title ?? $activity->title,
-                                            'organization' => auth()->user()->org_name ?? auth()->user()->name,
-                                            'college' => $activity->gpoa?->college ?? '—',
-                                            'category' => $activityRequest->category ?? $activity->category ?? '—',
-                                            'venue' => $activityRequest->venue ?? $activity->venue ?? '—',
-                                            'date' => ($activityRequest->date ?? $activity->date)?->format('M j, Y') ?? '—',
-                                            'endDate' => ($activityRequest->end_date ?? $activity->end_date)?->format('M j, Y'),
-                                            'status' => $activity->monitor_status . ($activity->monitor_late ? ' · Late' : ''),
-                                            'term' => $activity->gpoa?->term ?? '—',
-                                            'schoolYear' => $activity->gpoa?->school_year ?? '—',
-                                            'letterStatus' => $letterPresent ? 'Uploaded' : 'Missing',
-                                            'letterUrl' => $letterPresent ? route('activity-requests.documents.show', [$activityRequest, 'communication-letter']) : null,
-                                            'reportStatus' => $activityRequest->report?->reviewStatusLabel() ?? 'Not submitted',
-                                            'reportUrl' => filled($activityRequest->report?->narrative_report) ? route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) : null,
-                                            'attendanceUrl' => filled($activityRequest->report?->attendance_sheet_path) ? route('activity-requests.documents.show', [$activityRequest, 'attendance-sheet']) : null,
-                                            'photos' => $activityRequest->report?->photos->map(fn ($photo, $index) => ['url' => route('activity-requests.report-photos.show', [$activityRequest, $photo]), 'title' => 'Activity Photo ' . ($index + 1)])->values()->all() ?? [],
-                                            'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
-                                            'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
-                                            'fullPageUrl' => $viewUrl,
-                                        ])' class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</button>
+                                        @php
+                                            $activityDetails = [
+                                                'title' => $activityRequest->title ?? $activity->title,
+                                                'organization' => auth()->user()->org_name ?? auth()->user()->name,
+                                                'college' => $activity->gpoa?->college ?? '—',
+                                                'category' => $activityRequest->category ?? $activity->category ?? '—',
+                                                'venue' => $activityRequest->venue ?? $activity->venue ?? '—',
+                                                'date' => ($activityRequest->date ?? $activity->date)?->format('M j, Y') ?? '—',
+                                                'endDate' => ($activityRequest->end_date ?? $activity->end_date)?->format('M j, Y'),
+                                                'status' => $activity->monitor_status . ($activity->monitor_late ? ' · Late' : ''),
+                                                'term' => $activity->gpoa?->term ?? '—',
+                                                'schoolYear' => $activity->gpoa?->school_year ?? '—',
+                                                'letterStatus' => $letterPresent ? 'Uploaded' : 'Missing',
+                                                'letterUrl' => $letterPresent ? route('activity-requests.documents.show', [$activityRequest, 'communication-letter']) : null,
+                                                'reportStatus' => $activityRequest->report?->reviewStatusLabel() ?? 'Not submitted',
+                                                'reportUrl' => filled($activityRequest->report?->narrative_report) ? route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) : null,
+                                                'attendanceUrl' => filled($activityRequest->report?->attendance_sheet_path) ? route('activity-requests.documents.show', [$activityRequest, 'attendance-sheet']) : null,
+                                                'photos' => $activityRequest->report?->photos->map(fn ($photo, $index) => ['url' => route('activity-requests.report-photos.show', [$activityRequest, $photo]), 'title' => 'Activity Photo ' . ($index + 1)])->values()->all() ?? [],
+                                                'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
+                                                'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
+                                                'fullPageUrl' => $viewUrl,
+                                            ];
+                                        @endphp
+                                        <button type="button" @click="$dispatch('show-activity-details', JSON.parse($el.dataset.activityDetails))" data-activity-details="{{ json_encode($activityDetails) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</button>
                                     @endif
                                     </div>
                                 </td>
@@ -171,7 +174,7 @@
                     @endphp
                     <article class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
                         <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }}</h2><p class="whitespace-nowrap text-sm text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block whitespace-nowrap text-sm text-slate-500">to {{ $activity->end_date->format('M d, Y') }}</span>@endif</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitor_status" /></div>
-                        <div class="flex items-center justify-between gap-2"><div class="flex flex-nowrap gap-2 whitespace-nowrap"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500' }}">{{ $letterPresent ? '✓' : '–' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $activityRequest?->report?->status === 'needs_revision' ? 'border-amber-200 bg-amber-50 text-amber-700' : ($reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">{{ $activityRequest?->report?->status === 'needs_revision' ? '!' : ($reportPresent ? '✓' : '–') }} Report</span></div><div class="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">PDF</a>@endif
+                            <div class="flex items-center justify-between gap-2"><div class="flex flex-nowrap gap-2 whitespace-nowrap"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500' }}">{{ $letterPresent ? '✓' : '–' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $activityRequest?->report?->status === 'needs_revision' ? 'border-amber-200 bg-amber-50 text-amber-700' : ($reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">{{ $activityRequest?->report?->status === 'needs_revision' ? '!' : ($reportPresent ? '✓' : '–') }} Report</span></div><div class="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">PDF</a>@endif
                             @if($activity->archived_at)<form method="POST" action="{{ route('activities.restore', $activity) }}" class="inline-flex">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">Restore</button></form>
                             @elseif($activity->monitor_status === 'Completed')<form method="POST" action="{{ route('activities.archive', $activity) }}" class="inline-flex" data-confirm data-confirm-title="Archive this activity?" data-confirm-message="Archived activities are excluded from the totals. You can restore it later." data-confirm-label="Archive" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">Archive</button></form>
                             @elseif(!$activityRequest)@if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="inline-flex items-center justify-center whitespace-nowrap cursor-not-allowed rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Start request</a>@endif
@@ -179,27 +182,30 @@
                             @elseif($activityRequest->report?->status === 'needs_revision')<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
                             @elseif(!$reportPresent)<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>
                             @else
-                                <button type="button" @click="$dispatch('show-activity-details', JSON.parse($el.dataset.activityDetails))" data-activity-details='@json([
-                                    'title' => $activityRequest->title ?? $activity->title,
-                                    'organization' => auth()->user()->org_name ?? auth()->user()->name,
-                                    'college' => $activity->gpoa?->college ?? '—',
-                                    'category' => $activityRequest->category ?? $activity->category ?? '—',
-                                    'venue' => $activityRequest->venue ?? $activity->venue ?? '—',
-                                    'date' => ($activityRequest->date ?? $activity->date)?->format('M j, Y') ?? '—',
-                                    'endDate' => ($activityRequest->end_date ?? $activity->end_date)?->format('M j, Y'),
-                                    'status' => $activity->monitor_status . ($activity->monitor_late ? ' · Late' : ''),
-                                    'term' => $activity->gpoa?->term ?? '—',
-                                    'schoolYear' => $activity->gpoa?->school_year ?? '—',
-                                    'letterStatus' => $letterPresent ? 'Uploaded' : 'Missing',
-                                    'letterUrl' => $letterPresent ? route('activity-requests.documents.show', [$activityRequest, 'communication-letter']) : null,
-                                    'reportStatus' => $activityRequest->report?->reviewStatusLabel() ?? 'Not submitted',
-                                    'reportUrl' => filled($activityRequest->report?->narrative_report) ? route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) : null,
-                                    'attendanceUrl' => filled($activityRequest->report?->attendance_sheet_path) ? route('activity-requests.documents.show', [$activityRequest, 'attendance-sheet']) : null,
-                                    'photos' => $activityRequest->report?->photos->map(fn ($photo, $index) => ['url' => route('activity-requests.report-photos.show', [$activityRequest, $photo]), 'title' => 'Activity Photo ' . ($index + 1)])->values()->all() ?? [],
-                                    'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
-                                    'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
-                                    'fullPageUrl' => route('activity-requests.show', $activityRequest),
-                                ])' class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">View</button>
+                                @php
+                                    $activityDetails = [
+                                        'title' => $activityRequest->title ?? $activity->title,
+                                        'organization' => auth()->user()->org_name ?? auth()->user()->name,
+                                        'college' => $activity->gpoa?->college ?? '—',
+                                        'category' => $activityRequest->category ?? $activity->category ?? '—',
+                                        'venue' => $activityRequest->venue ?? $activity->venue ?? '—',
+                                        'date' => ($activityRequest->date ?? $activity->date)?->format('M j, Y') ?? '—',
+                                        'endDate' => ($activityRequest->end_date ?? $activity->end_date)?->format('M j, Y'),
+                                        'status' => $activity->monitor_status . ($activity->monitor_late ? ' · Late' : ''),
+                                        'term' => $activity->gpoa?->term ?? '—',
+                                        'schoolYear' => $activity->gpoa?->school_year ?? '—',
+                                        'letterStatus' => $letterPresent ? 'Uploaded' : 'Missing',
+                                        'letterUrl' => $letterPresent ? route('activity-requests.documents.show', [$activityRequest, 'communication-letter']) : null,
+                                        'reportStatus' => $activityRequest->report?->reviewStatusLabel() ?? 'Not submitted',
+                                        'reportUrl' => filled($activityRequest->report?->narrative_report) ? route('activity-requests.documents.show', [$activityRequest, 'narrative-report']) : null,
+                                        'attendanceUrl' => filled($activityRequest->report?->attendance_sheet_path) ? route('activity-requests.documents.show', [$activityRequest, 'attendance-sheet']) : null,
+                                        'photos' => $activityRequest->report?->photos->map(fn ($photo, $index) => ['url' => route('activity-requests.report-photos.show', [$activityRequest, $photo]), 'title' => 'Activity Photo ' . ($index + 1)])->values()->all() ?? [],
+                                        'programFlows' => $activityRequest->programFlows->map(fn ($flow) => ['time' => $flow->time ?: 'TBA', 'flow' => $flow->flow, 'person' => $flow->person_in_charge])->values()->all(),
+                                        'remark' => $activity->monitoringResult?->compliance_notes ?: 'No monitoring remark recorded.',
+                                        'fullPageUrl' => route('activity-requests.show', $activityRequest),
+                                    ];
+                                @endphp
+                                <button type="button" @click="$dispatch('show-activity-details', JSON.parse($el.dataset.activityDetails))" data-activity-details="{{ json_encode($activityDetails) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">View</button>
                             @endif
                         </div>
                     </article>

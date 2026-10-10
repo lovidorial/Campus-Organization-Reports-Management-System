@@ -37,16 +37,19 @@
                 </div>
             @endif
 
+            @php
+                $gpoaFormConfig = [
+                    'maxActivities' => config('gpoa.max_planned_activities'),
+                    'validationErrors' => $errors->getMessages(),
+                    'schoolYear' => old('school_year', auth()->user()->school_year ?? ''),
+                    'draftUserId' => (string) auth()->id(),
+                    'draftOrganizationId' => (string) (auth()->user()->organization_id ?? ''),
+                    'sdgColors' => config('sdg'),
+                    'importPreviewUrl' => route('gpoa.import-preview'),
+                ];
+            @endphp
             <script type="application/json" id="planned-activities-seed">@json(old('planned_activities', []))</script>
-            <script type="application/json" id="gpoa-form-config">@json([
-                'maxActivities' => config('gpoa.max_planned_activities'),
-                'validationErrors' => $errors->getMessages(),
-                'schoolYear' => old('school_year', auth()->user()->school_year ?? ''),
-                'draftUserId' => (string) auth()->id(),
-                'draftOrganizationId' => (string) (auth()->user()->organization_id ?? ''),
-                'sdgColors' => config('sdg'),
-                'importPreviewUrl' => route('gpoa.import-preview'),
-            ])</script>
+            <script type="application/json" id="gpoa-form-config">@json($gpoaFormConfig)</script>
 
             <form action="{{ route('gpoa.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="gpoaForm" data-prevent-double-submit="true" x-data="Object.defineProperties(plannedActivities(), Object.getOwnPropertyDescriptors(window.gpoaImportReview()))" novalidate @submit.prevent="handleSubmit($event)">
                 @csrf

@@ -6,7 +6,9 @@
             <button type="button" data-file-viewer-close class="shrink-0 rounded border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
         </header>
         <div class="relative min-h-0 flex-1 bg-slate-100">
-            <div id="fileViewerLoading" class="absolute inset-0 z-10 grid place-items-center bg-white text-sm text-slate-500">Loading document…</div>
+            <div id="fileViewerLoading" class="absolute inset-0 z-10 grid place-items-center bg-white text-slate-500" role="status" aria-label="Loading document">
+                <svg class="h-8 w-8 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path></svg>
+            </div>
             <iframe id="fileViewerFrame" title="Document preview" src="about:blank" class="h-full w-full border-0"></iframe>
         </div>
     </div>

@@ -8,7 +8,7 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.organizations.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('admin.organizations.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-loading data-loading-text="Uploading…">
         @csrf
 
         <div class="grid gap-6 lg:grid-cols-2">

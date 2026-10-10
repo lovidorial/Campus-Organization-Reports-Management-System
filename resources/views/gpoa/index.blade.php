@@ -6,7 +6,7 @@
     </div>
     @if($canSubmitGpoa)
         <a href="{{ route('gpoa.create') }}"
-           class="px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90" style="background:#e89600;">+ Submit GPOA</a>
+           class="px-4 py-2 text-white rounded-lg text-sm font-semibold bg-amber-500 transition hover:bg-amber-600">+ Submit GPOA</a>
     @endif
 </div>
 
@@ -23,13 +23,19 @@
         <span class="text-sm font-semibold text-gray-700">{{ $completionPercent }}% complete</span>
     </div>
     <div class="mb-4 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-        <div class="h-full rounded-full bg-emerald-500 w-[var(--completion-percent)]" @style(['--completion-percent' => $completionPercent . '%'])></div>
+        <div
+            class="h-full rounded-full transition-all duration-500 {{ $completionPercent == 0 ? 'bg-gray-300' : ($completionPercent >= 1 && $completionPercent < 100 ? 'bg-amber-500' : 'bg-emerald-500') }}"
+            style="width: {{ $completionPercent }}%"
+        ></div>
     </div>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         @foreach($monitoringCounts as $status => $count)
             <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                <span class="text-sm text-gray-600">{{ $status }}</span>
-                <span class="font-semibold text-gray-900">{{ $count }}</span>
+                <span class="inline-flex items-center gap-2 text-sm text-gray-600">
+                    <span class="h-2.5 w-2.5 rounded-full {{ match($status) { 'pending' => 'bg-amber-400', 'ongoing' => 'bg-blue-500', 'completed' => 'bg-emerald-500', 'archived' => 'bg-gray-400', default => 'bg-gray-400' } }}"></span>
+                    {{ $status }}
+                </span>
+                <span class="text-base font-bold text-gray-900">{{ $count }}</span>
             </div>
         @endforeach
     </div>
@@ -69,11 +75,19 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="px-4 py-10 text-center text-gray-400">
-                    No GPOA submitted yet.
-                    @if($canSubmitGpoa)
-                        <a href="{{ route('gpoa.create') }}" class="text-sky-600 hover:underline ml-1">Submit your GPOA →</a>
-                    @endif
+                <td colspan="6" class="px-4 py-10">
+                    <div class="flex flex-col items-center justify-center text-center text-gray-400">
+                        <svg class="mb-3 h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M7 3.75A2.75 2.75 0 0 0 4.25 6.5v11A2.75 2.75 0 0 0 7 20.25h10A2.75 2.75 0 0 0 19.75 17.5V8.25L15 3.75H7Z" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M14.5 3.75V8.5H19.25" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8.5 12.5h7M8.5 15.5h7" stroke-linecap="round"/>
+                        </svg>
+                        <p class="text-lg font-medium text-gray-500">No GPOA submitted yet.</p>
+                        <p class="mt-1 text-sm text-gray-400">Your planned activities will appear here once you submit a GPOA.</p>
+                        @if($canSubmitGpoa)
+                            <a href="{{ route('gpoa.create') }}" class="mt-4 inline-flex items-center justify-center rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-600">Submit your GPOA →</a>
+                        @endif
+                    </div>
                 </td>
             </tr>
             @endforelse

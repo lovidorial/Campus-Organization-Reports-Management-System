@@ -22,44 +22,81 @@
         <header class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
                 <p class="text-xs text-slate-500">Activity Request #{{ $activityRequest->id }}</p>
-                <h1 class="mt-1 break-words text-xl font-bold text-slate-900">{{ $activityRequest->title }}</h1>
-                <p class="mt-1 text-sm text-slate-600">{{ $activityRequest->user?->org_name ?? $activityRequest->user?->name ?? 'Organization' }} · {{ $activityRequest->gpoa?->college ?? '—' }}</p>
-                <div class="mt-2 flex flex-wrap gap-2">
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                    <h1 class="break-words text-xl font-bold text-slate-900">{{ $activityRequest->title }}</h1>
                     <x-status-pill :status="$plannedActivity?->monitoringStatus()['status'] ?? 'Pending'" />
-                    @if($report)<x-status-pill :status="$reportStatus" />@endif
                 </div>
+                <p class="mt-1 text-sm text-slate-600">{{ $activityRequest->user?->org_name ?? $activityRequest->user?->name ?? 'Organization' }} · {{ $activityRequest->gpoa?->college ?? '—' }}</p>
+                @if($report)
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <x-status-pill :status="$reportStatus" />
+                    </div>
+                @endif
             </div>
-            <div class="flex shrink-0 flex-wrap gap-2">
-                <a href="{{ route('activity-requests.pdf', $activityRequest) }}" class="rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Download PDF</a>
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
+                <a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Download PDF</a>
                 <a href="{{ $backUrl }}" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to Activity Monitoring</a>
             </div>
         </header>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 class="text-sm font-bold text-slate-900">Activity details</h2>
-            <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach([
-                    'Organization' => $activityRequest->user?->org_name ?? $activityRequest->user?->name ?? '—',
-                    'College' => $activityRequest->gpoa?->college ?? '—',
-                    'Category' => $activityRequest->category ?? '—',
-                    'Venue' => $activityRequest->venue ?? '—',
-                    'Date' => $activityRequest->date?->format('M j, Y') ?? '—',
-                    'End date' => $activityRequest->end_date?->format('M j, Y') ?? '—',
-                    'Start / end time' => trim(($activityRequest->start_time ? substr((string) $activityRequest->start_time, 0, 5) : '—') . ' – ' . ($activityRequest->end_time ? substr((string) $activityRequest->end_time, 0, 5) : '—')),
-                    'Status' => $plannedActivity?->monitoringStatus()['status'] ?? 'Pending',
-                    'Term / School year' => ($activityRequest->gpoa?->term ?? '—') . ' / ' . ($activityRequest->gpoa?->school_year ?? '—'),
-                    'Objectives' => $activityRequest->objectives ?? '—',
-                    'Expected outcome' => $activityRequest->expected_outcome ?? '—',
-                    'Target participants' => $activityRequest->target_participants ?? '—',
-                    'Person in charge' => $activityRequest->person_in_charge ?? '—',
-                    'Estimated budget' => $activityRequest->estimated_budget !== null ? number_format((float) $activityRequest->estimated_budget, 2) : '—',
-                ] as $label => $value)
-                    <div class="min-w-0 rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">{{ $label }}</dt>
-                        <dd class="mt-1 break-words whitespace-pre-wrap text-sm text-slate-800">{{ $value }}</dd>
+        <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+            <h2 class="text-sm font-bold uppercase tracking-[0.12em] text-slate-900">Activity details</h2>
+
+            @php
+                $startTime = $activityRequest->start_time ? substr((string) $activityRequest->start_time, 0, 5) : null;
+                $endTime = $activityRequest->end_time ? substr((string) $activityRequest->end_time, 0, 5) : null;
+                $timeRange = 'Not set';
+                if ($startTime && $endTime) {
+                    $timeRange = $startTime . ' - ' . $endTime;
+                } elseif ($startTime) {
+                    $timeRange = $startTime;
+                } elseif ($endTime) {
+                    $timeRange = $endTime;
+                }
+
+                $detailSections = [
+                    'General Information' => [
+                        'Organization' => $activityRequest->user?->org_name ?? $activityRequest->user?->name ?? '—',
+                        'College' => $activityRequest->gpoa?->college ?? '—',
+                        'Category' => $activityRequest->category ?? '—',
+                    ],
+                    'Schedule and Venue' => [
+                        'Venue' => $activityRequest->venue ?? '—',
+                        'Date' => $activityRequest->date?->format('M j, Y') ?? '—',
+                        'End date' => $activityRequest->end_date?->format('M j, Y') ?? '—',
+                        'Start / end time' => $timeRange,
+                        'Term / School year' => ($activityRequest->gpoa?->term ?? '—') . ' / ' . ($activityRequest->gpoa?->school_year ?? '—'),
+                    ],
+                    'Objectives and Outcomes' => [
+                        'Objectives' => $activityRequest->objectives ?? '—',
+                        'Expected outcome' => $activityRequest->expected_outcome ?? '—',
+                    ],
+                    'Participants and Person in Charge' => [
+                        'Target participants' => $activityRequest->target_participants ?? '—',
+                        'Person in charge' => $activityRequest->person_in_charge ?? '—',
+                    ],
+                    'Budget' => [
+                        'Estimated budget' => $activityRequest->estimated_budget !== null ? number_format((float) $activityRequest->estimated_budget, 2) : '—',
+                        'Source of funds' => $activityRequest->source_of_funds ?? '—',
+                    ],
+                ];
+            @endphp
+
+            <div class="mt-4 space-y-5">
+                @foreach($detailSections as $heading => $items)
+                    <div>
+                        <h3 class="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{{ $heading }}</h3>
+                        <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach($items as $label => $value)
+                                <div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                                    <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-600">{{ $label }}</dt>
+                                    <dd class="mt-1 break-words whitespace-pre-wrap text-sm text-slate-800">{{ $value }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
                     </div>
                 @endforeach
-            </dl>
+            </div>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-4">
@@ -76,47 +113,66 @@
         </section>
 
         <section class="grid gap-3 md:grid-cols-2">
-            <div class="rounded-lg border border-slate-200 bg-white p-4">
-                <h2 class="text-sm font-bold text-slate-900">Communication letter</h2>
-                @if(filled($activityRequest->communication_letter))
-                    <a href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter – {{ $activityRequest->title }}" class="mt-2 inline-block text-sm font-semibold text-sky-700 underline">{{ basename($activityRequest->communication_letter) }}</a>
-                @else
-                    <p class="mt-2 rounded bg-slate-100 px-3 py-2 text-sm text-slate-500">Not uploaded yet</p>
-                @endif
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-white p-4">
-                <h2 class="text-sm font-bold text-slate-900">Narrative report</h2>
-                @if($report && filled($report->narrative_report))
-                    <a href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report – {{ $activityRequest->title }}" class="mt-2 inline-block text-sm font-semibold text-sky-700 underline">{{ basename($report->narrative_report) }}</a>
-                @elseif(data_get($report?->narrative_content, 'body'))
-                    <div class="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-sm text-slate-700">{{ data_get($report->narrative_content, 'body') }}</div>
-                @else
-                    <p class="mt-2 rounded bg-slate-100 px-3 py-2 text-sm text-slate-500">Not uploaded yet</p>
-                @endif
-                @if($report?->status === 'approved')
-                    <p class="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Approved on {{ $report->reviewed_at?->format('M j, Y g:i A') ?? '—' }}</p>
-                @endif
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-white p-4">
-                <h2 class="text-sm font-bold text-slate-900">Attendance sheet</h2>
-                @if(filled($report?->attendance_sheet_path))
-                    <a href="{{ route('admin.reports.evidence', [$report, 'attendance']) }}" data-file-viewer data-title="Attendance Sheet – {{ $activityRequest->title }}" class="mt-2 inline-block text-sm font-semibold text-sky-700 underline">{{ basename($report->attendance_sheet_path) }}</a>
-                @else
-                    <p class="mt-2 rounded bg-slate-100 px-3 py-2 text-sm text-slate-500">Not uploaded yet</p>
-                @endif
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-white p-4">
-                <h2 class="text-sm font-bold text-slate-900">Photos</h2>
-                @if($report?->photos->isNotEmpty())
-                    <div class="mt-2 flex flex-wrap gap-2">
-                        @foreach($report->photos as $photo)
-                            <a href="{{ route('admin.reports.evidence', [$report, 'photo-' . $photo->id]) }}" data-file-viewer data-title="Activity Photo {{ $loop->iteration }} – {{ $activityRequest->title }}" class="rounded border border-slate-200 px-3 py-1.5 text-sm font-semibold text-sky-700 hover:bg-slate-50">Photo {{ $loop->iteration }}</a>
-                        @endforeach
+            @php
+                $documentEntries = [
+                    [
+                        'label' => 'Communication Letter (PDF)',
+                        'uploaded' => filled($activityRequest->communication_letter),
+                        'statusText' => filled($activityRequest->communication_letter) ? 'Uploaded' : 'Not uploaded yet',
+                        'statusClass' => filled($activityRequest->communication_letter) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600',
+                        'viewUrl' => filled($activityRequest->communication_letter) ? route('admin.file.view', [$activityRequest->id, 'communication']) : null,
+                        'title' => 'Communication Letter – ' . $activityRequest->title,
+                    ],
+                    [
+                        'label' => 'Narrative Report (PDF)',
+                        'uploaded' => $report && filled($report->narrative_report),
+                        'statusText' => $report && filled($report->narrative_report) ? 'Uploaded' : 'Not uploaded yet',
+                        'statusClass' => $report && filled($report->narrative_report) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600',
+                        'viewUrl' => $report && filled($report->narrative_report) ? route('admin.file.view', [$activityRequest->id, 'narrative']) : null,
+                        'title' => 'Narrative Report – ' . $activityRequest->title,
+                    ],
+                    [
+                        'label' => 'Attendance Sheet (PDF)',
+                        'uploaded' => filled($report?->attendance_sheet_path),
+                        'statusText' => filled($report?->attendance_sheet_path) ? 'Uploaded' : 'Not uploaded yet',
+                        'statusClass' => filled($report?->attendance_sheet_path) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600',
+                        'viewUrl' => filled($report?->attendance_sheet_path) ? route('admin.reports.evidence', [$report, 'attendance']) : null,
+                        'title' => 'Attendance Sheet – ' . $activityRequest->title,
+                    ],
+                    [
+                        'label' => 'Photos',
+                        'uploaded' => $report?->photos->isNotEmpty(),
+                        'statusText' => $report?->photos->isNotEmpty() ? 'Uploaded' : 'Not uploaded yet',
+                        'statusClass' => $report?->photos->isNotEmpty() ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600',
+                        'viewUrl' => $report?->photos->isNotEmpty() ? route('admin.reports.evidence', [$report, 'photo-' . $report->photos->first()->id]) : null,
+                        'title' => 'Activity Photo – ' . $activityRequest->title,
+                    ],
+                ];
+            @endphp
+
+            @foreach($documentEntries as $document)
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex min-w-0 items-start gap-3">
+                            <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
+                                <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 4v4h4M8.5 12h5M8.5 15.5h7" />
+                                </svg>
+                            </span>
+                            <div class="min-w-0">
+                                <h2 class="text-sm font-bold text-slate-900">{{ $document['label'] }}</h2>
+                                <div class="mt-2 flex items-center gap-2">
+                                    <span class="inline-flex rounded-full px-2 py-1 text-[10px] font-semibold {{ $document['statusClass'] }}">{{ $document['statusText'] }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        @if($document['viewUrl'])
+                            <a href="{{ $document['viewUrl'] }}" data-file-viewer data-title="{{ $document['title'] }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">View</a>
+                        @endif
                     </div>
-                @else
-                    <p class="mt-2 rounded bg-slate-100 px-3 py-2 text-sm text-slate-500">Not uploaded yet</p>
-                @endif
-            </div>
+                </div>
+            @endforeach
         </section>
 
         @if($report)
@@ -199,10 +255,30 @@
         <section class="rounded-lg border border-slate-200 bg-white p-4">
             <h2 class="text-sm font-bold text-slate-900">Monitoring remarks</h2>
             @if($monitoringResult)
-                <div class="mt-3 rounded-md bg-slate-50 p-3">
-                    <p class="text-sm font-semibold text-slate-800">{{ $assessmentLabels[$monitoringResult->compliance_status] ?? ucfirst($monitoringResult->compliance_status) }}</p>
-                    <p class="mt-1 whitespace-pre-wrap text-sm text-slate-700">{{ $monitoringResult->compliance_notes ?: 'No remark recorded.' }}</p>
-                    <p class="mt-2 text-xs text-slate-500">Recorded by {{ $monitoringResult->admin?->name ?? 'Admin' }} on {{ $monitoringResult->recorded_at?->format('M j, Y g:i A') ?? '—' }}</p>
+                @php
+                    $monitoringAssessmentLabel = $assessmentLabels[$monitoringResult->compliance_status] ?? ucfirst($monitoringResult->compliance_status);
+                @endphp
+                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex items-center gap-2 text-slate-700">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-200 text-slate-600">
+                            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="10" cy="7" r="4"/>
+                            </svg>
+                        </span>
+                        <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Assessment</span>
+                    </div>
+                    <div class="mt-3">
+                        <x-status-pill :status="$monitoringAssessmentLabel" />
+                    </div>
+                    <p class="mt-3 whitespace-pre-wrap text-sm text-slate-700">{{ $monitoringResult->compliance_notes ?: 'No remark recorded.' }}</p>
+                    <p class="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                        <svg aria-hidden="true" class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="10" cy="7" r="4"/>
+                        </svg>
+                        <span>Recorded by <span class="font-semibold text-slate-700">{{ $monitoringResult->admin?->name ?? 'Admin' }}</span> on {{ $monitoringResult->recorded_at?->format('M j, Y g:i A') ?? '—' }}</span>
+                    </p>
                 </div>
             @else
                 <p class="mt-2 text-sm text-slate-500">No monitoring assessment recorded.</p>
