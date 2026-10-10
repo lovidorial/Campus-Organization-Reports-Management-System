@@ -15,7 +15,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'osdw@gmail.com'],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('admin123'), // Default password
+                'password' => Hash::make('osdwadmin'), // Default password
                 'role' => 'admin',
             ]
         );
