@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.js";
 
 .theme-header {
     background: linear-gradient(135deg, var(--theme-light) 0%, var(--theme-color) 100%);
