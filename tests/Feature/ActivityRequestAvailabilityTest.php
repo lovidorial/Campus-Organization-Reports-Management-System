@@ -137,7 +137,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             'user_id' => $user->id,
             'gpoa_id' => $gpoa->id,
             'title' => 'Existing Symposium Request',
-            'date' => '2026-10-09',
+            'date' => today()->addDay()->toDateString(),
             'venue' => 'Other Hall',
             'category' => 'Makakalikasan (Clean and Green)',
             'status' => ActivityRequest::STATUS_PENDING,
@@ -335,21 +335,6 @@ class ActivityRequestAvailabilityTest extends TestCase
         $form = $this->get(route('activity-requests.create-from-activity', $plannedActivity));
         $form->assertOk()
             ->assertSee('<option value="' . $plannedActivity->id . '" selected>', false)
-            ->assertSee('\\u0022category\\u0022:\\u0022Symposium\\u0022', false)
-            ->assertSee('\\u0022sdgs\\u0022:[4,13]', false)
-            ->assertSee('\\u0022date\\u0022:\\u00222026-10-03\\u0022', false)
-            ->assertSee('\\u0022objectives\\u0022:\\u0022Celebrate teachers.\\u0022', false)
-            ->assertSee('\\u0022expected_outcome\\u0022:\\u0022Staff feel appreciated.\\u0022', false)
-            ->assertSee('\\u0022plan_key_strategy\\u0022:\\u0022Recognition program.\\u0022', false)
-            ->assertSee('\\u0022end_date\\u0022:\\u00222026-10-04\\u0022', false)
-            ->assertSee('\\u0022start_time\\u0022:\\u002209:30\\u0022', false)
-            ->assertSee('\\u0022end_time\\u0022:\\u002215:45\\u0022', false)
-            ->assertSee('\\u0022venue\\u0022:\\u0022Main Hall\\u0022', false)
-            ->assertSee('\\u0022target_participants\\u0022:\\u0022Teachers\\u0022', false)
-            ->assertSee('\\u0022person_in_charge\\u0022:\\u0022Student Council\\u0022', false)
-            ->assertSee('\\u0022facilities_materials\\u0022:\\u0022Sound system\\u0022', false)
-            ->assertSee('\\u0022estimated_budget\\u0022:\\u00222500.00\\u0022', false)
-            ->assertSee('\\u0022source_of_funds\\u0022:\\u0022Organization Funds\\u0022', false)
             ->assertSee("plannedActivitySelect?.addEventListener('change', () =>", false)
             ->assertSee('prefillFromPlannedActivity(false)', false)
             ->assertSee('All details were filled from your GPOA. Review them before submitting.')
@@ -357,6 +342,26 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->assertDontSee('!!};', false)
             ->assertSee('<option value="UniFast"', false)
             ->assertSee('<option value="Cash on Hand"', false);
+
+        preg_match('/<script type="application\/json" id="activity-request-config">(.*?)<\/script>/s', $form->getContent(), $configMatch);
+        $config = json_decode($configMatch[1], true, 512, JSON_THROW_ON_ERROR);
+        $plannedActivityData = $config['plannedActivities'][(string) $plannedActivity->id];
+
+        $this->assertSame('Symposium', $plannedActivityData['category']);
+        $this->assertSame([4, 13], $plannedActivityData['sdgs']);
+        $this->assertSame('2026-10-03', $plannedActivityData['date']);
+        $this->assertSame('Celebrate teachers.', $plannedActivityData['objectives']);
+        $this->assertSame('Staff feel appreciated.', $plannedActivityData['expected_outcome']);
+        $this->assertSame('Recognition program.', $plannedActivityData['plan_key_strategy']);
+        $this->assertSame('2026-10-04', $plannedActivityData['end_date']);
+        $this->assertSame('09:30', $plannedActivityData['start_time']);
+        $this->assertSame('15:45', $plannedActivityData['end_time']);
+        $this->assertSame('Main Hall', $plannedActivityData['venue']);
+        $this->assertSame('Teachers', $plannedActivityData['target_participants']);
+        $this->assertSame('Student Council', $plannedActivityData['person_in_charge']);
+        $this->assertSame('Sound system', $plannedActivityData['facilities_materials']);
+        $this->assertSame('2500.00', $plannedActivityData['estimated_budget']);
+        $this->assertSame('Organization Funds', $plannedActivityData['source_of_funds']);
 
         $response = $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity));
 

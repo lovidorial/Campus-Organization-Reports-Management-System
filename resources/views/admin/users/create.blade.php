@@ -101,11 +101,11 @@
         </div>
 
         <!-- Form Actions -->
-        <div class="flex gap-4 pt-6 border-t">
-            <button type="submit" class="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition">
+        <div class="flex flex-col gap-3 pt-6 border-t sm:flex-row sm:gap-4">
+            <button type="submit" class="min-h-11 w-full px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition sm:w-auto">
                 <i class="fas fa-plus-circle me-2"></i>Create User
             </button>
-            <a href="{{ route('admin.users.index') }}" class="px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded-lg transition">
+            <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-11 w-full items-center justify-center px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded-lg transition sm:w-auto">
                 Cancel
             </a>
         </div>

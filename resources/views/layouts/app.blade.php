@@ -46,12 +46,15 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 z-20 flex w-64 -translate-x-full flex-col text-white transition-transform duration-300 ease-in-out md:translate-x-0" @style(['--sidebar-accent' => $sidebarAccent, 'background' => 'radial-gradient(circle at 100% 0%, #E65100 0%, rgba(230,81,0,0) 60%), linear-gradient(180deg, #3A1A06 0%, #2A1204 100%)'])>
         <div class="border-b border-white/10 px-3 py-4">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center justify-between gap-3">
                 <img src="{{ asset('images/orgTracklogo.png') }}" alt="OrgTrack logo" class="h-10 w-10 rounded-md object-contain">
                 <div>
                     <h1 class="text-lg font-semibold text-white">OrgTrack</h1>
                     <p class="mt-0.5 text-[11px] uppercase tracking-wide text-white/75">Student Organization Reports</p>
                 </div>
+                <button type="button" data-sidebar-close class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white hover:bg-white/10 md:hidden" aria-label="Close navigation menu">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
             </div>
         </div>
 
@@ -300,13 +303,13 @@
     </div>
 
     <!-- Mobile overlay -->
-    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
 
     <!-- Main Content -->
     <div class="min-w-0 max-w-full flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-auto">
         <!-- Top bar (mobile) -->
         <header class="w-full min-w-0 max-w-full bg-white shadow-sm h-14 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 md:hidden">
-            <button id="sidebarToggle" class="p-2 focus:outline-none">
+            <button id="sidebarToggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation menu" class="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md p-2 focus:outline-none">
                 <svg class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
@@ -347,10 +350,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const toggle  = document.getElementById('sidebarToggle');
-    const open  = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); };
-    const close = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); };
+    const closeButton = document.querySelector('[data-sidebar-close]');
+    const open  = () => {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        overlay.setAttribute('aria-hidden', 'false');
+        toggle?.setAttribute('aria-expanded', 'true');
+        toggle?.setAttribute('aria-label', 'Close navigation menu');
+    };
+    const close = () => {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+        overlay.setAttribute('aria-hidden', 'true');
+        toggle?.setAttribute('aria-expanded', 'false');
+        toggle?.setAttribute('aria-label', 'Open navigation menu');
+    };
     toggle  && toggle.addEventListener('click', () => sidebar.classList.contains('-translate-x-full') ? open() : close());
+    closeButton?.addEventListener('click', close);
     overlay && overlay.addEventListener('click', close);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
 });
 </script>
 @include('partials.file-viewer-modal')

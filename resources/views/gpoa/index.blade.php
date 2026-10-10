@@ -41,7 +41,8 @@
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+<div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div class="hidden overflow-x-auto md:block">
     <table class="w-full text-sm min-w-[600px]">
         <thead class="bg-gray-50 border-b">
             <tr>
@@ -93,6 +94,36 @@
             @endforelse
         </tbody>
     </table>
+    </div>
+    <div class="space-y-3 p-3 md:hidden">
+        @forelse($gpoas as $gpoa)
+            <article class="rounded-lg border border-gray-200 p-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h3 class="break-words font-semibold text-gray-900">{{ $gpoa->term }} / {{ $gpoa->school_year }}</h3>
+                        <p class="mt-1 text-sm text-gray-600">College: {{ $gpoa->college ?? '—' }}</p>
+                        <p class="text-sm text-gray-600">{{ $gpoa->activities_count }} activities</p>
+                    </div>
+                    <span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">Approved</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">Submitted {{ $gpoa->created_at->format('M d, Y') }}</p>
+                <div class="mt-3 flex flex-col gap-2">
+                    <a href="{{ route('gpoa.show', $gpoa) }}" class="inline-flex min-h-10 flex-1 items-center justify-center rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">View Details</a>
+                    @if($gpoa->document_path)
+                        <a href="{{ route('gpoa.document', $gpoa) }}" data-file-viewer data-title="Approved GPOA Document" class="inline-flex min-h-10 flex-1 items-center justify-center rounded-md border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">View approved document</a>
+                    @endif
+                    <span class="text-center text-xs text-slate-500">Locked after submission</span>
+                </div>
+            </article>
+        @empty
+            <div class="py-8 text-center text-sm text-gray-500">
+                <p>No GPOA submitted yet.</p>
+                @if($canSubmitGpoa)
+                    <a href="{{ route('gpoa.create') }}" class="mt-3 inline-flex min-h-10 items-center justify-center rounded-md bg-amber-500 px-3 py-2 font-semibold text-white hover:bg-amber-600">Submit your GPOA →</a>
+                @endif
+            </div>
+        @endforelse
+    </div>
 </div>
 <div class="mt-4">{{ $gpoas->links() }}</div>
 </x-app-layout>

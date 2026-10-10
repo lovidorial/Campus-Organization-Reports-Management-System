@@ -1,5 +1,5 @@
 <div x-show="reviewOpen" x-cloak class="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/60 p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="import-review-title">
-    <div class="mx-0 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-none bg-white shadow-2xl sm:mx-2 sm:rounded-lg">
+    <div class="mx-0 flex max-h-[90vh] w-full max-w-4xl min-w-0 flex-col overflow-x-hidden overflow-y-auto rounded-none bg-white shadow-2xl sm:mx-2 sm:rounded-lg">
         <header class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white p-3">
             <div class="min-w-0">
                 <h2 id="import-review-title" class="truncate whitespace-nowrap text-base font-bold text-slate-900">Review imported activities</h2>
@@ -39,7 +39,7 @@
                 <p class="text-xs text-slate-600"><span x-text="reviewAttentionCount"></span> need attention</p>
             </div>
 
-            <div class="rounded-md border border-slate-200">
+            <div class="max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-md border border-slate-200">
                 <table class="w-full min-w-[700px] divide-y divide-slate-200 text-left text-xs">
                     <thead class="bg-slate-50 text-[10px] uppercase text-slate-500">
                         <tr><th class="sticky top-0 z-10 w-10 min-w-10 bg-slate-50 px-2 py-1.5">#</th><th class="sticky top-0 z-10 bg-slate-50 px-2 py-1.5">Title</th><th class="sticky top-0 z-10 bg-slate-50 px-2 py-1.5">Date / time frame</th><th class="sticky top-0 z-10 bg-slate-50 px-2 py-1.5">Venue</th><th class="sticky top-0 z-10 w-10 min-w-10 bg-slate-50 px-2 py-1.5">SDGs</th><th class="sticky top-0 z-10 w-32 min-w-32 bg-slate-50 px-2 py-1.5">Status</th></tr>

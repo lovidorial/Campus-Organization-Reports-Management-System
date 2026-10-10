@@ -8,17 +8,23 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // Create Admin Account (or update if it already exists)
-        User::updateOrCreate(
-            ['email' => 'osdw@gmail.com'],
+        $email = env('ADMIN_EMAIL');
+        $password = env('ADMIN_PASSWORD');
+
+        if (! $email || ! $password) {
+            $this->command->error('Set ADMIN_EMAIL and ADMIN_PASSWORD in .env first.');
+            return;
+        }
+
+        User::firstOrCreate(
+            ['email' => $email],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('osdwadmin'), // Default password
+                'password' => Hash::make($password),
                 'role' => 'admin',
             ]
         );
-
     }
 }

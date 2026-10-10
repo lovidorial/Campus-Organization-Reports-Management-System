@@ -8,12 +8,14 @@ use App\Models\BackupSetting;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\MonitoringResult;
+use App\Exports\ActivityMonitoringExport;
 use App\Services\BackupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\AdminActivityMonitoringService;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdminController extends Controller
 {
@@ -289,12 +291,38 @@ class AdminController extends Controller
 
     public function exportActivities(Request $request, $format, AdminActivityMonitoringService $monitoringService)
     {
-        if ($format !== 'excel') {
+        if (! in_array($format, ['csv', 'xlsx'], true)) {
             abort(400, 'Unsupported export format');
         }
 
         $activities = $monitoringService->filtered($request);
-        $headers = ['Activity ID', 'Title', 'Organization', 'Submitted By', 'Venue', 'Date', 'Monitoring Status', 'Late', 'Communication Letter', 'Narrative Report', 'Term', 'School Year'];
+
+        if ($format === 'xlsx') {
+            return Excel::download(
+                new ActivityMonitoringExport(
+                    $activities,
+                    $request->query(),
+                    $monitoringService->counts($activities),
+                ),
+                'activities_report_' . now()->format('Ymd_His') . '.xlsx'
+            );
+        }
+
+        $headers = [
+            'Activity ID',
+            'Activity Title',
+            'Organization / Office',
+            'Submitted By',
+            'Activity Venue',
+            'Start Date',
+            'End Date',
+            'Monitoring Status',
+            'Late Submission',
+            'Communication Letter',
+            'Narrative Report',
+            'Academic Term',
+            'Academic Year',
+        ];
         $csvStream = fopen('php://temp', 'r+');
         $sanitizeForSpreadsheet = static function ($value): string {
             $value = (string) $value;
@@ -307,17 +335,19 @@ class AdminController extends Controller
         fputcsv($csvStream, array_map($sanitizeForSpreadsheet, $headers), ',', '"', '');
 
         foreach ($activities as $activity) {
+            $activityRequest = $activity->activityRequest;
             $row = [
                 $activity->id,
-                $activity->title,
-                $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? 'N/A',
-                $activity->gpoa?->user?->name ?? 'N/A',
-                $activity->venue ?: '—',
-                $activity->date?->toDateString() ?? '',
+                $activity->title ?? '',
+                $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '',
+                $activity->gpoa?->user?->name ?? '',
+                $activityRequest?->venue ?? $activity->venue ?? '',
+                ($activityRequest?->date ?? $activity->date)?->toDateString() ?? '',
+                $activityRequest?->end_date?->toDateString() ?? '',
                 $activity->monitoring_status,
                 $activity->monitoring_late ? 'Yes' : 'No',
-                filled($activity->activityRequest?->communication_letter) ? 'Submitted' : 'Pending',
-                filled($activity->activityRequest?->report?->narrative_report) || filled($activity->activityRequest?->report?->narrative_content) ? 'Submitted' : 'Pending',
+                filled($activityRequest?->communication_letter) ? 'Submitted' : 'Pending',
+                filled($activityRequest?->report?->narrative_report) || filled($activityRequest?->report?->narrative_content) ? 'Submitted' : 'Pending',
                 $activity->gpoa?->term ?? '',
                 $activity->gpoa?->school_year ?? '',
             ];
@@ -329,7 +359,7 @@ class AdminController extends Controller
         $csv = stream_get_contents($csvStream);
         fclose($csvStream);
 
-        $fileName = 'activities_export_' . now()->format('Ymd_His') . '.csv';
+        $fileName = 'activities_data_' . now()->format('Ymd_His') . '.csv';
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv',

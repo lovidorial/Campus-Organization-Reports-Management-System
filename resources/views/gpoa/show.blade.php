@@ -61,10 +61,11 @@
 </div>
 
 <!-- GPOA Activities Table -->
-<div class="bg-white rounded-xl shadow-sm border overflow-x-auto mb-8">
+<div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-8">
     <div class="px-6 py-4 bg-gray-50 border-b">
         <h3 class="font-bold text-gray-800">Activities</h3>
     </div>
+    <div class="hidden overflow-x-auto md:block">
     <table class="w-full text-sm min-w-[900px]">
         <thead class="bg-gray-50 border-b">
             <tr>
@@ -154,5 +155,54 @@
             @endforelse
         </tbody>
     </table>
+    </div>
+    <div class="space-y-3 p-3 md:hidden">
+        @forelse($gpoa->activities as $activity)
+            @php
+                $monitoring = $activity->monitoringStatus();
+                $statusClass = match ($monitoring['status']) {
+                    'Completed' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                    'Ongoing' => 'bg-amber-100 text-amber-700 border-amber-200',
+                    default => 'bg-gray-100 text-gray-600 border-gray-200',
+                };
+            @endphp
+            <article class="rounded-lg border border-gray-200 bg-white p-3" x-data="{ expanded: false }">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h4 class="break-words font-semibold text-gray-900">{{ $activity->title ?? '—' }}</h4>
+                        <p class="mt-1 text-xs text-gray-500">Time frame: {{ $activity->date ? $activity->date->format('M d, Y') : '—' }}</p>
+                    </div>
+                    <div class="flex shrink-0 flex-col items-end gap-1">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">{{ $monitoring['status'] }}</span>
+                        @if($monitoring['late'])<span class="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">Late</span>@endif
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">SDGs addressed</p>
+                    <div class="mt-1 flex flex-wrap gap-1">
+                        @forelse($activity->sdgs ?? [] as $sdg)
+                            <x-sdg-badge :number="$sdg" :show-label="false" />
+                        @empty
+                            <span class="text-sm text-gray-500">—</span>
+                        @endforelse
+                    </div>
+                </div>
+                <button type="button" @click="expanded = !expanded" class="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition">
+                    <span x-text="expanded ? 'Hide Details' : 'View More'"></span>
+                </button>
+                <div x-show="expanded" x-transition class="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Objectives</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->objectives ?? '—' }}</p></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Expected Outcome</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->expected_outcome ?? '—' }}</p></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Target Participants</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->target_participants ?? '—' }}</p></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery Strategy</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->plan_key_strategy ?? '—' }}</p></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Persons Involved</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->person_in_charge ?? '—' }}</p></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Facilities / Materials</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->facilities_materials ?? '—' }}</p></div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Budget Allocation</p><p class="mt-1 break-words whitespace-pre-wrap text-sm text-gray-700">{{ $activity->estimated_budget ? '₱' . number_format($activity->estimated_budget, 2) : '—' }}</p></div>
+                </div>
+            </article>
+        @empty
+            <p class="py-6 text-center text-sm text-gray-500">No activities are recorded in this GPOA yet.</p>
+        @endforelse
+    </div>
 </div>
 </x-app-layout>

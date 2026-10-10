@@ -90,7 +90,7 @@
             <p class="text-xs text-gray-500 mt-1">Previously submitted photos are kept when you resubmit.</p>
             @error('photos')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             @error('photos.*')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-            <div id="photoPreview" class="grid grid-cols-3 gap-3 mt-3"></div>
+            <div id="photoPreview" class="grid grid-cols-2 gap-3 mt-3 sm:grid-cols-3"></div>
         </div>
 
         <div>
@@ -103,7 +103,7 @@
             @error('attendance_sheet')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
         </div>
 
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg">
+        <button type="submit" class="min-h-11 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg sm:w-auto">
             Save Narrative Report
         </button>
     </form>

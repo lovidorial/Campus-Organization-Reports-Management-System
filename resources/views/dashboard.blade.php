@@ -282,7 +282,7 @@
             </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="hidden overflow-x-auto md:block">
             <table class="min-w-[760px] w-full text-sm">
                 <thead class="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
                     <tr>
@@ -350,6 +350,25 @@
                 </tbody>
             </table>
         </div>
+        <div id="dashboard-activity-cards" class="mt-3 space-y-3 md:hidden">
+            @foreach($dashboardActivities as $activity)
+                @php($monitoring = $activity->monitoringStatus())
+                @php($mainStatus = $monitoring['late'] ? 'Late' : (($monitoring['status'] ?? 'Not Started') === 'Pending' ? 'Not Started' : ($monitoring['status'] ?? 'Not Started')))
+                @php($letterStatus = $activity->letterStatusLabel())
+                @php($reportStatus = $activity->narrativeStatusLabel())
+                <article data-title="{{ strtolower($activity->title) }}" data-date="{{ $activity->date ? $activity->date->format('Y-m-d') : '9999-12-31' }}" data-status="{{ $mainStatus }}" class="rounded-xl border border-slate-100 bg-white p-3">
+                    <h4 class="break-words text-sm font-semibold text-slate-900">{{ $activity->title }}</h4>
+                    <dl class="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div><dt class="text-slate-500">Date</dt><dd class="text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}</dd></div>
+                        <div class="min-w-0"><dt class="text-slate-500">Venue</dt><dd class="break-words text-slate-700">{{ $activity->venue ?: '—' }}</dd></div>
+                        <div><dt class="text-slate-500">Letter</dt><dd><x-status-pill :status="$letterStatus" /></dd></div>
+                        <div><dt class="text-slate-500">Report</dt><dd><x-status-pill :status="$reportStatus" /></dd></div>
+                        <div class="col-span-2"><dt class="text-slate-500">Status</dt><dd class="mt-1 flex flex-wrap gap-1"><x-status-pill :status="$mainStatus" />@if($monitoring['late'])<x-status-pill status="Late" />@endif</dd></div>
+                    </dl>
+                </article>
+            @endforeach
+            <p id="dashboard-activity-cards-empty" class="hidden py-4 text-center text-sm text-slate-500">No matching activities</p>
+        </div>
 
         <div class="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
             <p>Showing {{ $dashboardActivities->count() }} of {{ $activities->count() }} activities</p>
@@ -365,8 +384,11 @@
             const searchInput = document.getElementById('dashboard-activity-search');
             const filterSelect = document.getElementById('dashboard-activity-filter');
             const emptyRow = document.getElementById('dashboard-activity-empty');
+            const cardsContainer = document.getElementById('dashboard-activity-cards');
+            const emptyCards = document.getElementById('dashboard-activity-cards-empty');
             const sortButtons = Array.from(document.querySelectorAll('.sort-btn'));
             const rows = body ? Array.from(body.querySelectorAll('tr[data-title]')) : [];
+            const cards = cardsContainer ? Array.from(cardsContainer.querySelectorAll('article[data-title]')) : [];
             let sortState = { key: 'date', direction: 'asc' };
 
             function updateSortIndicators() {
@@ -404,6 +426,17 @@
                 });
 
                 sortedRows.forEach((row) => body.appendChild(row));
+
+                const sortedCards = [...cards].sort((a, b) => {
+                    const aValue = sortState.key === 'date' ? a.dataset.date : (a.dataset.title || '');
+                    const bValue = sortState.key === 'date' ? b.dataset.date : (b.dataset.title || '');
+                    const comparison = sortState.key === 'date'
+                        ? new Date(aValue + 'T00:00:00').getTime() - new Date(bValue + 'T00:00:00').getTime()
+                        : aValue.localeCompare(bValue);
+                    return sortState.direction === 'asc' ? comparison : -comparison;
+                });
+                sortedCards.forEach((card) => cardsContainer.appendChild(card));
+                if (emptyCards) cardsContainer.appendChild(emptyCards);
             }
 
             function applyDashboardFilters() {
@@ -423,9 +456,19 @@
                     if (shouldShow) visibleCount++;
                 });
 
+                let visibleCards = 0;
+                cards.forEach((card) => {
+                    const title = (card.dataset.title || '').toLowerCase();
+                    const status = card.dataset.status || 'Not Started';
+                    const shouldShow = (!searchTerm || title.includes(searchTerm)) && (selectedStatus === 'All' || status === selectedStatus);
+                    card.classList.toggle('hidden', !shouldShow);
+                    if (shouldShow) visibleCards++;
+                });
+
                 if (emptyRow) {
                     emptyRow.classList.toggle('hidden', visibleCount > 0);
                 }
+                if (emptyCards) emptyCards.classList.toggle('hidden', visibleCards > 0);
 
                 sortRows();
             }

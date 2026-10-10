@@ -281,6 +281,7 @@
                     <section class="mt-6 min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-4"
                              x-data="{
                                 rows: window.activityRequestData.programFlows,
+                                          mobile: window.matchMedia('(max-width: 767px)').matches,
                                 normalizeFlows(flows) {
                                     const normalizedRows = (flows || []).map(flow => ({
                                         time: flow.time ?? '',
@@ -290,8 +291,14 @@
                                     return normalizedRows.length ? normalizedRows : [{ time: '', flow: '', person_in_charge: '' }];
                                 },
                                 init() {
+                                    this.mobileQuery = window.matchMedia('(max-width: 767px)');
+                                    this.onViewportChange = event => { this.mobile = event.matches; };
+                                    this.mobileQuery.addEventListener('change', this.onViewportChange);
                                     window.addEventListener('reset-gpoa-prefill', event => { this.rows = this.normalizeFlows(event.detail.program_flows); });
                                     window.addEventListener('planned-activity-changed', event => { this.rows = this.normalizeFlows(event.detail.program_flows); });
+                                },
+                                destroy() {
+                                    this.mobileQuery?.removeEventListener('change', this.onViewportChange);
                                 },
                                 addRow() {
                                     this.rows.push({ time: '', flow: '', person_in_charge: '' });
@@ -304,7 +311,7 @@
                             <h3 class="text-sm font-semibold text-slate-800">Program Flow</h3>
                             <p class="mt-1 text-xs text-slate-500">Optional schedule for the Activity Date selected above.</p>
                         </div>
-                        <div class="max-w-full min-w-0 overflow-x-auto">
+                        <div class="hidden max-w-full min-w-0 overflow-x-auto md:block">
                             <table class="w-full min-w-[640px] text-sm">
                                 <thead class="text-xs uppercase tracking-wide text-slate-500">
                                     <tr>
@@ -318,15 +325,15 @@
                                     <template x-for="(row, index) in rows" :key="index">
                                         <tr>
                                             <td class="px-2 py-2 align-top">
-                                                <input type="text" :name="`program_flows[${index}][time]`" x-model="row.time"
+                                                <input type="text" :name="`program_flows[${index}][time]`" :disabled="mobile" x-model="row.time"
                                                        placeholder="e.g. 8:00 AM" class="w-full rounded-lg border border-gray-300 px-3 py-2">
                                             </td>
                                             <td class="px-2 py-2 align-top">
-                                                <input type="text" :name="`program_flows[${index}][flow]`" x-model="row.flow"
+                                                <input type="text" :name="`program_flows[${index}][flow]`" :disabled="mobile" x-model="row.flow"
                                                        placeholder="e.g. Opening Remarks" class="w-full rounded-lg border border-gray-300 px-3 py-2">
                                             </td>
                                             <td class="px-2 py-2 align-top">
-                                                <input type="text" :name="`program_flows[${index}][person_in_charge]`" x-model="row.person_in_charge"
+                                                <input type="text" :name="`program_flows[${index}][person_in_charge]`" :disabled="mobile" x-model="row.person_in_charge"
                                                        class="w-full rounded-lg border border-gray-300 px-3 py-2">
                                             </td>
                                             <td class="px-2 py-2 align-top">
@@ -342,13 +349,28 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div class="space-y-3 md:hidden">
+                            <template x-for="(row, index) in rows" :key="`mobile-${index}`">
+                                <div class="rounded-lg border border-slate-200 bg-white p-3">
+                                    <div class="grid gap-3">
+                                        <label class="text-xs font-semibold text-slate-600">Time<input type="text" :name="`program_flows[${index}][time]`" :disabled="!mobile" x-model="row.time" placeholder="e.g. 8:00 AM" class="mt-1 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"></label>
+                                        <label class="text-xs font-semibold text-slate-600">Flow / Program<input type="text" :name="`program_flows[${index}][flow]`" :disabled="!mobile" x-model="row.flow" placeholder="e.g. Opening Remarks" class="mt-1 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"></label>
+                                        <label class="text-xs font-semibold text-slate-600">Person in Charge<input type="text" :name="`program_flows[${index}][person_in_charge]`" :disabled="!mobile" x-model="row.person_in_charge" class="mt-1 min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"></label>
+                                    </div>
+                                    <button type="button" @click="removeRow(index)" class="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18m-2 0-.9 14H5.9L5 6m4 0V4h6v2m-5 4v6m4-6v6"/></svg>
+                                        Remove row
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
                         @foreach($errors->getMessages() as $field => $messages)
                             @if(str_starts_with($field, 'program_flows.'))
                                 <p class="mt-2 text-xs text-red-600">{{ $messages[0] }}</p>
                             @endif
                         @endforeach
                         <button type="button" @click="addRow()"
-                                class="mt-3 inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
+                            class="mt-3 inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
                             Add row
                         </button>
                     </section>
@@ -409,7 +431,7 @@
                     <a href="{{ route('activity-requests.index') }}" class="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-300 md:w-auto">
                         Cancel
                     </a>
-                    <button type="submit" class="btn-secondary">Submit Activity Request</button>
+                    <button type="submit" class="btn-secondary min-h-11 w-full md:w-auto">Submit Activity Request</button>
                 </div>
             </form>
         </div>

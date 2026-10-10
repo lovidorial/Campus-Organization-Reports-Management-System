@@ -184,7 +184,10 @@
                     <h2 class="font-semibold text-slate-900">Recently Updated Activities</h2>
                     <p class="text-xs text-slate-500">{{ $stats['Organizations'] }} organizations represented</p>
                 </div>
-                <a href="{{ route('admin.activities.export', ['format' => 'excel']) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Export CSV</a>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('admin.activities.export', array_merge(request()->query(), ['format' => 'csv'])) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Export CSV (data)</a>
+                    <a href="{{ route('admin.activities.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}" class="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800">Export Excel (report)</a>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[1040px] w-full text-sm">

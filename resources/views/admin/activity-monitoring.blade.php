@@ -15,7 +15,10 @@
                 <h1 class="text-2xl font-bold text-slate-900">Activity Monitoring</h1>
                 <p class="mt-1 text-sm text-slate-600">Review organizational submissions and compliance.</p>
             </div>
-            <a href="{{ route('admin.activities.export', array_merge(['format' => 'excel'], request()->query())) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">Export CSV</a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.activities.export', array_merge(['format' => 'csv'], request()->query())) }}" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Export CSV (data)</a>
+                <a href="{{ route('admin.activities.export', array_merge(['format' => 'xlsx'], request()->query())) }}" class="rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">Export Excel (report)</a>
+            </div>
         </header>
 
         <nav class="flex border-b border-slate-200" aria-label="Activity lists">

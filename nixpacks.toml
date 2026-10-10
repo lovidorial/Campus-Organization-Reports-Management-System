@@ -1,3 +1,4 @@
+# Railway-only build configuration; not required for a standard PHP/MySQL host.
 [phases.setup]
 # Install MySQL client and libraries needed for PHP zip extension
 aptPkgs = ["default-mysql-client", "build-essential", "libzip-dev", "zlib1g-dev"]
