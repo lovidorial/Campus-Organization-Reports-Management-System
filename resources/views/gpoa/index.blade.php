@@ -28,7 +28,7 @@
             style="width: {{ $completionPercent }}%"
         ></div>
     </div>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-4">
         @foreach($monitoringCounts as $status => $count)
             <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                 <span class="inline-flex items-center gap-2 text-sm text-gray-600">

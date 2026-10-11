@@ -1,6 +1,16 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
 .theme-header {
     background: linear-gradient(135deg, var(--theme-light) 0%, var(--theme-color) 100%);
 }

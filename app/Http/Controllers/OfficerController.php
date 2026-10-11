@@ -191,9 +191,7 @@ class OfficerController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors([
-                'email' => 'This account\'s term has ended and can no longer log in. If you are the outgoing officer, your organization\'s new Secretary should have received new login credentials from OSDW. If you believe this was done in error, please contact OSDW at osdwcsuaparri@gmail.com or via the CSUAparri-OSDW Facebook page for assistance.',
-            ]);
+            return redirect()->route('login', ['term_ended' => 1]);
         }
 
         $redirect = back()->with('success', $user->name . ' was archived successfully.');

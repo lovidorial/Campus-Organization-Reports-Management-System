@@ -13,7 +13,7 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    public const TERM_ENDED_MESSAGE = "This account's term has ended. If you are the outgoing officer, your organization's new Secretary should have received new login credentials from OSDW. Questions? Contact osdwcsuaparri@gmail.com or the CSUAparri-OSDW Facebook page.";
+    public const TERM_ENDED_MESSAGE = "This account is no longer active because its term of service has ended. If you are the outgoing officer, your organization's newly appointed Secretary should have received updated login credentials from OSDW. For assistance or inquiries, please contact us at osdwcsuaparri@gmail.com or send us a message through the CSUAparri-OSDW Facebook page.";
 
     // Sensitive fields such as role, organization_id, officer_status, archived_at,
     // and archived_reason must only ever be set via explicit, authorized controller

@@ -24,9 +24,9 @@
                 </div>
 
                 <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
-                    @php($termEndedLogin = $errors->first('email') === \App\Models\User::TERM_ENDED_MESSAGE)
+                    @php($termEndedLogin = $errors->first('email') === \App\Models\User::TERM_ENDED_MESSAGE || request()->boolean('term_ended'))
                     @if($termEndedLogin)
-                        @php($termEndedParts = explode(' Questions? Contact ', \App\Models\User::TERM_ENDED_MESSAGE, 2))
+                        @php($termEndedParts = explode('For assistance or inquiries, please contact us at ', \App\Models\User::TERM_ENDED_MESSAGE, 2))
                     @endif
                     <a href="{{ route('welcome') }}" class="login-back-link">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -40,7 +40,7 @@
                         <p class="login-subtext">Sign in to your account.</p>
                     </div>
 
-                    @if ($errors->any())
+                    @if ($errors->any() || $termEndedLogin)
                             @if ($termEndedLogin)
                                 <div class="alert alert-error !mb-0 !gap-2 !p-3 text-sm">
                                     <div class="min-w-0 flex-1">
@@ -50,10 +50,10 @@
                                                 <line x1="12" y1="8" x2="12" y2="12"></line>
                                                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
                                             </svg>
-                                            <strong>Account no longer active</strong>
+                                            <strong>Account Access Expired</strong>
                                         </div>
                                         <p class="mt-1 text-sm">{{ $termEndedParts[0] }}</p>
-                                        <p class="mt-1 text-xs">Questions? Contact {{ $termEndedParts[1] ?? '' }}</p>
+                                        <p class="mt-1 text-xs">For assistance or inquiries, please contact us at {{ $termEndedParts[1] ?? '' }}</p>
                                     </div>
                                 </div>
                             @else
