@@ -59,6 +59,27 @@ class PasswordResetTest extends TestCase
         });
     }
 
+    public function test_reset_password_screen_displays_live_password_controls(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPasswordNotification::class, function ($notification) {
+            $response = $this->get('/reset-password/'.$notification->token);
+
+            $response
+                ->assertOk()
+                ->assertSee('password-strength-label', false)
+                ->assertSee('password-match-status', false)
+                ->assertSee('password-requirements', false);
+
+            return true;
+        });
+    }
+
     public function test_password_can_be_reset_with_valid_token(): void
     {
         Notification::fake();

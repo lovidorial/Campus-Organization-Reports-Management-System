@@ -9,7 +9,8 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="{{ asset('css/login.css') }}">
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link rel="stylesheet" href="{{ asset('css/password-reset.css') }}">
+        <script src="{{ asset('js/password-reset.js') }}" defer></script>
     </head>
     <body>
         <main class="login-page">
@@ -61,17 +62,51 @@
 
                         <div class="form-group student-group">
                             <label for="password" class="sr-only">New password</label>
-                            <input id="password" type="password" name="password" required autocomplete="new-password" placeholder="New password" class="form-input {{ $errors->has('password') ? 'form-input--error' : '' }}">
+                            <div class="password-input-wrapper">
+                                <input id="password" type="password" name="password" required autocomplete="new-password" placeholder="New password" class="form-input {{ $errors->has('password') ? 'form-input--error' : '' }}">
+                                <button type="button" class="password-toggle" data-toggle-password="password" aria-label="Show password" title="Show password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="password-strength" class="password-strength" aria-live="polite" aria-atomic="true" hidden>
+                                <div class="password-strength__bar" aria-hidden="true">
+                                    <span id="password-strength-fill" class="password-strength__fill"></span>
+                                </div>
+                                <div id="password-strength-label" class="password-strength__label">Password strength:</div>
+                            </div>
+                            <ul id="password-requirements" class="password-requirements" aria-live="polite">
+                                <li class="password-requirement" data-rule="length"><span class="password-requirement__icon" aria-hidden="true">✓</span><span>At least 8 characters</span></li>
+                                <li class="password-requirement" data-rule="uppercase"><span class="password-requirement__icon" aria-hidden="true">✓</span><span>Uppercase letter</span></li>
+                                <li class="password-requirement" data-rule="lowercase"><span class="password-requirement__icon" aria-hidden="true">✓</span><span>Lowercase letter</span></li>
+                                <li class="password-requirement" data-rule="number"><span class="password-requirement__icon" aria-hidden="true">✓</span><span>Number</span></li>
+                                <li class="password-requirement" data-rule="symbol"><span class="password-requirement__icon" aria-hidden="true">✓</span><span>Symbol</span></li>
+                            </ul>
                             @error('password')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
 
                         <div class="form-group student-group">
                             <label for="password_confirmation" class="sr-only">Confirm new password</label>
-                            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm new password" class="form-input {{ $errors->has('password_confirmation') ? 'form-input--error' : '' }}">
+                            <div class="password-input-wrapper">
+                                <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm new password" class="form-input {{ $errors->has('password_confirmation') ? 'form-input--error' : '' }}">
+                                <button type="button" class="password-toggle" data-toggle-password="password_confirmation" aria-label="Show password" title="Show password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="password-match-status" class="password-match-status" aria-live="polite">Passwords match: No</div>
                             @error('password_confirmation')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
 
-                        <button type="submit" class="login-button login-button--block"><span>Reset Password</span><svg class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+                        <button id="reset-password-button" type="submit" class="login-button login-button--block" disabled>
+                            <span class="button-text">Reset Password</span>
+                            <span class="button-spinner" aria-hidden="true"></span>
+                            <svg class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7 7 7-7 7"/></svg>
+                        </button>
                     </form>
 
                     <div class="login-help">
