@@ -225,7 +225,7 @@
                                 <th class="px-3 py-2"><a href="{{ route('admin.summary-report', $organizationSortQuery) }}" class="inline-flex items-center gap-1">Organization @if($sort === 'organization')<span aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>@endif</a></th>
                                 <th class="p-3">Submitted by</th>
                                 <th class="p-3">Term / School Year</th>
-                                <th class="p-3">Activity # / Title</th>
+                                <th class="p-3">Activity / Title</th>
                                 <th class="p-3">Category</th>
                                 <th class="px-3 py-2"><a href="{{ route('admin.summary-report', $dateSortQuery) }}" class="inline-flex items-center gap-1">Date @if($sort === 'date')<span aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>@endif</a></th>
                                 <th class="p-3">Venue</th>
@@ -256,7 +256,7 @@
                                     <td class="px-3 py-2">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>
                                     <td class="px-3 py-2">{{ $activity->gpoa?->user?->name ?? '—' }}</td>
                                     <td class="px-3 py-2">{{ $activity->gpoa?->term ?? '—' }} / {{ $activity->gpoa?->school_year ?? '—' }}</td>
-                                    <td class="px-3 py-2"><span class="font-semibold">Activity #{{ $activity->activity_number ?? '—' }}</span><br>@if($activityRequest)<a href="{{ route('admin.activity-requests.show', $activityRequest) }}" title="{{ $activity->title }}" class="line-clamp-2 text-sky-700 hover:underline">{{ $activity->title }}</a>@else<span title="{{ $activity->title }}" class="line-clamp-2">{{ $activity->title }}</span>@endif</td>
+                                    <td class="px-3 py-2"><span class="font-semibold">Activity {{ $activity->activity_number ?? '—' }}</span><br>@if($activityRequest)<a href="{{ route('admin.activity-requests.show', $activityRequest) }}" title="{{ $activity->title }}" class="line-clamp-2 text-sky-700 hover:underline">{{ $activity->title }}</a>@else<span title="{{ $activity->title }}" class="line-clamp-2">{{ $activity->title }}</span>@endif</td>
                                     <td class="px-3 py-2">{{ $activity->category ?: '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">{{ $activity->date?->format('M d, Y') ?? '—' }}</td>
                                     <td class="px-3 py-2">{{ $activity->venue ?: '—' }}</td>
@@ -321,7 +321,7 @@
                                 <div>
                                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? 'Organization' }}</p>
                                     <p class="text-xs text-slate-600">Submitted by {{ $activity->gpoa?->user?->name ?? '—' }}</p>
-                                    <h3 class="mt-1 font-semibold text-slate-900">Activity #{{ $activity->activity_number ?? '—' }} · {{ $activity->title }}</h3>
+                                    <h3 class="mt-1 font-semibold text-slate-900">Activity {{ $activity->activity_number ?? '—' }} · {{ $activity->title }}</h3>
                                 </div>
                                 <x-status-pill :status="$activity->monitoring_status" />
                             </div>

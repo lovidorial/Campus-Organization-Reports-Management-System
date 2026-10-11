@@ -83,7 +83,7 @@
 
     <h2>Planned Activities</h2>
     <table>
-        <thead><tr><th>Organization</th><th>Submitted by</th><th>Term / School Year</th><th>Activity # / Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th>Assessment</th><th>Communication Letter</th><th>Narrative Report</th><th class="number">Estimated Budget</th></tr></thead>
+        <thead><tr><th>Organization</th><th>Submitted by</th><th>Term / School Year</th><th>Activity / Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th>Assessment</th><th>Communication Letter</th><th>Narrative Report</th><th class="number">Estimated Budget</th></tr></thead>
         <tbody>
             @forelse($activities as $activity)
                 @php
@@ -107,7 +107,7 @@
                     <td>{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>
                     <td>{{ $activity->gpoa?->user?->name ?? '—' }}</td>
                     <td>{{ $activity->gpoa?->term ?? '—' }} / {{ $activity->gpoa?->school_year ?? '—' }}</td>
-                    <td>Activity #{{ $activity->activity_number ?? '—' }}: {{ $activity->title }}</td>
+                    <td>Activity {{ $activity->activity_number ?? '—' }}: {{ $activity->title }}</td>
                     <td>{{ $activity->category ?: '—' }}</td>
                     <td>{{ $activity->date?->format('M d, Y') ?? '—' }}</td>
                     <td>{{ $activity->venue ?: '—' }}</td>
