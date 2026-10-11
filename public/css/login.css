@@ -22,24 +22,25 @@ body {
     font-family: 'Inter', 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 .login-page {
     min-height: 100vh;
     display: grid;
     place-items: center;
-    padding: 16px;
+    padding: clamp(1rem, 2.5vw, 2rem);
     background: var(--page-bg);
 }
 
 .login-card {
     display: grid;
-    grid-template-columns: 45% 55%;
-    width: 100%;
-    max-width: 940px;
+    grid-template-columns: minmax(0, 42%) minmax(0, 58%);
+    width: min(100%, 58rem);
+    max-width: 58rem;
     min-height: 0;
     height: auto;
-    overflow: hidden;
+    overflow: visible;
     border-radius: 24px;
     background: #fff;
     box-shadow: 0 28px 80px rgba(15, 23, 42, 0.16);
@@ -48,11 +49,14 @@ body {
 .login-panel {
     position: relative;
     min-width: 0;
+    min-height: 0;
 }
 
 .login-panel-left {
-    min-height: 0;
+    min-height: clamp(13rem, 28vw, 30rem);
     background: url('../images/loginright.jpg') center / cover no-repeat;
+    background-position: center;
+    overflow: hidden;
 }
 
 .login-panel-right {
@@ -60,8 +64,8 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    overflow: hidden;
-    padding: 28px 40px;
+    overflow: visible;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
     background: #fff;
 }
 
@@ -140,7 +144,7 @@ body {
 .error-list { margin: 6px 0 0; padding-left: 18px; }
 .error-list li { padding: 2px 0; font-size: .82rem; }
 
-.login-form { display: flex; flex-direction: column; gap: 12px; }
+.login-form { display: flex; flex-direction: column; gap: 12px; padding-bottom: 0.75rem; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .student-group { min-width: 0; }
 .login-page .login-card input.form-input,
@@ -291,10 +295,24 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 900px) and (min-width: 768px) {
-    .login-page { padding: 16px; }
-    .login-panel-left { padding: 24px 18px; }
-    .login-panel-right { padding: 24px 22px; }
+@media (max-width: 900px) {
+    .login-page {
+        padding: 1rem;
+    }
+
+    .login-card {
+        grid-template-columns: minmax(0, 1fr);
+        width: min(100%, 34rem);
+        max-width: 34rem;
+    }
+
+    .login-panel-left {
+        display: none;
+    }
+
+    .login-panel-right {
+        padding: clamp(1.25rem, 4vw, 2rem);
+    }
 }
 
 @media (max-width: 767px) {
