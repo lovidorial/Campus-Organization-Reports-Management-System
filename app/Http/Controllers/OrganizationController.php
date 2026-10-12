@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\OrganizationClassifierService;
 use App\Services\ImageThemeColorService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
@@ -351,6 +352,47 @@ class OrganizationController extends Controller
             return back()->withErrors(['confirm_name' => 'The organization name did not match. Nothing was deleted.']);
         }
 
-        return back()->with('error', 'Organizations, user accounts, and submitted records cannot be deleted. Deactivate the organization to prevent new access while preserving its history.');
+        $userIds = $organization->members()->pluck('id');
+
+        if (User::whereIn('id', $userIds)->where('role', 'admin')->exists()) {
+            return back()->with('error', 'This organization is linked to an admin account and cannot be deleted.');
+        }
+
+        foreach ([
+            ['gpoas', 'user_id'],
+            ['activity_requests', 'user_id'],
+            ['activities', 'user_id'],
+            ['gpoa_modification_requests', 'requested_by'],
+        ] as [$table, $column]) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            if (DB::table($table)->whereIn($column, $userIds)->exists()) {
+                return back()->with('error', 'This organization has submitted records and cannot be deleted. Deactivate it instead to block access while preserving its history.');
+            }
+
+            if (in_array($table, ['gpoas', 'activity_requests', 'activities'], true)
+                && Schema::hasColumn($table, 'organization_id')
+                && DB::table($table)->where('organization_id', $organization->id)->exists()) {
+                return back()->with('error', 'This organization has submitted records and cannot be deleted. Deactivate it instead to block access while preserving its history.');
+            }
+        }
+
+        if (Schema::hasTable('workflow_submissions') && Schema::hasTable('organization_workflows')
+            && DB::table('workflow_submissions')->whereIn(
+                'organization_workflow_id',
+                DB::table('organization_workflows')->whereIn('user_id', $userIds)->pluck('id')
+            )->exists()) {
+            return back()->with('error', 'This organization has submitted records and cannot be deleted. Deactivate it instead to block access while preserving its history.');
+        }
+
+        DB::transaction(function () use ($organization) {
+            $organization->members()->get()->each->delete();
+            $organization->delete();
+        });
+
+        return redirect()->route('admin.organizations.index')
+            ->with('success', 'Organization account deleted. It had no submitted records.');
     }
 }

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\OrganizationClassifierService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class AdminUserController extends Controller
 {
@@ -83,7 +85,27 @@ class AdminUserController extends Controller
             return back()->with('error', 'Cannot delete an admin user.');
         }
 
-        return back()->with('error', 'User accounts and submitted records cannot be deleted. Archive the officer to block access while preserving their records.');
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot delete your own account.');
+        }
+
+        foreach ([
+            ['gpoas', 'user_id'],
+            ['activity_requests', 'user_id'],
+            ['organization_workflows', 'user_id'],
+            ['activities', 'user_id'],
+            ['gpoa_modification_requests', 'requested_by'],
+        ] as [$table, $column]) {
+            if (Schema::hasTable($table) && DB::table($table)->where($column, $user->id)->exists()) {
+                return back()->with('error', 'This account has submitted records and cannot be deleted. Use End Term (archive) to block access while keeping the records.');
+            }
+        }
+
+        DB::transaction(function () use ($user) {
+            $user->delete();
+        });
+
+        return back()->with('success', 'Account deleted. It had no submitted records.');
     }
 
     private function applyOrganizationClassification(array $validated, OrganizationClassifierService $classifier): array
