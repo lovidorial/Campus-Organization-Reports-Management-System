@@ -41,7 +41,7 @@
                 ['Archived', $stats['Archived'], 'text-slate-600', route('admin.activities', ['tab' => 'recent', 'status' => 'Archived']), 'Excluded from totals'],
                 ['Active Organizations', $dashboardData['activeOrganizations'], 'text-sky-800', route('admin.organizations.index'), null],
             ] as [$label, $count, $color, $url, $helper])
-                <a href="{{ $url }}" class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                <a href="{{ $url }}" class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 animate-fade-up">
                     <p class="text-xs font-semibold uppercase text-slate-500">{{ $label }}</p>
                     <p class="mt-1 text-2xl font-semibold {{ $color }}">{{ $count }}</p>
                     @if($helper)<p class="mt-0.5 text-[11px] text-slate-400">{{ $helper }}</p>@endif
@@ -50,7 +50,7 @@
         </section>
 
         <section class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Monitoring alerts">
-            <a href="{{ route('admin.activities', ['tab' => 'recent']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-amber-200 hover:bg-amber-50/30">
+            <a href="{{ route('admin.activities', ['tab' => 'recent']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-amber-200 hover:bg-amber-50/30 animate-fade-up">
                 <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500"></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-slate-800">Awaiting your review</p>
@@ -58,7 +58,7 @@
                 </div>
                 <span class="text-2xl font-semibold {{ $alerts['awaitingReview'] === 0 ? 'text-slate-300' : 'text-slate-900' }}">{{ $alerts['awaitingReview'] }}</span>
             </a>
-            <a href="{{ route('admin.activities', ['tab' => 'todo']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-200 hover:bg-sky-50/30">
+            <a href="{{ route('admin.activities', ['tab' => 'todo']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-200 hover:bg-sky-50/30 animate-fade-up">
                 <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500"></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-slate-800">Upcoming in 7 days</p>
@@ -66,7 +66,7 @@
                 </div>
                 <span class="text-2xl font-semibold {{ $alerts['upcomingInSevenDays'] === 0 ? 'text-slate-300' : 'text-slate-900' }}">{{ $alerts['upcomingInSevenDays'] }}</span>
             </a>
-            <a href="{{ route('admin.activities', ['tab' => 'recent', 'status' => 'Late']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-rose-200 hover:bg-rose-50/30">
+            <a href="{{ route('admin.activities', ['tab' => 'recent', 'status' => 'Late']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-rose-200 hover:bg-rose-50/30 animate-fade-up">
                 <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500"></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-slate-800">Late</p>

@@ -105,7 +105,7 @@
     <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         @foreach($statusCards as $card)
             @if($gpoa)
-                <a href="{{ $card['link'] }}" title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="group flex h-full min-h-24 flex-col rounded-xl border border-t-2 border-slate-200 {{ $card['accent'] }} bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2">
+                <a href="{{ $card['link'] }}" title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="group flex h-full min-h-24 flex-col rounded-xl border border-t-2 border-slate-200 {{ $card['accent'] }} bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 animate-fade-up">
             @else
                 <article title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="flex h-full min-h-24 flex-col rounded-xl border border-t-2 border-slate-200 {{ $card['accent'] }} bg-white p-3 shadow-sm">
             @endif

@@ -38,3 +38,11 @@
         justify-content: center;
     }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes orgtrack-fade-up {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: none; }
+    }
+    .animate-fade-up { animation: orgtrack-fade-up 350ms ease-out both; }
+}
