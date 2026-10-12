@@ -30,13 +30,20 @@ class PasswordResetLinkController extends Controller
         ]);
 
         try {
-            Password::sendResetLink($request->only('email'));
+            $status = Password::sendResetLink($request->only('email'));
         } catch (\Throwable $exception) {
             \Illuminate\Support\Facades\Log::error('Password reset email could not be sent.', [
                 'exception' => $exception::class,
             ]);
+
+            return back()->withErrors(['email' => 'We could not send the reset email right now. Please try again later.']);
         }
 
-        return back()->with('status', __(Password::RESET_LINK_SENT));
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with('status', __($status));
+        }
+
+        return back()->withInput($request->only('email'))
+            ->withErrors(['email' => 'We could not find an account with that email address.']);
     }
 }

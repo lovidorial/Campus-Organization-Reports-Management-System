@@ -136,20 +136,17 @@ class PasswordResetTest extends TestCase
             ->assertSee('Your password has been reset.');
     }
 
-    public function test_unknown_email_receives_the_same_generic_success_message(): void
+    public function test_unknown_email_receives_an_error_without_a_notification(): void
     {
         Notification::fake();
-        $user = User::factory()->create();
 
-        $knownResponse = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
-        $unknownResponse = $this->from('/forgot-password')->post('/forgot-password', ['email' => 'unknown@example.test']);
+        $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => 'unknown@example.test']);
 
-        $this->assertSame(
-            $knownResponse->getSession()->get('status'),
-            $unknownResponse->getSession()->get('status')
-        );
-        $this->assertSame(__('passwords.sent'), $unknownResponse->getSession()->get('status'));
-        Notification::assertSentTo($user, ResetPasswordNotification::class);
+        $response
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHasErrors('email')
+            ->assertSessionMissing('status');
+        Notification::assertNothingSent();
     }
 
     public function test_archived_officer_can_still_request_a_password_reset(): void
@@ -163,7 +160,7 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPasswordNotification::class);
     }
 
-    public function test_mail_transport_exception_still_returns_generic_success(): void
+    public function test_mail_transport_exception_returns_an_error(): void
     {
         $user = User::factory()->create();
 
@@ -180,8 +177,10 @@ class PasswordResetTest extends TestCase
 
         $response
             ->assertRedirect('/forgot-password')
-            ->assertSessionHas('status', __('passwords.sent'))
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors([
+                'email' => 'We could not send the reset email right now. Please try again later.',
+            ])
+            ->assertSessionMissing('status');
     }
 
     public function test_invalid_reset_token_is_rejected(): void
