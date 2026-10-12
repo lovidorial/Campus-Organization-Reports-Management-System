@@ -10,12 +10,45 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use PDO;
 use Symfony\Component\Process\Process;
 use ZipArchive;
 
 class BackupService
 {
+    private const WEB_TRIGGER_FAILURE_CACHE_KEY = 'backup:web-trigger:last-failure-at';
+
+    private const WEB_TRIGGER_FAILURE_COOLDOWN_SECONDS = 21600;
+
+    private const DATABASE_DUMP_BATCH_SIZE = 100;
+
     protected string $backupDirectory = 'backups';
+
+    public function isWebTriggeredBackupCoolingDown(?CarbonInterface $asOf = null): bool
+    {
+        $failedAt = Cache::get(self::WEB_TRIGGER_FAILURE_CACHE_KEY);
+        if (! is_numeric($failedAt)) {
+            return false;
+        }
+
+        $now = $asOf ? Carbon::instance($asOf)->getTimestamp() : now()->getTimestamp();
+
+        return (int) $failedAt > $now - self::WEB_TRIGGER_FAILURE_COOLDOWN_SECONDS;
+    }
+
+    public function recordWebTriggeredBackupFailure(): void
+    {
+        Cache::put(
+            self::WEB_TRIGGER_FAILURE_CACHE_KEY,
+            now()->getTimestamp(),
+            self::WEB_TRIGGER_FAILURE_COOLDOWN_SECONDS
+        );
+    }
+
+    public function clearWebTriggeredBackupFailure(): void
+    {
+        Cache::forget(self::WEB_TRIGGER_FAILURE_CACHE_KEY);
+    }
 
     public function isBackupDue(BackupSetting $settings, ?CarbonInterface $asOf = null): bool
     {
@@ -516,6 +549,18 @@ class BackupService
 
     protected function dumpDatabase(string $destination): void
     {
+        if (! $this->processAvailable()) {
+            try {
+                $this->dumpDatabaseWithPdo($destination);
+            } catch (\Throwable $exception) {
+                @unlink($destination);
+
+                throw new \RuntimeException('Database backup could not run on this server.');
+            }
+
+            return;
+        }
+
         $config = config('database.connections.mysql');
         $binary = config('backup.mysqldump_path');
         $environment = $this->buildWindowsProcessEnvironment();
@@ -531,12 +576,203 @@ class BackupService
             '--result-file='.$destination,
         ];
 
+        try {
+            $this->runMysqldumpProcess($command, $environment, $destination);
+        } catch (\Throwable $exception) {
+            @unlink($destination);
+
+            throw new \RuntimeException('Database backup could not run on this server.');
+        }
+    }
+
+    protected function processAvailable(): bool
+    {
+        $disabledFunctions = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+
+        return function_exists('proc_open') && ! in_array('proc_open', $disabledFunctions, true);
+    }
+
+    protected function dumpDatabaseWithPdo(string $destination): void
+    {
+        $pdo = $this->pdoForDatabaseDump();
+        if (! $this->isMysqlDumpPdo($pdo)) {
+            throw new \RuntimeException('PDO MySQL is required for the database dump fallback.');
+        }
+
+        $stream = fopen($destination, 'wb');
+        if ($stream === false) {
+            throw new \RuntimeException('Unable to open database dump destination.');
+        }
+
+        try {
+            $this->writeDump($stream, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+
+            foreach ($this->listDumpTables($pdo) as $table) {
+                $quotedTable = $this->quoteDumpIdentifier($table);
+                $this->writeDump($stream, 'DROP TABLE IF EXISTS '.$quotedTable.";\n");
+                $this->writeDump($stream, $this->createDumpTableStatement($pdo, $table).";\n\n");
+
+                $columns = $this->listDumpColumns($pdo, $table);
+                if ($columns === []) {
+                    throw new \RuntimeException('Unable to read table columns.');
+                }
+
+                $insertColumns = array_values(array_filter(
+                    $columns,
+                    fn (array $column): bool => ! str_contains(strtoupper($column['extra'] ?? ''), 'GENERATED')
+                ));
+                if ($insertColumns === []) {
+                    continue;
+                }
+
+                $quotedColumns = implode(', ', array_map(
+                    fn (array $column): string => $this->quoteDumpIdentifier($column['name']),
+                    $insertColumns
+                ));
+                $offset = 0;
+
+                do {
+                    $rows = $this->fetchDumpBatch($pdo, $table, $offset, self::DATABASE_DUMP_BATCH_SIZE);
+                    foreach ($rows as $row) {
+                        $values = [];
+                        foreach ($insertColumns as $column) {
+                            $values[] = $this->dumpSqlValue($pdo, $row[$column['name']] ?? null, $column['type']);
+                        }
+
+                        $this->writeDump(
+                            $stream,
+                            'INSERT INTO '.$quotedTable.' ('.$quotedColumns.') VALUES ('.implode(', ', $values).");\n"
+                        );
+                    }
+
+                    $offset += count($rows);
+                } while (count($rows) === self::DATABASE_DUMP_BATCH_SIZE);
+
+                $this->writeDump($stream, "\n");
+            }
+
+            $this->writeDump($stream, "SET FOREIGN_KEY_CHECKS=1;\n");
+            if (! fflush($stream)) {
+                throw new \RuntimeException('Unable to finish database dump.');
+            }
+        } catch (\Throwable $exception) {
+            fclose($stream);
+            @unlink($destination);
+
+            throw $exception;
+        }
+
+        if (! fclose($stream)) {
+            @unlink($destination);
+
+            throw new \RuntimeException('Unable to finish database dump.');
+        }
+    }
+
+    protected function pdoForDatabaseDump(): PDO
+    {
+        return app('db')->connection('mysql')->getPdo();
+    }
+
+    protected function isMysqlDumpPdo(PDO $pdo): bool
+    {
+        return $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+    }
+
+    protected function runMysqldumpProcess(array $command, array $environment, string $destination): void
+    {
         $process = new Process($command, null, $environment);
         $process->setTimeout(300);
         $process->run();
 
         if (! $process->isSuccessful()) {
-            throw new \RuntimeException('Database backup failed: '.$process->getErrorOutput().' '.$process->getOutput());
+            throw new \RuntimeException('Database backup could not run on this server.');
+        }
+    }
+
+    protected function listDumpTables(PDO $pdo): array
+    {
+        $statement = $pdo->query("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
+
+        return $statement->fetchAll(PDO::FETCH_COLUMN, 0);
+    }
+
+    protected function createDumpTableStatement(PDO $pdo, string $table): string
+    {
+        $statement = $pdo->query('SHOW CREATE TABLE '.$this->quoteDumpIdentifier($table));
+        $row = $statement->fetch(PDO::FETCH_NUM);
+        if (! is_array($row) || ! isset($row[1]) || ! is_string($row[1])) {
+            throw new \RuntimeException('Unable to read table definition.');
+        }
+
+        return rtrim($row[1], ';');
+    }
+
+    protected function listDumpColumns(PDO $pdo, string $table): array
+    {
+        $statement = $pdo->query('SHOW FULL COLUMNS FROM '.$this->quoteDumpIdentifier($table));
+        $columns = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[] = [
+                'name' => (string) $column['Field'],
+                'type' => (string) $column['Type'],
+                'extra' => (string) ($column['Extra'] ?? ''),
+            ];
+        }
+
+        return $columns;
+    }
+
+    protected function fetchDumpBatch(PDO $pdo, string $table, int $offset, int $limit): array
+    {
+        $statement = $pdo->query(
+            'SELECT * FROM '.$this->quoteDumpIdentifier($table).' LIMIT '.(int) $limit.' OFFSET '.(int) $offset
+        );
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    protected function quoteDumpIdentifier(string $identifier): string
+    {
+        return '`'.str_replace('`', '``', $identifier).'`';
+    }
+
+    protected function dumpSqlValue(PDO $pdo, mixed $value, string $type): string
+    {
+        if ($value === null) {
+            return 'NULL';
+        }
+
+        if (preg_match('/^(?:tinyint|smallint|mediumint|int|integer|bigint|decimal|numeric|float|double|real|year)/i', $type)
+            && is_scalar($value)
+            && preg_match('/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/', (string) $value)) {
+            return (string) $value;
+        }
+
+        if (preg_match('/(?:tinyblob|mediumblob|longblob|blob|varbinary|binary)(?:\(|$)/i', $type)) {
+            $binary = (string) $value;
+
+            return $binary === '' ? "X''" : '0x'.bin2hex($binary);
+        }
+
+        $quoted = $pdo->quote((string) $value, PDO::PARAM_STR);
+        if ($quoted === false) {
+            throw new \RuntimeException('Unable to encode a database value.');
+        }
+
+        return $quoted;
+    }
+
+    protected function writeDump($stream, string $contents): void
+    {
+        $length = strlen($contents);
+        $written = 0;
+        while ($written < $length) {
+            $bytes = fwrite($stream, substr($contents, $written));
+            if ($bytes === false || $bytes === 0) {
+                throw new \RuntimeException('Unable to write database dump.');
+            }
+            $written += $bytes;
         }
     }
 

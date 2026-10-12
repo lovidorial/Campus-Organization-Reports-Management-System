@@ -17,6 +17,8 @@ class RunScheduledBackup extends Command
 
     public function handle(BackupService $backupService): int
     {
+        $source = (string) $this->option('source');
+
         if (! Schema::hasTable('backup_settings')) {
             $this->warn('Backup settings table not found. Run the backup migration first.');
 
@@ -26,6 +28,10 @@ class RunScheduledBackup extends Command
         $settings = BackupSetting::query()->first();
 
         if (! $settings || ! $backupService->isBackupDue($settings)) {
+            return self::SUCCESS;
+        }
+
+        if ($source === 'web-trigger' && $backupService->isWebTriggeredBackupCoolingDown()) {
             return self::SUCCESS;
         }
 
@@ -41,6 +47,9 @@ class RunScheduledBackup extends Command
             }
 
             $created = $backupService->createBackup();
+            if ($source === 'web-trigger') {
+                $backupService->clearWebTriggeredBackupFailure();
+            }
             $settings->update([
                 'last_run_at' => now(),
             ]);
@@ -50,10 +59,13 @@ class RunScheduledBackup extends Command
                 ->withProperties([
                     'filename' => $created['filename'],
                     'size' => $created['size'],
-                    'source' => (string) $this->option('source'),
+                    'source' => $source,
                 ])
                 ->log('Scheduled local backup created: '.$created['filename']);
         } catch (\Throwable $exception) {
+            if ($source === 'web-trigger') {
+                $backupService->recordWebTriggeredBackupFailure();
+            }
             Log::error('Scheduled backup failed.', ['exception' => $exception]);
             if (Schema::hasColumn('backup_settings', 'last_error')) {
                 $settings->forceFill(['last_error' => $exception->getMessage()])->save();

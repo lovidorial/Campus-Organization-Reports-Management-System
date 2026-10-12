@@ -4,7 +4,10 @@ namespace Tests\Unit;
 
 use App\Models\BackupSetting;
 use App\Services\BackupService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use PDO;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -99,6 +102,125 @@ class BackupServiceTest extends TestCase
         $remaining = array_map('basename', glob($backupPath.DIRECTORY_SEPARATOR.'*.zip'));
         sort($remaining);
         $this->assertSame(['backup_2.zip', 'backup_3.zip', 'pre_restore_1.zip', 'pre_restore_2.zip'], $remaining);
+    }
+
+    public function test_dump_uses_pdo_fallback_when_process_functions_are_unavailable(): void
+    {
+        $root = $this->tempRoot();
+        $pdo = $this->pdoWithDumpFixture();
+        $service = new PdoDumpTestService($root, $pdo, false);
+        $destination = $root.DIRECTORY_SEPARATOR.'fallback.sql';
+
+        $service->writeDatabaseDump($destination);
+
+        $this->assertFileExists($destination);
+        $this->assertStringContainsString('SET FOREIGN_KEY_CHECKS=0;', file_get_contents($destination));
+        $this->assertStringContainsString('SET FOREIGN_KEY_CHECKS=1;', file_get_contents($destination));
+        $this->assertSame(0, $service->legacyProcessCalls);
+    }
+
+    public function test_dump_uses_the_legacy_mysqldump_path_when_process_functions_are_available(): void
+    {
+        $root = $this->tempRoot();
+        $service = new PdoDumpTestService($root, $this->pdoWithDumpFixture(), true);
+        $destination = $root.DIRECTORY_SEPARATOR.'legacy.sql';
+
+        $service->writeDatabaseDump($destination);
+
+        $this->assertSame(1, $service->legacyProcessCalls);
+        $this->assertFileExists($destination);
+        $this->assertStringContainsString('--databases', implode(' ', $service->legacyCommand));
+    }
+
+    public function test_pdo_dump_escapes_null_binary_and_json_values(): void
+    {
+        $root = $this->tempRoot();
+        $service = new PdoDumpTestService($root, $this->pdoWithDumpFixture(), false);
+        $destination = $root.DIRECTORY_SEPARATOR.'values.sql';
+
+        $service->writeDatabaseDump($destination);
+        $dump = file_get_contents($destination);
+
+        $this->assertStringContainsString('NULL', $dump);
+        $this->assertStringContainsString('0x00ff', $dump);
+        $this->assertStringContainsString("{\"ok\":true,\"text\":\"it''s valid\"}", $dump);
+        $this->assertStringNotContainsString('CREATE DATABASE', strtoupper($dump));
+        $this->assertStringNotContainsString('USE `', strtoupper($dump));
+    }
+
+    public function test_pdo_dump_fetches_large_tables_in_bounded_batches(): void
+    {
+        $root = $this->tempRoot();
+        $pdo = new PDO('sqlite::memory:');
+        $pdo->exec('CREATE TABLE sample (id INTEGER, note TEXT)');
+        $insert = $pdo->prepare('INSERT INTO sample (id, note) VALUES (?, ?)');
+        for ($index = 1; $index <= 205; $index++) {
+            $insert->execute([$index, 'row-'.$index]);
+        }
+
+        $service = new PdoDumpTestService($root, $pdo, false);
+        $destination = $root.DIRECTORY_SEPARATOR.'large.sql';
+        $service->writeDatabaseDump($destination);
+
+        $this->assertSame(3, $service->batchFetchCalls);
+        $this->assertSame(205, substr_count(file_get_contents($destination), 'INSERT INTO `sample`'));
+    }
+
+    public function test_failed_pdo_dump_removes_partially_written_destination(): void
+    {
+        $root = $this->tempRoot();
+        $service = new PdoDumpTestService($root, $this->pdoWithDumpFixture(), false, true);
+        $destination = $root.DIRECTORY_SEPARATOR.'partial.sql';
+
+        try {
+            $service->writeDatabaseDump($destination);
+            $this->fail('Expected the simulated dump failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Database backup could not run on this server.', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($destination);
+    }
+
+    public function test_failed_backup_removes_partial_dump_and_archive(): void
+    {
+        $root = $this->tempRoot();
+        $service = new FailingDumpBackupService($root);
+
+        try {
+            $service->createBackup();
+            $this->fail('Expected the simulated backup failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Database backup could not run on this server.', $exception->getMessage());
+        }
+
+        $this->assertSame([], glob($root.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'*.zip'));
+        $this->assertSame([], glob($root.DIRECTORY_SEPARATOR.'backups'.DIRECTORY_SEPARATOR.'database_*.sql'));
+    }
+
+    public function test_web_trigger_failure_cooldown_expires_at_six_hours(): void
+    {
+        $now = CarbonImmutable::parse('2026-10-12 12:00:00');
+        $service = new BackupService;
+
+        try {
+            Cache::put('backup:web-trigger:last-failure-at', $now->getTimestamp(), 21600);
+
+            $this->assertTrue($service->isWebTriggeredBackupCoolingDown($now->addHours(5)->addMinutes(59)->addSeconds(59)));
+            $this->assertFalse($service->isWebTriggeredBackupCoolingDown($now->addHours(6)));
+        } finally {
+            $service->clearWebTriggeredBackupFailure();
+        }
+    }
+
+    private function pdoWithDumpFixture(): PDO
+    {
+        $pdo = new PDO('sqlite::memory:');
+        $pdo->exec('CREATE TABLE sample (id INTEGER, nullable_value TEXT, binary_value BLOB, json_value JSON)');
+        $statement = $pdo->prepare('INSERT INTO sample VALUES (?, ?, ?, ?)');
+        $statement->execute([1, null, "\0\xff", '{"ok":true,"text":"it\'s valid"}']);
+
+        return $pdo;
     }
 
     private function tempRoot(): string
@@ -196,5 +318,112 @@ class TestableBackupService extends BackupService
         if ($dump === 'target-state' && $this->failTargetImport) {
             throw new \RuntimeException('simulated target import failure');
         }
+    }
+}
+
+class PdoDumpTestService extends BackupService
+{
+    public int $legacyProcessCalls = 0;
+
+    public int $batchFetchCalls = 0;
+
+    public array $legacyCommand = [];
+
+    public function __construct(
+        private readonly string $root,
+        private readonly PDO $pdo,
+        private readonly bool $processIsAvailable,
+        private readonly bool $failColumnListing = false
+    ) {
+        $this->backupDirectory = 'backups';
+    }
+
+    public function writeDatabaseDump(string $destination): void
+    {
+        $this->dumpDatabase($destination);
+    }
+
+    protected function processAvailable(): bool
+    {
+        return $this->processIsAvailable;
+    }
+
+    protected function runMysqldumpProcess(array $command, array $environment, string $destination): void
+    {
+        $this->legacyProcessCalls++;
+        $this->legacyCommand = $command;
+        file_put_contents($destination, 'legacy-dump');
+    }
+
+    protected function pdoForDatabaseDump(): PDO
+    {
+        return $this->pdo;
+    }
+
+    protected function isMysqlDumpPdo(PDO $pdo): bool
+    {
+        return true;
+    }
+
+    protected function listDumpTables(PDO $pdo): array
+    {
+        return ['sample'];
+    }
+
+    protected function createDumpTableStatement(PDO $pdo, string $table): string
+    {
+        return 'CREATE TABLE `sample` (`id` INTEGER, `nullable_value` TEXT, `binary_value` BLOB, `json_value` JSON)';
+    }
+
+    protected function listDumpColumns(PDO $pdo, string $table): array
+    {
+        if ($this->failColumnListing) {
+            throw new \RuntimeException('simulated metadata query failure');
+        }
+
+        $statement = $pdo->query('PRAGMA table_info(`'.str_replace('`', '``', $table).'`)');
+        $columns = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[] = ['name' => $column['name'], 'type' => $column['type']];
+        }
+
+        return $columns;
+    }
+
+    protected function fetchDumpBatch(PDO $pdo, string $table, int $offset, int $limit): array
+    {
+        $this->batchFetchCalls++;
+
+        return parent::fetchDumpBatch($pdo, $table, $offset, $limit);
+    }
+}
+
+class FailingDumpBackupService extends BackupService
+{
+    public function __construct(private readonly string $root)
+    {
+        $this->backupDirectory = 'backups';
+    }
+
+    protected function backupDirectoryPath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'backups';
+    }
+
+    protected function publicStoragePath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'public';
+    }
+
+    protected function privateStoragePath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'private';
+    }
+
+    protected function dumpDatabase(string $destination): void
+    {
+        file_put_contents($destination, 'partial dump');
+
+        throw new \RuntimeException('Database backup could not run on this server.');
     }
 }

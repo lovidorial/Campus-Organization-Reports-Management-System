@@ -8,6 +8,7 @@ use App\Models\BackupSetting;
 use App\Models\User;
 use App\Services\BackupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -182,6 +183,8 @@ class BackupManagementTest extends TestCase
         $settings = BackupSetting::query()->firstOrFail();
         $settings->update(['frequency' => 'monthly', 'last_successful_at' => now()->subDays(31)]);
         $service = \Mockery::mock(BackupService::class);
+        $service->shouldReceive('isWebTriggeredBackupCoolingDown')->andReturn(false);
+        $service->shouldReceive('clearWebTriggeredBackupFailure')->once();
         $service->shouldReceive('isBackupDue')->twice()->andReturn(true);
         $service->shouldReceive('createBackup')->once()->andReturn([
             'filename' => 'backup_web_trigger.zip',
@@ -195,6 +198,26 @@ class BackupManagementTest extends TestCase
 
         $log = ActivityLog::query()->where('event', 'backup_created')->firstOrFail();
         $this->assertSame('web-trigger', $log->properties['source']);
+    }
+
+    public function test_web_trigger_failure_records_cooldown_and_middleware_skips_dispatch(): void
+    {
+        $settings = BackupSetting::query()->firstOrFail();
+        $settings->update(['frequency' => 'monthly', 'last_successful_at' => now()->subDays(31)]);
+        $service = \Mockery::mock(BackupService::class)->makePartial();
+        $service->shouldReceive('createBackup')->once()->andThrow(new \RuntimeException('simulated backup failure'));
+        $this->app->instance(BackupService::class, $service);
+
+        $this->artisan('backup:run', ['--source' => 'web-trigger'])->assertExitCode(1);
+        $this->assertTrue($service->isWebTriggeredBackupCoolingDown());
+
+        config(['backup.web_scheduler_in_tests' => true]);
+        Cache::forget('scheduler:web-tick');
+        $middleware = $this->fakeWebScheduler(false);
+        $response = $middleware->handle(Request::create('/dashboard', 'GET'), fn () => response('ok'));
+
+        $this->assertSame(0, $middleware->startAttempts);
+        $this->assertSame('ok', $response->getContent());
     }
 
     public function test_manual_backup_failure_is_logged_and_visible_on_backup_settings(): void

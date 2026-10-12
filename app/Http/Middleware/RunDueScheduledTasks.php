@@ -21,7 +21,9 @@ class RunDueScheduledTasks
         try {
             if (! $this->shouldSkip($request) && Schema::hasTable('backup_settings')) {
                 $settings = BackupSetting::query()->first();
-                if ($settings && $settings->frequency !== 'manual' && Cache::add('scheduler:web-tick', now(), 60)) {
+                if ($settings && $settings->frequency !== 'manual'
+                    && ! $this->backupService->isWebTriggeredBackupCoolingDown()
+                    && Cache::add('scheduler:web-tick', now(), 60)) {
                     Cache::put('scheduler_last_run_at', now());
 
                     $settings->refresh();
