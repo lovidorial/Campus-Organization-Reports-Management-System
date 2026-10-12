@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Rules\PasswordRules;
 use App\Services\OrganizationClassifierService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class AdminUserController extends Controller
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
             'email'           => 'required|email|max:255|unique:users',
-            'password'        => 'required|string|min:8|confirmed',
+            'password'        => ['required', 'string', PasswordRules::strong(), 'confirmed'],
             'position'        => 'nullable|string|max:100',
             'org_name'        => 'nullable|string|max:255',
             'org_type'        => 'nullable|string|max:100',
@@ -45,7 +46,13 @@ class AdminUserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         $validated['role'] = 'user';
 
-        User::create($validated);
+        $user = User::create($validated);
+
+        activity('admin_users')
+            ->performedOn($user)
+            ->causedBy(auth()->user())
+            ->withProperties(['user_id' => $user->id])
+            ->log('admin_user.created');
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User created successfully!');
@@ -62,6 +69,7 @@ class AdminUserController extends Controller
             'name'            => 'required|string|max:255',
             'email'           => 'required|email|max:255|unique:users,email,' . $user->id,
             'role'            => 'required|in:user,admin',
+            'password'        => ['nullable', 'string', PasswordRules::strong(), 'confirmed'],
             'position'        => 'nullable|string|max:100',
             'org_name'        => 'nullable|string|max:255',
             'org_type'        => 'nullable|string|max:100',
@@ -73,7 +81,19 @@ class AdminUserController extends Controller
 
         $validated = $this->applyOrganizationClassification($validated, app(OrganizationClassifierService::class));
 
+        if (! empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
         $user->update($validated);
+
+        activity('admin_users')
+            ->performedOn($user)
+            ->causedBy(auth()->user())
+            ->withProperties(['user_id' => $user->id, 'role' => $user->role])
+            ->log('admin_user.updated');
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User updated successfully.');
@@ -103,6 +123,12 @@ class AdminUserController extends Controller
 
         DB::transaction(function () use ($user) {
             $user->delete();
+
+            activity('admin_users')
+                ->performedOn($user)
+                ->causedBy(auth()->user())
+                ->withProperties(['user_id' => $user->id])
+                ->log('admin_user.deleted');
         });
 
         return back()->with('success', 'Account deleted. It had no submitted records.');

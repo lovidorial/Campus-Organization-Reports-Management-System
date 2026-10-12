@@ -139,16 +139,28 @@
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label for="secretary_password" class="block text-sm font-semibold text-slate-700 mb-2">Temporary Password <span class="text-rose-500">*</span></label>
-                            <input id="secretary_password" name="secretary_password" required type="password"
+                            <input id="secretary_password" name="secretary_password" required type="password" autocomplete="new-password"
                                    class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
                                    placeholder="Enter temporary password" />
+                            <div id="secretary-password-strength" class="org-password-strength" aria-live="polite" aria-atomic="true" hidden>
+                                <div class="org-password-strength__bar" aria-hidden="true"><span id="secretary-password-strength-fill" class="org-password-strength__fill"></span></div>
+                                <div id="secretary-password-strength-label" class="org-password-strength__label">Password strength:</div>
+                            </div>
+                            <ul class="org-password-requirements" aria-live="polite">
+                                <li class="org-password-requirement" data-secretary-password-rule="length"><span class="org-password-requirement__icon" aria-hidden="true">✓</span><span>At least 8 characters</span></li>
+                                <li class="org-password-requirement" data-secretary-password-rule="uppercase"><span class="org-password-requirement__icon" aria-hidden="true">✓</span><span>Uppercase letter</span></li>
+                                <li class="org-password-requirement" data-secretary-password-rule="lowercase"><span class="org-password-requirement__icon" aria-hidden="true">✓</span><span>Lowercase letter</span></li>
+                                <li class="org-password-requirement" data-secretary-password-rule="number"><span class="org-password-requirement__icon" aria-hidden="true">✓</span><span>Number</span></li>
+                                <li class="org-password-requirement" data-secretary-password-rule="symbol"><span class="org-password-requirement__icon" aria-hidden="true">✓</span><span>Symbol</span><span class="org-password-requirement__note">Recommended</span></li>
+                            </ul>
                             @error('secretary_password')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label for="secretary_password_confirmation" class="block text-sm font-semibold text-slate-700 mb-2">Confirm Password <span class="text-rose-500">*</span></label>
-                            <input id="secretary_password_confirmation" name="secretary_password_confirmation" required type="password"
+                            <input id="secretary_password_confirmation" name="secretary_password_confirmation" required type="password" autocomplete="new-password"
                                    class="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
                                    placeholder="Confirm password" />
+                            <div id="secretary-password-match-status" class="org-password-match-status" aria-live="polite">Passwords match: No</div>
                         </div>
                     </div>
                 </div>
@@ -161,4 +173,8 @@
         </div>
     </form>
 </div>
+@push('scripts')
+    <link rel="stylesheet" href="{{ asset('css/password-strength.css') }}">
+    <script src="{{ asset('js/password-strength.js') }}" defer></script>
+@endpush
 </x-app-layout>

@@ -17,6 +17,15 @@ class AdminMiddlerware
     public function handle($request, Closure $next)
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {
+            activity('security')
+                ->event('admin_access_denied')
+                ->withProperties([
+                    'user_id' => Auth::id(),
+                    'ip' => $request->ip(),
+                    'url' => $request->fullUrl(),
+                ])
+                ->log('admin_access.denied');
+
             abort(403, 'Unauthorized access.');
         }
         return $next($request);

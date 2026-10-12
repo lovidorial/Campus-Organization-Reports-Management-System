@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\ActivityRequest;
 use App\Models\User;
+use App\Rules\PasswordRules;
 use App\Services\OrganizationClassifierService;
 use App\Services\ImageThemeColorService;
 use Illuminate\Http\Request;
@@ -155,7 +156,7 @@ class OrganizationController extends Controller
             'secretary_email'         => 'required|email|max:255|unique:users,email',
             'secretary_username'      => 'nullable|string|max:100',
             'secretary_student_number'=> 'nullable|string|max:100',
-            'secretary_password'      => 'required|string|min:8|confirmed',
+            'secretary_password'      => ['required', 'string', PasswordRules::strong(), 'confirmed'],
         ];
 
         // Only enforce unique username if the users table actually has the column
@@ -245,6 +246,12 @@ class OrganizationController extends Controller
     {
         $organization->update(['is_active' => false]);
 
+        activity('organizations')
+            ->performedOn($organization)
+            ->causedBy(auth()->user())
+            ->withProperties(['organization_id' => $organization->id])
+            ->log('organization.deactivated');
+
         return back()->with('success', 'Organization account deactivated.');
     }
 
@@ -253,12 +260,28 @@ class OrganizationController extends Controller
         $secretary = $organization->members()->first();
 
         if (! $secretary) {
+            activity('organizations')
+                ->performedOn($organization)
+                ->causedBy(auth()->user())
+                ->withProperties(['organization_id' => $organization->id, 'result' => 'no_secretary'])
+                ->log('organization.password_reset_requested');
+
             return back()->with('error', 'No secretary account is linked to this organization.');
         }
 
         $status = Password::broker()->sendResetLink([
             'email' => $secretary->email,
         ]);
+
+        activity('organizations')
+            ->performedOn($organization)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'organization_id' => $organization->id,
+                'user_id' => $secretary->id,
+                'result' => $status === Password::RESET_LINK_SENT ? 'sent' : 'failed',
+            ])
+            ->log('organization.password_reset_requested');
 
         return back()->with('success', $status === Password::RESET_LINK_SENT
             ? 'Password reset link sent to ' . $secretary->email
