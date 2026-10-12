@@ -54,8 +54,8 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-2 sm:col-span-2 lg:col-span-1">
-                    <button type="submit" class="rounded bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Apply Filters</button>
-                    <a href="{{ route('admin.summary-report') }}" class="inline-flex items-center rounded border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">Reset</a>
+                    <button type="submit" class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">Apply Filters</button>
+                    <a href="{{ route('admin.summary-report') }}" class="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">Reset</a>
                 </div>
             </div>
 
@@ -118,7 +118,7 @@
                     $statusUrl = route('admin.summary-report', $statusQuery);
                     $isActive = $activeStatus === $label;
                 @endphp
-                <a href="{{ $statusUrl }}" class="block rounded-lg border p-3 transition {{ $isActive ? 'border-sky-600 bg-sky-50 shadow-sm ring-2 ring-sky-200' : 'border-slate-200 bg-white hover:border-slate-300' }}">
+                <a href="{{ $statusUrl }}" class="block rounded-xl border p-3 transition {{ $isActive ? 'border-orange-500 bg-orange-50 shadow-sm ring-2 ring-orange-200' : 'border-slate-200 bg-white hover:border-slate-300' }}">
                     <x-status-pill :status="$label" />
                     <p class="mt-2 text-xl font-semibold text-slate-900">{{ $count }}</p>
                 </a>
@@ -223,17 +223,17 @@
                         <thead class="sticky top-0 z-10 border-b bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th class="px-3 py-2"><a href="{{ route('admin.summary-report', $organizationSortQuery) }}" class="inline-flex items-center gap-1">Organization @if($sort === 'organization')<span aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>@endif</a></th>
-                                <th class="p-3">Submitted by</th>
-                                <th class="p-3">Term / School Year</th>
-                                <th class="p-3">Activity / Title</th>
-                                <th class="p-3">Category</th>
+                                <th class="px-3 py-2">Submitted by</th>
+                                <th class="px-3 py-2">Term / School Year</th>
+                                <th class="px-3 py-2">Activity / Title</th>
+                                <th class="px-3 py-2">Category</th>
                                 <th class="px-3 py-2"><a href="{{ route('admin.summary-report', $dateSortQuery) }}" class="inline-flex items-center gap-1">Date @if($sort === 'date')<span aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>@endif</a></th>
-                                <th class="p-3">Venue</th>
+                                <th class="px-3 py-2">Venue</th>
                                 <th class="px-3 py-2"><a href="{{ route('admin.summary-report', $statusSortQuery) }}" class="inline-flex items-center gap-1">Status @if($sort === 'status')<span aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>@endif</a></th>
-                                <th class="p-3">Assessment</th>
-                                <th class="p-3">Communication Letter</th>
-                                <th class="p-3">Narrative Report</th>
-                                <th class="p-3 text-right">Estimated Budget</th>
+                                <th class="px-3 py-2">Assessment</th>
+                                <th class="px-3 py-2">Communication Letter</th>
+                                <th class="px-3 py-2">Narrative Report</th>
+                                <th class="px-3 py-2 text-right">Estimated Budget</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -255,7 +255,7 @@
                                 <tr class="border-b align-middle text-sm hover:bg-slate-50">
                                     <td class="px-3 py-2">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</td>
                                     <td class="px-3 py-2">{{ $activity->gpoa?->user?->name ?? '—' }}</td>
-                                    <td class="px-3 py-2">{{ $activity->gpoa?->term ?? '—' }} / {{ $activity->gpoa?->school_year ?? '—' }}</td>
+                                    <td class="px-3 py-2 whitespace-nowrap">{{ $activity->gpoa?->term ?? '—' }} / {{ $activity->gpoa?->school_year ?? '—' }}</td>
                                     <td class="px-3 py-2"><span class="font-semibold">Activity {{ $activity->activity_number ?? '—' }}</span><br>@if($activityRequest)<a href="{{ route('admin.activity-requests.show', $activityRequest) }}" title="{{ $activity->title }}" class="line-clamp-2 text-sky-700 hover:underline">{{ $activity->title }}</a>@else<span title="{{ $activity->title }}" class="line-clamp-2">{{ $activity->title }}</span>@endif</td>
                                     <td class="px-3 py-2">{{ $activity->category ?: '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">{{ $activity->date?->format('M d, Y') ?? '—' }}</td>
