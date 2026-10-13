@@ -83,8 +83,8 @@
                 {{ $tab === 'todo' ? 'No planned activities are waiting for their first submission.' : 'No recent submissions match these filters.' }}
             </div>
         @else
-            <div class="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
-                <table class="w-full text-sm">
+            <div class="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white md:block">
+                <table class="w-full min-w-[900px] text-sm">
                     <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Activity</th><th class="px-4 py-3">Activity date</th><th class="px-4 py-3">Documents</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">View</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($activities as $activity)
