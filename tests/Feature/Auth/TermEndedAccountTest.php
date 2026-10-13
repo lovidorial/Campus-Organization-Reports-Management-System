@@ -61,9 +61,9 @@ class TermEndedAccountTest extends TestCase
         $response = $this->get('/login')->assertOk();
         $content = $response->getContent();
 
-        $this->assertSame(1, substr_count($content, 'Account no longer active'));
-        $this->assertStringContainsString('This account&#039;s term has ended.', $content);
-        $this->assertStringContainsString('Questions? Contact osdwcsuaparri@gmail.com', $content);
+        $this->assertSame(1, substr_count($content, 'Account Access Expired'));
+        $this->assertStringContainsString('This account is no longer active because its term of service has ended.', $content);
+        $this->assertStringContainsString('For assistance or inquiries, please contact us at osdwcsuaparri@gmail.com', $content);
         $this->assertStringNotContainsString('class="form-error"', $content);
     }
 

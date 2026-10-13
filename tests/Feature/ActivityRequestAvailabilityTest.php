@@ -111,7 +111,7 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_activity_request_keeps_category_and_source_on_the_request_only(): void
     {
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Request-owned Values', '2026-10-10', 'Main Hall');
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Request-owned Values', today()->addDay()->toDateString(), 'Main Hall');
         $plannedActivity->update(['source_of_funds' => 'Planned source']);
 
         $this->actingAs($user)
@@ -131,7 +131,7 @@ class ActivityRequestAvailabilityTest extends TestCase
     public function test_category_limit_is_checked_when_category_is_selected_for_an_uncategorized_gpoa_item(): void
     {
         config(['gpoa_activity_limits.Environmental' => 1]);
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Limit Check Activity', '2026-10-10', 'Main Hall');
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Limit Check Activity', today()->addDay()->toDateString(), 'Main Hall');
         $plannedActivity->update(['category' => null]);
         ActivityRequest::create([
             'user_id' => $user->id,
@@ -537,7 +537,7 @@ class ActivityRequestAvailabilityTest extends TestCase
         $plannedActivity = GpoaActivity::create([
             'gpoa_id' => $gpoa->id,
             'title' => 'socialization',
-            'date' => '2026-10-10',
+            'date' => today()->addDay()->toDateString(),
             'venue' => 'Main Hall ',
             'category' => 'symposium',
             'sdgs' => [4],
@@ -568,7 +568,7 @@ class ActivityRequestAvailabilityTest extends TestCase
         $plannedActivity = GpoaActivity::create([
             'gpoa_id' => $gpoa->id,
             'title' => 'Socialization',
-            'date' => '2026-10-10',
+            'date' => today()->addDay()->toDateString(),
             'venue' => 'Main Hall',
             'category' => 'Symposium',
             'sdgs' => [4],
@@ -639,8 +639,9 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_same_venue_non_overlapping_times_do_not_conflict(): void
     {
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Afternoon Event', '2026-10-10', 'Main Hall');
-        $this->createApprovedActivity('Morning Event', '2026-10-10', 'Main Hall', '08:00', '10:00');
+        $eventDate = today()->addDay()->toDateString();
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Afternoon Event', $eventDate, 'Main Hall');
+        $this->createApprovedActivity('Morning Event', $eventDate, 'Main Hall', '08:00', '10:00');
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload(
             $gpoa,
@@ -653,8 +654,9 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_same_venue_overlapping_times_conflict(): void
     {
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Overlapping Event', '2026-10-10', 'Main Hall');
-        $this->createApprovedActivity('Morning Event', '2026-10-10', 'Main Hall', '08:00', '14:30');
+        $eventDate = today()->addDay()->toDateString();
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Overlapping Event', $eventDate, 'Main Hall');
+        $this->createApprovedActivity('Morning Event', $eventDate, 'Main Hall', '08:00', '14:30');
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload(
             $gpoa,
@@ -668,8 +670,9 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_all_day_activity_conflicts_with_timed_activity_at_same_venue_and_date(): void
     {
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Timed Event', '2026-10-10', 'Main Hall');
-        $this->createApprovedActivity('All Day Event', '2026-10-10', 'Main Hall');
+        $eventDate = today()->addDay()->toDateString();
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Timed Event', $eventDate, 'Main Hall');
+        $this->createApprovedActivity('All Day Event', $eventDate, 'Main Hall');
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload(
             $gpoa,
@@ -682,11 +685,13 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_overlapping_multi_day_ranges_conflict_on_a_shared_date(): void
     {
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Multi-day Event', '2026-10-10', 'Main Hall');
-        $this->createApprovedActivity('Single-day Event', '2026-10-12', 'Main Hall', '09:00', '11:00');
+        $startDate = today()->addDay();
+        $overlapDate = $startDate->copy()->addDays(2);
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Multi-day Event', $startDate->toDateString(), 'Main Hall');
+        $this->createApprovedActivity('Single-day Event', $overlapDate->toDateString(), 'Main Hall', '09:00', '11:00');
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
-            'end_date' => '2026-10-12',
+            'end_date' => $overlapDate->toDateString(),
             'start_time' => '10:00',
             'end_time' => '12:00',
         ]));
@@ -696,11 +701,12 @@ class ActivityRequestAvailabilityTest extends TestCase
 
     public function test_cancelled_and_deleted_requests_do_not_block_venue_reuse(): void
     {
-        $this->createApprovedActivity('Cancelled Event', '2026-10-10', 'Main Hall');
+        $eventDate = today()->addDay()->toDateString();
+        $this->createApprovedActivity('Cancelled Event', $eventDate, 'Main Hall');
         ActivityRequest::where('title', 'Cancelled Event')->update(['status' => 'cancelled']);
-        $this->createApprovedActivity('Deleted Event', '2026-10-10', 'Main Hall');
+        $this->createApprovedActivity('Deleted Event', $eventDate, 'Main Hall');
         ActivityRequest::where('title', 'Deleted Event')->update(['status' => 'deleted']);
-        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('New Event', '2026-10-10', 'Main Hall');
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('New Event', $eventDate, 'Main Hall');
 
         $response = $this->actingAs($user)->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity, [
             'start_time' => '09:00',

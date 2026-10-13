@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Gpoa;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -240,6 +241,13 @@ class AuthenticationTest extends TestCase
             'org_type' => $organization->type,
             'college' => $organization->college,
             'email' => 'cics-secretary@example.com',
+        ]);
+        Gpoa::create([
+            'user_id' => $secretary->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
         ]);
 
         $this->actingAs($admin)

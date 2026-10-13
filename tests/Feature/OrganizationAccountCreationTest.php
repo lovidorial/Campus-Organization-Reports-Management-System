@@ -21,8 +21,8 @@ class OrganizationAccountCreationTest extends TestCase
                 'type' => 'Major Student Organization',
                 'secretary_name' => 'Organization Secretary',
                 'secretary_email' => 'secretary@example.com',
-                'secretary_password' => 'password',
-                'secretary_password_confirmation' => 'password',
+                'secretary_password' => 'Password123',
+                'secretary_password_confirmation' => 'Password123',
             ])
             ->assertSessionHasErrors(['term', 'school_year', 'college']);
     }
@@ -40,8 +40,8 @@ class OrganizationAccountCreationTest extends TestCase
                 'school_year' => '2026-2028',
                 'secretary_name' => 'Organization Secretary',
                 'secretary_email' => 'secretary@example.com',
-                'secretary_password' => 'password',
-                'secretary_password_confirmation' => 'password',
+                'secretary_password' => 'Password123',
+                'secretary_password_confirmation' => 'Password123',
             ])
             ->assertSessionHasErrors('school_year');
     }
@@ -61,13 +61,13 @@ class OrganizationAccountCreationTest extends TestCase
                 'school_year' => '2025-2026',
                 'secretary_name' => 'Organization Secretary',
                 'secretary_email' => 'secretary@example.com',
-                'secretary_password' => 'password',
-                'secretary_password_confirmation' => 'password',
+                'secretary_password' => 'Password123',
+                'secretary_password_confirmation' => 'Password123',
             ])
             ->assertRedirect(route('admin.organizations.index'))
             ->assertSessionHasNoErrors();
 
         $secretary = User::query()->where('email', 'secretary@example.com')->firstOrFail();
-        $this->assertTrue(Hash::check('password', $secretary->password));
+        $this->assertTrue(Hash::check('Password123', $secretary->password));
     }
 }
