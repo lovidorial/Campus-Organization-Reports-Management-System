@@ -121,6 +121,8 @@ class BackupService
 
     public function createBackup(string $prefix = 'backup_', bool $recordStatus = true): array
     {
+        $this->relaxExecutionLimits();
+
         $backupPath = $this->backupDirectoryPath();
         if (! is_dir($backupPath) && ! mkdir($backupPath, 0777, true) && ! is_dir($backupPath)) {
             throw new \RuntimeException('Unable to create backup directory: '.$backupPath);
@@ -225,6 +227,8 @@ class BackupService
 
     protected function performRestore(string $backupFilePath): bool
     {
+        $this->relaxExecutionLimits();
+
         $resolvedPath = realpath($backupFilePath);
         if ($resolvedPath === false || ! is_file($resolvedPath)) {
             throw new \RuntimeException('The selected backup file could not be found.');
@@ -851,13 +855,6 @@ class BackupService
             throw new \RuntimeException('The SQL backup contains no importable statements.');
         }
 
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
-        if (function_exists('ignore_user_abort')) {
-            @ignore_user_abort(true);
-        }
-
         $statementNumber = 0;
         $failure = null;
 
@@ -1153,6 +1150,21 @@ class BackupService
     protected function setImportForeignKeyChecks(PDO $pdo, bool $enabled): void
     {
         $pdo->exec('SET FOREIGN_KEY_CHECKS=' . ($enabled ? '1' : '0'));
+    }
+
+    private function relaxExecutionLimits(): void
+    {
+        if ($this->executionFunctionAvailable('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        if ($this->executionFunctionAvailable('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+    }
+
+    protected function executionFunctionAvailable(string $function): bool
+    {
+        return function_exists($function);
     }
 
     protected function safeStatementPreview(string $statement): string

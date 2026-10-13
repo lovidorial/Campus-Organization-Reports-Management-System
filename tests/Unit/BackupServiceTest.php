@@ -35,6 +35,17 @@ class BackupServiceTest extends TestCase
         $zip->close();
     }
 
+    public function test_create_backup_continues_when_execution_limit_functions_are_unavailable(): void
+    {
+        $root = $this->tempRoot();
+        $service = new ExecutionFunctionsUnavailableBackupService($root);
+
+        $result = $service->createBackup();
+
+        $this->assertFileExists($result['path']);
+        $this->assertSame(['set_time_limit', 'ignore_user_abort'], $service->checkedFunctions);
+    }
+
     public function test_restore_failure_reimports_pre_restore_dump_and_restores_files(): void
     {
         $root = $this->tempRoot();
@@ -631,6 +642,18 @@ class FailingDumpBackupService extends BackupService
         file_put_contents($destination, 'partial dump');
 
         throw new \RuntimeException('Database backup could not run on this server.');
+    }
+}
+
+class ExecutionFunctionsUnavailableBackupService extends TestableBackupService
+{
+    public array $checkedFunctions = [];
+
+    protected function executionFunctionAvailable(string $function): bool
+    {
+        $this->checkedFunctions[] = $function;
+
+        return false;
     }
 }
 
