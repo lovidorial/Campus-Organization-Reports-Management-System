@@ -7,28 +7,33 @@
 
         <form method="GET" action="{{ route('admin.activity-logs.index') }}" class="grid gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-5">
             <div>
-                <label for="actor" class="mb-1 block text-xs font-semibold text-gray-600">Actor</label>
+                <label for="actor" class="mb-1 block text-xs font-semibold text-gray-600">Performed By</label>
                 <input id="actor" name="actor" value="{{ $filters['actor'] }}" placeholder="Name, email, or ID" class="w-full rounded border-gray-300 text-sm">
             </div>
             <div>
-                <label for="action" class="mb-1 block text-xs font-semibold text-gray-600">Action</label>
-                <input id="action" name="action" value="{{ $filters['action'] }}" placeholder="Event or description" class="w-full rounded border-gray-300 text-sm">
+                <label for="action" class="mb-1 block text-xs font-semibold text-gray-600">Activity Type</label>
+                <select id="action" name="action" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">All activity types</option>
+                    @foreach($activityTypes as $code => $label)
+                        <option value="{{ $code }}" @selected($filters['action'] === $code)>{{ $label }}</option>
+                    @endforeach
+                </select>
             </div>
             <div>
-                <label for="subject" class="mb-1 block text-xs font-semibold text-gray-600">Subject</label>
-                <input id="subject" name="subject" value="{{ $filters['subject'] }}" placeholder="Type or ID" class="w-full rounded border-gray-300 text-sm">
+                <label for="subject" class="mb-1 block text-xs font-semibold text-gray-600">Affected Record</label>
+                <input id="subject" name="subject" value="{{ $filters['subject'] }}" placeholder="Record name or ID" class="w-full rounded border-gray-300 text-sm">
             </div>
             <div>
-                <label for="date_from" class="mb-1 block text-xs font-semibold text-gray-600">From</label>
+                <label for="date_from" class="mb-1 block text-xs font-semibold text-gray-600">Start Date</label>
                 <input id="date_from" type="date" name="date_from" value="{{ $filters['date_from'] }}" class="w-full rounded border-gray-300 text-sm">
             </div>
             <div>
-                <label for="date_to" class="mb-1 block text-xs font-semibold text-gray-600">To</label>
+                <label for="date_to" class="mb-1 block text-xs font-semibold text-gray-600">End Date</label>
                 <input id="date_to" type="date" name="date_to" value="{{ $filters['date_to'] }}" class="w-full rounded border-gray-300 text-sm">
             </div>
             <div class="flex gap-2 sm:col-span-2 lg:col-span-5">
-                <button type="submit" class="rounded bg-amber-700 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-800">Filter</button>
-                <a href="{{ route('admin.activity-logs.index') }}" class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Reset</a>
+                <button type="submit" class="rounded bg-amber-700 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-800">Apply Filters</button>
+                <a href="{{ route('admin.activity-logs.index') }}" class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Clear Filters</a>
             </div>
         </form>
 
@@ -36,7 +41,7 @@
             <div class="overflow-x-auto">
                 <table class="w-full min-w-[760px] text-left text-sm">
                     <thead class="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
-                        <tr><th scope="col" class="px-4 py-2.5">Actor</th><th scope="col" class="px-4 py-2.5">Action</th><th scope="col" class="px-4 py-2.5">Subject</th><th scope="col" class="px-4 py-2.5">Timestamp</th></tr>
+                        <tr><th scope="col" class="px-4 py-2.5">Performed By</th><th scope="col" class="px-4 py-2.5">Activity Type</th><th scope="col" class="px-4 py-2.5">Affected Record</th><th scope="col" class="px-4 py-2.5">Timestamp</th></tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($logs as $log)

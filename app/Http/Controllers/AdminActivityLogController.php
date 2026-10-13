@@ -9,6 +9,17 @@ use Spatie\Activitylog\Models\Activity as ActivityLog;
 
 class AdminActivityLogController extends Controller
 {
+    private const ACTIVITY_TYPE_LABELS = [
+        'backup_created' => 'Backup Created',
+        'backup_deleted' => 'Backup Deleted',
+        'backup_downloaded' => 'Backup Downloaded',
+        'backup_restored' => 'Backup Restored',
+        'backup_schedule_changed' => 'Backup Schedule Changed',
+        'activity_report.approved' => 'Report Approved',
+        'admin_user.created' => 'User Created',
+        'organization.deactivated' => 'Organization Deactivated',
+    ];
+
     public function index(Request $request): View
     {
         $filters = [
@@ -18,6 +29,24 @@ class AdminActivityLogController extends Controller
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),
         ];
+
+        $activityTypes = ActivityLog::query()
+            ->whereNotNull('event')
+            ->distinct()
+            ->pluck('event')
+            ->merge(
+                ActivityLog::query()
+                    ->whereNull('event')
+                    ->whereNotNull('description')
+                    ->distinct()
+                    ->pluck('description')
+                    ->filter(fn (string $description) => preg_match('/^[a-z_]+(\.[a-z_]+)*$/', $description) === 1)
+            )
+            ->unique()
+            ->sort()
+            ->mapWithKeys(fn (string $code) => [
+                $code => self::ACTIVITY_TYPE_LABELS[$code] ?? ucwords(str_replace(['.', '_'], ' ', $code)),
+            ]);
 
         $logs = ActivityLog::query()
             ->with(['causer', 'subject'])
@@ -37,8 +66,8 @@ class AdminActivityLogController extends Controller
             })
             ->when($filters['action'], function ($query, $action) {
                 $query->where(function ($actionQuery) use ($action) {
-                    $actionQuery->where('event', 'like', "%{$action}%")
-                        ->orWhere('description', 'like', "%{$action}%");
+                    $actionQuery->where('event', $action)
+                        ->orWhere('description', $action);
                 });
             })
             ->when($filters['subject'], function ($query, $subject) {
@@ -54,6 +83,6 @@ class AdminActivityLogController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('admin.activity-logs.index', compact('logs', 'filters'));
+        return view('admin.activity-logs.index', compact('logs', 'filters', 'activityTypes'));
     }
 }
