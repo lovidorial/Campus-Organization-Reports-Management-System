@@ -213,6 +213,204 @@ class BackupServiceTest extends TestCase
         }
     }
 
+    public function test_sql_parser_splits_quoted_semicolons_and_handles_escapes_and_comments(): void
+    {
+        $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+        $sqlFile = $this->writeSqlFile(<<<'SQL'
+-- Header comment; ignored
+SET @single = 'one; two';
+SET @double = "three; four";
+CREATE TABLE `semi;table` (`back``tick` TEXT, `note` TEXT);
+INSERT INTO `semi;table` VALUES ('escaped \' quote; still string', 'doubled '' quote; still string');
+# Hash comment; ignored
+/* ordinary block comment; ignored */ SET @after_comments = 1;
+SQL);
+
+        $statements = $service->parseSqlFile($sqlFile);
+
+        $this->assertCount(5, $statements);
+        $this->assertStringContainsString("'one; two'", $statements[0]);
+        $this->assertStringContainsString('"three; four"', $statements[1]);
+        $this->assertStringContainsString('`semi;table`', $statements[2]);
+        $this->assertStringContainsString("escaped \\' quote; still string", $statements[3]);
+        $this->assertStringContainsString("doubled '' quote; still string", $statements[3]);
+        $this->assertStringNotContainsString('ordinary block comment', $statements[4]);
+    }
+
+    public function test_mysqldump_header_and_conditional_comments_are_preserved_while_database_and_lock_statements_are_skipped(): void
+    {
+        $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+        $sqlFile = $this->writeSqlFile(<<<'SQL'
+-- MySQL dump 10.13  Distrib 8.0, for Linux
+/*!40101 SET NAMES utf8mb4 */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `orgtrack` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
+USE /*!40100 */ `orgtrack`;
+/*M!100100 SET @mariadb_compat = 1 */;
+DROP TABLE IF EXISTS `sample`;
+/*!40101 SET @saved_cs_client = @@character_set_client */;
+CREATE TABLE `sample` (`id` int NOT NULL, `note` text) ENGINE=InnoDB;
+LOCK TABLES `sample` WRITE;
+INSERT INTO `sample` VALUES (1,'semi;colon and it\'s quoted');
+UNLOCK TABLES;
+SQL);
+
+        $service->importSqlFile($sqlFile);
+
+        $this->assertContains('/*!40101 SET NAMES utf8mb4 */', $service->executedStatements);
+        $this->assertContains('/*M!100100 SET @mariadb_compat = 1 */', $service->executedStatements);
+        $this->assertNotContains('CREATE DATABASE /*!32312 IF NOT EXISTS*/ `orgtrack` /*!40100 DEFAULT CHARACTER SET utf8mb4 */', $service->executedStatements);
+        $this->assertNotContains('USE /*!40100 */ `orgtrack`', $service->executedStatements);
+        $this->assertNotContains('LOCK TABLES `sample` WRITE', $service->executedStatements);
+        $this->assertNotContains('UNLOCK TABLES', $service->executedStatements);
+        $this->assertContains('CREATE TABLE `sample` (`id` int NOT NULL, `note` text) ENGINE=InnoDB', $service->executedStatements);
+    }
+
+    public function test_pdo_dump_fallback_format_is_accepted_by_import_parser(): void
+    {
+        $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+        $sqlFile = $this->writeSqlFile(<<<'SQL'
+SET FOREIGN_KEY_CHECKS=0;
+
+DROP TABLE IF EXISTS `sample`;
+CREATE TABLE `sample` (`id` int, `note` text);
+
+INSERT INTO `sample` (`id`, `note`) VALUES (1, 'fallback; row');
+
+SET FOREIGN_KEY_CHECKS=1;
+SQL);
+
+        $service->importSqlFile($sqlFile);
+
+        $this->assertContains('DROP TABLE IF EXISTS `sample`', $service->executedStatements);
+        $this->assertContains("INSERT INTO `sample` (`id`, `note`) VALUES (1, 'fallback; row')", $service->executedStatements);
+    }
+
+    public function test_entire_file_is_validated_before_any_statement_executes(): void
+    {
+        $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+        $sqlFile = $this->writeSqlFile("SET @safe = 1;\nINSERT INTO sample VALUES ('unterminated);\n");
+
+        try {
+            $service->importSqlFile($sqlFile);
+            $this->fail('Expected parser to reject an unterminated string.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('unterminated', strtolower($exception->getMessage()));
+        }
+
+        $this->assertSame([], $service->executedStatements);
+        $this->assertSame([], $service->foreignKeyStates);
+    }
+
+    public function test_unterminated_backtick_and_block_comment_fail_during_validation(): void
+    {
+        foreach (["SELECT `unterminated;", 'SELECT 1; /* unterminated'] as $sql) {
+            $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+            $sqlFile = $this->writeSqlFile($sql);
+
+            try {
+                $service->importSqlFile($sqlFile);
+                $this->fail('Expected malformed quoting/comment syntax to be rejected.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('unterminated', strtolower($exception->getMessage()));
+            }
+
+            $this->assertSame([], $service->executedStatements);
+            $this->assertSame([], $service->foreignKeyStates);
+        }
+    }
+
+    public function test_unsupported_delimiter_trigger_routine_and_event_are_rejected_before_execution(): void
+    {
+        $unsupportedSql = [
+            "DELIMITER $$\nCREATE PROCEDURE p() SELECT 1$$\nDELIMITER ;",
+            'CREATE TRIGGER tr BEFORE INSERT ON sample FOR EACH ROW SET @a = 1;',
+            'CREATE PROCEDURE p() SELECT 1;',
+            'CREATE FUNCTION f() RETURNS INT RETURN 1;',
+            'CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO SELECT 1;',
+        ];
+
+        foreach ($unsupportedSql as $sql) {
+            $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+            $sqlFile = $this->writeSqlFile("SET @safe = 1;\n".$sql);
+
+            try {
+                $service->importSqlFile($sqlFile);
+                $this->fail('Expected unsupported SQL to be rejected.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('unsupported', strtolower($exception->getMessage()));
+            }
+
+            $this->assertSame([], $service->executedStatements);
+            $this->assertSame([], $service->foreignKeyStates);
+        }
+    }
+
+    public function test_import_execution_failure_restores_foreign_key_checks_and_redacts_values(): void
+    {
+        $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'));
+        $service->failStatementContaining = 'private-secret-value';
+        $sqlFile = $this->writeSqlFile("INSERT INTO `users` (`password`) VALUES ('private-secret-value');");
+
+        try {
+            $service->importSqlFile($sqlFile);
+            $this->fail('Expected the simulated statement error.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('statement 1', $exception->getMessage());
+            $this->assertStringNotContainsString('private-secret-value', $exception->getMessage());
+            $this->assertStringContainsString('[redacted]', $exception->getMessage());
+        }
+
+        $this->assertSame([false, true], $service->foreignKeyStates);
+    }
+
+    public function test_process_mysql_import_path_is_used_when_proc_open_is_available(): void
+    {
+        $service = new PdoImportTestService($this->tempRoot(), new PDO('sqlite::memory:'), true);
+        $sqlFile = $this->writeSqlFile('SELECT 1;');
+
+        $service->importSqlFile($sqlFile);
+
+        $this->assertSame(1, $service->legacyImportCalls);
+        $this->assertSame([], $service->executedStatements);
+    }
+
+    public function test_restore_capability_guard_runs_before_pre_restore_backup_creation(): void
+    {
+        $root = $this->tempRoot();
+        $targetArchive = $root.DIRECTORY_SEPARATOR.'target.zip';
+        $this->createArchive($targetArchive, 'SELECT 1;', 'target.txt', 'target');
+        $service = new UnavailableImportTestService($root, new PDO('sqlite::memory:'));
+
+        try {
+            $service->restoreFrom($targetArchive);
+            $this->fail('Expected restore to be rejected before staging.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Restore is not available on this server', $exception->getMessage());
+        }
+
+        $this->assertSame(0, $service->preRestoreBackupCalls);
+    }
+
+    public function test_failed_target_import_uses_pdo_fallback_to_import_pre_restore_backup(): void
+    {
+        $root = $this->tempRoot();
+        $targetArchive = $root.DIRECTORY_SEPARATOR.'target-failure.zip';
+        $this->createArchive($targetArchive, "INSERT INTO `sample` VALUES ('target-failure');", 'target.txt', 'target');
+        $service = new PdoRollbackRestoreTestService($root, new PDO('sqlite::memory:'));
+        $service->failStatementContaining = 'target-failure';
+
+        try {
+            $service->restoreFrom($targetArchive);
+            $this->fail('Expected target SQL import to fail and rollback to run.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('previous database and uploaded files were restored', $exception->getMessage());
+        }
+
+        $this->assertContains("INSERT INTO `sample` VALUES ('rollback-ok')", $service->executedStatements);
+        $this->assertSame([false, true, false, true], $service->foreignKeyStates);
+        $this->assertSame(1, $service->preRestoreBackupCalls);
+    }
+
     private function pdoWithDumpFixture(): PDO
     {
         $pdo = new PDO('sqlite::memory:');
@@ -221,6 +419,14 @@ class BackupServiceTest extends TestCase
         $statement->execute([1, null, "\0\xff", '{"ok":true,"text":"it\'s valid"}']);
 
         return $pdo;
+    }
+
+    private function writeSqlFile(string $sql): string
+    {
+        $path = $this->tempRoot().DIRECTORY_SEPARATOR.'fixture.sql';
+        file_put_contents($path, $sql);
+
+        return $path;
     }
 
     private function tempRoot(): string
@@ -425,5 +631,134 @@ class FailingDumpBackupService extends BackupService
         file_put_contents($destination, 'partial dump');
 
         throw new \RuntimeException('Database backup could not run on this server.');
+    }
+}
+
+class PdoImportTestService extends BackupService
+{
+    public array $executedStatements = [];
+
+    public array $foreignKeyStates = [];
+
+    public int $legacyImportCalls = 0;
+
+    public ?string $failStatementContaining = null;
+
+    public function __construct(
+        protected readonly string $root,
+        protected readonly PDO $pdo,
+        private readonly bool $processIsAvailable = false
+    ) {
+        $this->backupDirectory = 'backups';
+    }
+
+    public function parseSqlFile(string $sqlFile): array
+    {
+        return iterator_to_array($this->readPdoImportStatements($sqlFile), false);
+    }
+
+    public function importSqlFile(string $sqlFile): void
+    {
+        $this->importDatabase($sqlFile);
+    }
+
+    public function restoreFrom(string $archivePath): bool
+    {
+        return $this->performRestore($archivePath);
+    }
+
+    protected function processAvailable(): bool
+    {
+        return $this->processIsAvailable;
+    }
+
+    protected function canImportDatabase(): bool
+    {
+        return true;
+    }
+
+    protected function pdoForDatabaseImport(): PDO
+    {
+        return $this->pdo;
+    }
+
+    protected function isMysqlImportPdo(PDO $pdo): bool
+    {
+        return true;
+    }
+
+    protected function setImportForeignKeyChecks(PDO $pdo, bool $enabled): void
+    {
+        $this->foreignKeyStates[] = $enabled;
+    }
+
+    protected function executePdoImportStatement(PDO $pdo, string $statement): void
+    {
+        $this->executedStatements[] = $statement;
+        if ($this->failStatementContaining !== null && str_contains($statement, $this->failStatementContaining)) {
+            throw new \RuntimeException('simulated SQL failure with sensitive database values');
+        }
+    }
+
+    protected function runMysqlImportProcess(array $command, array $environment, string $sqlFile): void
+    {
+        $this->legacyImportCalls++;
+    }
+
+    protected function backupDirectoryPath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'backups';
+    }
+
+    protected function publicStoragePath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'public';
+    }
+
+    protected function privateStoragePath(): string
+    {
+        return $this->root.DIRECTORY_SEPARATOR.'private';
+    }
+}
+
+class UnavailableImportTestService extends PdoImportTestService
+{
+    public int $preRestoreBackupCalls = 0;
+
+    protected function canImportDatabase(): bool
+    {
+        return false;
+    }
+
+    public function createBackup(string $prefix = 'backup_', bool $recordStatus = true): array
+    {
+        $this->preRestoreBackupCalls++;
+
+        throw new \RuntimeException('Pre-restore backup should not be reached.');
+    }
+}
+
+class PdoRollbackRestoreTestService extends PdoImportTestService
+{
+    public int $preRestoreBackupCalls = 0;
+
+    public function createBackup(string $prefix = 'backup_', bool $recordStatus = true): array
+    {
+        $this->preRestoreBackupCalls++;
+        $directory = $this->backupDirectoryPath();
+        if (! is_dir($directory)) {
+            mkdir($directory, 0700, true);
+        }
+
+        $filename = 'pre_restore_test.zip';
+        $path = $directory.DIRECTORY_SEPARATOR.$filename;
+        $zip = new ZipArchive;
+        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString('database.sql', "INSERT INTO `sample` VALUES ('rollback-ok');");
+        $zip->addEmptyDir('storage/public');
+        $zip->addEmptyDir('storage/private');
+        $zip->close();
+
+        return ['path' => $path, 'filename' => $filename, 'size' => filesize($path)];
     }
 }

@@ -230,6 +230,10 @@ class BackupService
             throw new \RuntimeException('The selected backup file could not be found.');
         }
 
+        if (! $this->canImportDatabase()) {
+            throw new \RuntimeException('Restore is not available on this server');
+        }
+
         $publicStorage = $this->publicStoragePath();
         $privateStorage = $this->privateStoragePath();
         if (is_link($publicStorage)) {
@@ -776,8 +780,35 @@ class BackupService
         }
     }
 
+    protected function canImportDatabase(): bool
+    {
+        if ($this->processAvailable()) {
+            return true;
+        }
+
+        if (! extension_loaded('pdo_mysql')) {
+            return false;
+        }
+
+        try {
+            return $this->isMysqlImportPdo($this->pdoForDatabaseImport());
+        } catch (\Throwable $exception) {
+            return false;
+        }
+    }
+
     protected function importDatabase(string $sqlFile): void
     {
+        if (! $this->processAvailable()) {
+            if (! $this->canImportDatabase()) {
+                throw new \RuntimeException('Restore is not available on this server');
+            }
+
+            $this->importDatabaseWithPdo($sqlFile);
+
+            return;
+        }
+
         $config = config('database.connections.mysql');
         $binary = config('backup.mysql_path');
         $environment = $this->buildWindowsProcessEnvironment();
@@ -791,13 +822,347 @@ class BackupService
             ($config['database'] ?? ''),
         ];
 
+        try {
+            $this->runMysqlImportProcess($command, $environment, $sqlFile);
+        } catch (\Throwable $exception) {
+            throw new \RuntimeException('Database restore could not run on this server.');
+        }
+    }
+
+    protected function pdoForDatabaseImport(): PDO
+    {
+        return app('db')->connection('mysql')->getPdo();
+    }
+
+    protected function isMysqlImportPdo(PDO $pdo): bool
+    {
+        return $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+    }
+
+    protected function importDatabaseWithPdo(string $sqlFile): void
+    {
+        $pdo = $this->pdoForDatabaseImport();
+        if (! $this->isMysqlImportPdo($pdo)) {
+            throw new \RuntimeException('Restore is not available on this server');
+        }
+
+        $statementCount = $this->validatePdoImportFile($sqlFile);
+        if ($statementCount === 0) {
+            throw new \RuntimeException('The SQL backup contains no importable statements.');
+        }
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+
+        $statementNumber = 0;
+        $failure = null;
+
+        try {
+            $this->setImportForeignKeyChecks($pdo, false);
+
+            foreach ($this->readPdoImportStatements($sqlFile) as $statement) {
+                $statement = $this->supportedPdoImportStatement($statement);
+                if ($statement === null) {
+                    continue;
+                }
+
+                $statementNumber++;
+                try {
+                    $this->executePdoImportStatement($pdo, $statement);
+                } catch (\Throwable $exception) {
+                    throw new \RuntimeException(
+                        'Database restore failed at statement '.$statementNumber.' ('.$this->safeStatementPreview($statement).'). '
+                        .'Changes may have occurred; recovery from the pre-restore backup may be necessary.'
+                    );
+                }
+            }
+        } catch (\Throwable $exception) {
+            $failure = $exception;
+        } finally {
+            try {
+                $this->setImportForeignKeyChecks($pdo, true);
+            } catch (\Throwable $exception) {
+                if ($failure === null) {
+                    $failure = new \RuntimeException('Database restore could not restore foreign-key checks.');
+                }
+            }
+        }
+
+        if ($failure !== null) {
+            throw $failure;
+        }
+    }
+
+    protected function validatePdoImportFile(string $sqlFile): int
+    {
+        $statementCount = 0;
+        foreach ($this->readPdoImportStatements($sqlFile) as $statement) {
+            $statement = $this->supportedPdoImportStatement($statement);
+            if ($statement !== null) {
+                $statementCount++;
+            }
+        }
+
+        return $statementCount;
+    }
+
+    protected function readPdoImportStatements(string $sqlFile): \Generator
+    {
+        $stream = @fopen($sqlFile, 'rb');
+        if ($stream === false) {
+            throw new \RuntimeException('The SQL backup could not be read.');
+        }
+
+        $buffer = '';
+        $bufferIndex = 0;
+        $pending = [];
+        $readCharacter = function () use ($stream, &$buffer, &$bufferIndex, &$pending): ?string {
+            if ($pending !== []) {
+                return array_shift($pending);
+            }
+
+            if ($bufferIndex >= strlen($buffer)) {
+                $buffer = fread($stream, 8192);
+                $bufferIndex = 0;
+                if ($buffer === false || $buffer === '') {
+                    return null;
+                }
+            }
+
+            return $buffer[$bufferIndex++];
+        };
+        $pushCharacter = function (string $character) use (&$pending): void {
+            array_unshift($pending, $character);
+        };
+
+        $statement = '';
+        $quote = null;
+        $escaped = false;
+        $blockComment = null;
+        $lineComment = false;
+        $parseError = null;
+
+        try {
+            while (($character = $readCharacter()) !== null) {
+                if ($lineComment) {
+                    if ($character === "\n" || $character === "\r") {
+                        $lineComment = false;
+                        $statement .= $character;
+                    }
+                    continue;
+                }
+
+                if ($blockComment !== null) {
+                    if ($blockComment === 'ordinary') {
+                        if ($character === '*') {
+                            $next = $readCharacter();
+                            if ($next === '/') {
+                                $statement .= ' ';
+                                $blockComment = null;
+                            } elseif ($next !== null) {
+                                $pushCharacter($next);
+                            }
+                        }
+                        continue;
+                    }
+
+                    $statement .= $character;
+                    if ($character === '*') {
+                        $next = $readCharacter();
+                        if ($next === '/') {
+                            $statement .= '/';
+                            $blockComment = null;
+                        } elseif ($next !== null) {
+                            $pushCharacter($next);
+                        }
+                    }
+                    continue;
+                }
+
+                if ($quote !== null) {
+                    $statement .= $character;
+                    if ($escaped) {
+                        $escaped = false;
+                        continue;
+                    }
+                    if ($character === '\\') {
+                        $escaped = true;
+                        continue;
+                    }
+                    if ($character === $quote) {
+                        $next = $readCharacter();
+                        if ($next === $quote) {
+                            $statement .= $next;
+                        } else {
+                            $quote = null;
+                            if ($next !== null) {
+                                $pushCharacter($next);
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                if ($character === "'" || $character === '"' || $character === '`') {
+                    $quote = $character;
+                    $statement .= $character;
+                    continue;
+                }
+
+                if ($character === '#') {
+                    $lineComment = true;
+                    continue;
+                }
+
+                if ($character === '-') {
+                    $next = $readCharacter();
+                    if ($next === '-') {
+                        $third = $readCharacter();
+                        if ($third !== null && ord($third) <= 32) {
+                            $lineComment = true;
+                            continue;
+                        }
+                        $statement .= '--';
+                        if ($third !== null) {
+                            $pushCharacter($third);
+                        }
+                        continue;
+                    }
+                    $statement .= '-';
+                    if ($next !== null) {
+                        $pushCharacter($next);
+                    }
+                    continue;
+                }
+
+                if ($character === '/') {
+                    $next = $readCharacter();
+                    if ($next === '*') {
+                        $third = $readCharacter();
+                        if ($third === '!') {
+                            $statement .= '/*!';
+                            $blockComment = 'executable';
+                        } elseif ($third === 'M' || $third === 'm') {
+                            $marker = $readCharacter();
+                            if ($marker === '!') {
+                                $statement .= '/*'.$third.'!';
+                                $blockComment = 'executable';
+                            } else {
+                                $statement .= ' ';
+                                $blockComment = 'ordinary';
+                                if ($marker !== null) {
+                                    $pushCharacter($marker);
+                                }
+                            }
+                        } else {
+                            $blockComment = 'ordinary';
+                            $statement .= ' ';
+                            if ($third !== null) {
+                                $pushCharacter($third);
+                            }
+                        }
+                        continue;
+                    }
+                    $statement .= '/';
+                    if ($next !== null) {
+                        $pushCharacter($next);
+                    }
+                    continue;
+                }
+
+                if ($character === ';') {
+                    $completed = trim($statement);
+                    if ($completed !== '') {
+                        yield $completed;
+                    }
+                    $statement = '';
+                    continue;
+                }
+
+                $statement .= $character;
+            }
+
+            if ($quote !== null) {
+                $parseError = 'The SQL backup contains an unterminated quoted value or identifier.';
+            } elseif ($blockComment !== null) {
+                $parseError = 'The SQL backup contains an unterminated block comment.';
+            }
+
+            if ($parseError !== null) {
+                throw new \RuntimeException($parseError);
+            }
+
+            $completed = trim($statement);
+            if ($completed !== '') {
+                yield $completed;
+            }
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    protected function supportedPdoImportStatement(string $statement): ?string
+    {
+        if (preg_match('/^\s*DELIMITER\b/i', $statement)) {
+            throw new \RuntimeException('The SQL backup uses unsupported DELIMITER directives.');
+        }
+
+        $effectiveSql = $this->unwrappedConditionalSql($statement);
+        if (preg_match('/^\s*CREATE\s+(?:(?:OR\s+REPLACE)\s+)?(?:(?:DEFINER\s*=\s*[^\s]+)\s+)?(?:TEMPORARY\s+)?(?:TRIGGER|PROCEDURE|FUNCTION|EVENT)\b/i', $effectiveSql)) {
+            throw new \RuntimeException('The SQL backup contains unsupported triggers, routines, or events.');
+        }
+
+        if (preg_match('/^\s*CREATE\s+(?:DATABASE|SCHEMA)\b/i', $effectiveSql)
+            || preg_match('/^\s*USE\b/i', $effectiveSql)
+            || preg_match('/^\s*(?:LOCK\s+TABLES|UNLOCK\s+TABLES)\b/i', $effectiveSql)) {
+            return null;
+        }
+
+        return $statement;
+    }
+
+    protected function unwrappedConditionalSql(string $statement): string
+    {
+        return preg_replace_callback(
+            '~\/\*(?:!|[Mm]!)(?:\d{5,6})?\s*(.*?)\*\/\s*~s',
+            static fn (array $match): string => ' '.$match[1].' ',
+            $statement
+        ) ?? $statement;
+    }
+
+    protected function executePdoImportStatement(PDO $pdo, string $statement): void
+    {
+        $pdo->exec($statement);
+    }
+
+    protected function runMysqlImportProcess(array $command, array $environment, string $sqlFile): void
+    {
         $process = new Process($command, null, $environment, file_get_contents($sqlFile));
         $process->setTimeout(300);
         $process->run();
 
         if (! $process->isSuccessful()) {
-            throw new \RuntimeException('Database restore failed: '.$process->getErrorOutput().' '.$process->getOutput());
+            throw new \RuntimeException('Database restore could not run on this server.');
         }
+    }
+
+    protected function setImportForeignKeyChecks(PDO $pdo, bool $enabled): void
+    {
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=' . ($enabled ? '1' : '0'));
+    }
+
+    protected function safeStatementPreview(string $statement): string
+    {
+        $preview = preg_replace("/'(?:\\\\.|''|[^'\\\\])*'|\"(?:\\\\.|\"\"|[^\"\\\\])*\"/s", "'[redacted]'", $statement) ?? '';
+        $preview = preg_replace('/\b0x[0-9a-f]+\b/i', '[binary]', $preview) ?? $preview;
+        $preview = preg_replace('/(?<![A-Za-z0-9_])[+-]?\d+(?:\.\d+)?(?![A-Za-z0-9_])/', '[value]', $preview) ?? $preview;
+        $preview = preg_replace('/\s+/', ' ', trim($preview)) ?? trim($preview);
+
+        return substr($preview, 0, 160);
     }
 
     protected function buildWindowsProcessEnvironment(): array
