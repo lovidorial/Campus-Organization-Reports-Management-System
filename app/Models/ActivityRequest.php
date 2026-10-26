@@ -31,6 +31,7 @@ class ActivityRequest extends Model
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
     public const STATUS_REJECTED = 'rejected';
+    public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_AWAITING_REPORT = 'awaiting_report';
     public const STATUS_REPORT_SUBMITTED = 'report_submitted';

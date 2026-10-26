@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Gpoa;
 use App\Models\Organization;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -67,6 +68,63 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_unknown_email_and_wrong_password_have_distinct_messages(): void
+    {
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => 'missing@example.com',
+                'password' => 'wrong-password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertSessionHasErrors(['email' => 'No account found with this email.']);
+
+        $user = User::factory()->create();
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertSessionHasErrors(['password' => 'Incorrect password.']);
+    }
+
+    public function test_empty_and_invalid_email_fields_have_individual_validation_messages(): void
+    {
+        $this->from('/login')
+            ->post('/login', [])
+            ->assertSessionHasErrors([
+                'email' => 'Please enter your email address.',
+                'password' => 'Please enter your password.',
+            ]);
+
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => 'not-an-email',
+                'password' => 'some-password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertSessionHasErrors(['email' => 'Please enter a valid email address.']);
+    }
+
+    public function test_inactive_user_has_a_specific_login_message(): void
+    {
+        $user = User::factory()->create(['officer_status' => 'inactive']);
+
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertSessionHasErrors(['email' => 'This account is inactive. Please contact the OSDW office.']);
+
+        $this->assertGuest();
+    }
+
     public function test_sixth_failed_login_attempt_returns_friendly_lockout_validation_error(): void
     {
         $user = User::factory()->create();
@@ -80,7 +138,7 @@ class AuthenticationTest extends TestCase
                     'captcha' => 'ABCDE',
                 ])
                 ->assertRedirect('/login')
-                ->assertSessionHasErrors('email');
+                ->assertSessionHasErrors($attempt === 4 ? 'email' : 'password');
         }
 
         $response = $this->withSession(['login_captcha' => 'ABCDE'])
@@ -94,7 +152,7 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(302)
             ->assertRedirect('/login')
             ->assertSessionHasErrors('email');
-        $this->assertStringContainsString('Too many login attempts', session('errors')->first('email'));
+        $this->assertStringContainsString('Too many attempts', session('errors')->first('email'));
     }
 
     public function test_wrong_captchas_count_toward_login_lockout(): void
@@ -110,7 +168,7 @@ class AuthenticationTest extends TestCase
                     'captcha' => 'ZZZZZ',
                 ])
                 ->assertRedirect('/login')
-                ->assertSessionHasErrors('captcha');
+                ->assertSessionHasErrors($attempt === 4 ? 'email' : 'captcha');
         }
 
         $response = $this->withSession(['login_captcha' => 'ABCDE'])
@@ -124,7 +182,97 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(302)
             ->assertRedirect('/login')
             ->assertSessionHasErrors('email');
-        $this->assertStringContainsString('Too many login attempts', session('errors')->first('email'));
+        $this->assertStringContainsString('Too many attempts', session('errors')->first('email'));
+    }
+
+    public function test_progressive_lockouts_escalate_and_reset_after_24_hours_idle(): void
+    {
+        Carbon::setTestNow('2026-10-19 12:00:00');
+
+        try {
+            $email = 'progressive-lock@example.com';
+            foreach ([60, 300, 900, 3600, 3600] as $duration) {
+                for ($attempt = 0; $attempt < 5; $attempt++) {
+                    $response = $this->withSession(['login_captcha' => 'ABCDE'])
+                        ->from('/login')
+                        ->post('/login', [
+                            'email' => $email,
+                            'password' => 'wrong-password',
+                            'captcha' => 'ABCDE',
+                        ]);
+                }
+
+                $response->assertSessionHasErrors([
+                    'email' => sprintf(
+                        'Too many attempts. Try again in %d minutes %d seconds.',
+                        intdiv($duration, 60),
+                        $duration % 60,
+                    ),
+                ]);
+                Carbon::setTestNow(now()->addSeconds($duration));
+            }
+
+            Carbon::setTestNow(now()->addDay()->addSecond());
+            for ($attempt = 0; $attempt < 5; $attempt++) {
+                $response = $this->withSession(['login_captcha' => 'ABCDE'])
+                    ->from('/login')
+                    ->post('/login', [
+                        'email' => $email,
+                        'password' => 'wrong-password',
+                        'captcha' => 'ABCDE',
+                    ]);
+            }
+            $response->assertSessionHasErrors(['email' => 'Too many attempts. Try again in 1 minutes 0 seconds.']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_attempts_during_lockout_do_not_count_toward_the_next_lockout(): void
+    {
+        Carbon::setTestNow('2026-10-19 12:00:00');
+
+        try {
+            $email = User::factory()->create()->email;
+            for ($attempt = 0; $attempt < 5; $attempt++) {
+                $response = $this->withSession(['login_captcha' => 'ABCDE'])
+                    ->from('/login')
+                    ->post('/login', [
+                        'email' => $email,
+                        'password' => 'wrong-password',
+                        'captcha' => 'ABCDE',
+                    ]);
+            }
+            $response->assertSessionHasErrors(['email' => 'Too many attempts. Try again in 1 minutes 0 seconds.']);
+
+            $this->withSession(['login_captcha' => 'ABCDE'])
+                ->from('/login')
+                ->post('/login', ['email' => $email, 'password' => 'anything', 'captcha' => 'ABCDE'])
+                ->assertSessionHasErrors(['email' => 'Too many attempts. Try again in 1 minutes 0 seconds.']);
+
+            Carbon::setTestNow(now()->addMinute());
+            for ($attempt = 0; $attempt < 4; $attempt++) {
+                $this->withSession(['login_captcha' => 'ABCDE'])
+                    ->from('/login')
+                    ->post('/login', [
+                        'email' => $email,
+                        'password' => 'wrong-password',
+                        'captcha' => 'ABCDE',
+                    ])
+                    ->assertSessionHasErrors(['password' => 'Incorrect password.']);
+            }
+
+            $this->withSession(['login_captcha' => 'ABCDE'])
+                ->from('/login')
+                ->post('/login', [
+                    'email' => $email,
+                    'password' => 'wrong-password',
+                    'captcha' => 'ABCDE',
+                ])
+                ->assertSessionHasErrors(['email' => 'Too many attempts. Try again in 5 minutes 0 seconds.']);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_login_rejects_an_incorrect_captcha_and_rotates_the_code(): void

@@ -7,7 +7,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Response;
 
@@ -51,15 +50,27 @@ class AuthenticatedSessionController extends Controller
             && hash_equals(strtoupper($expectedCaptcha), strtoupper($providedCaptcha));
 
         if (! $captchaIsValid) {
-            RateLimiter::hit($request->throttleKey(), 300);
+            $lockoutSeconds = $request->recordFailedAttempt();
             $request->session()->put('login_captcha', $this->generateCaptcha());
+
+            if ($lockoutSeconds !== null) {
+                $request->ensureIsNotRateLimited();
+            }
 
             return back()
                 ->withErrors(['captcha' => 'The captcha code is incorrect.'])
                 ->withInput($request->only('email'));
         }
 
-        $request->authenticate();
+        if (! $request->authenticate()) {
+            return back()
+                ->with('status', $request->session()->get('identity-verification-sent')
+                    ? 'identity-verification-sent'
+                    : 'identity-verification-throttled')
+                ->with('verification_user_id', $request->session()->get('identity-verification-user-id'))
+                ->with('verification_email', $request->input('email'))
+                ->withInput($request->only('email'));
+        }
 
         $user = Auth::user();
 

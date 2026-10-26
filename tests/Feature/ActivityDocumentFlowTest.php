@@ -179,8 +179,8 @@ class ActivityDocumentFlowTest extends TestCase
     {
         return array_merge([
             'signed_by_secretary' => '1',
-            'signed_by_governor' => '1',
-            'signed_by_advisor' => '1',
+            'signed_by_organization_head' => '1',
+            'signed_by_adviser' => '1',
             'signed_by_dean_president' => '1',
         ], $values);
     }

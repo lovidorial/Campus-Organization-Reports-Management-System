@@ -9,6 +9,7 @@ use App\Models\UserNotification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -34,19 +35,28 @@ class ActivityReportController extends Controller
             ? 'nullable|array|max:' . max(0, 10 - $existingPhotoCount)
             : 'required|array|min:1|max:10';
 
-        $validated = $request->validate([
+        $request->merge([
+            'signed_by_organization_head' => $request->input('signed_by_organization_head', $request->input('signed_by_governor')),
+            'signed_by_adviser' => $request->input('signed_by_adviser', $request->input('signed_by_advisor')),
+        ]);
+
+        $validated = Validator::make($request->all(), [
             'narrative_source' => 'required|in:uploaded,generated',
             'narrative_report' => 'nullable|file|mimes:pdf|max:20480',
             'narrative_content' => 'nullable|string|max:30000',
             'description' => 'nullable|string|max:1000',
             'signed_by_secretary' => 'required|accepted',
-            'signed_by_governor' => 'required|accepted',
-            'signed_by_advisor' => 'required|accepted',
+            'signed_by_organization_head' => 'required|accepted',
+            'signed_by_adviser' => 'required|accepted',
             'signed_by_dean_president' => 'required|accepted',
             'photos' => $photoRules,
             'photos.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             'attendance_sheet' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp,gif|max:10240',
-        ]);
+        ], [], [
+            'signed_by_organization_head' => 'Organization Head signature confirmation',
+            'signed_by_adviser' => 'Adviser signature confirmation',
+            'signed_by_dean_president' => 'Dean/President signature confirmation',
+        ])->validate();
 
         if ($validated['narrative_source'] === 'uploaded'
             && ! $request->hasFile('narrative_report')
@@ -91,8 +101,8 @@ class ActivityReportController extends Controller
                 'submitted_at' => now(),
                 'description' => $validated['description'] ?? null,
                 'signed_by_secretary' => $validated['signed_by_secretary'],
-                'signed_by_governor' => $validated['signed_by_governor'],
-                'signed_by_advisor' => $validated['signed_by_advisor'],
+                'signed_by_governor' => $validated['signed_by_organization_head'],
+                'signed_by_advisor' => $validated['signed_by_adviser'],
                 'signed_by_dean_president' => $validated['signed_by_dean_president'],
                 'status' => 'pending',
                 'feedback' => null,
@@ -117,8 +127,8 @@ class ActivityReportController extends Controller
                 'submitted_at'        => now(),
                 'description'         => $validated['description'] ?? null,
                 'signed_by_secretary' => $validated['signed_by_secretary'],
-                'signed_by_governor' => $validated['signed_by_governor'],
-                'signed_by_advisor' => $validated['signed_by_advisor'],
+                'signed_by_governor' => $validated['signed_by_organization_head'],
+                'signed_by_advisor' => $validated['signed_by_adviser'],
                 'signed_by_dean_president' => $validated['signed_by_dean_president'],
                 'attendance_sheet_path' => $attendancePath,
             ]);

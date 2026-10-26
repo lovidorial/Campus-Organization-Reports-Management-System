@@ -13,8 +13,11 @@ use App\Http\Controllers\GpoaController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PublicOrgChartController;
 use App\Http\Controllers\WorkflowDocumentController;
+use App\Mail\ConfirmIdentityMail;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 Route::get('/', function () {
     $organizations = \App\Models\Organization::where('is_active', true)->orderBy('name')->get();
@@ -37,6 +40,19 @@ Route::redirect('/activities', '/');
 Route::get('/org-chart', [PublicOrgChartController::class, 'index'])->name('public.orgchart');
 
 require __DIR__ . '/auth.php';
+
+if (app()->environment('local')) {
+    Route::get('/_preview/identity-confirmation', function () {
+        $user = new User(['name' => 'Alex Rivera', 'email' => 'alex.rivera@example.com']);
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => 1, 'hash' => sha1($user->email)],
+        );
+
+        return (new ConfirmIdentityMail($user, $verificationUrl, 60, asset('images/osdw.logo.jpg')))->render();
+    })->name('mail-preview.identity-confirmation');
+}
 
 Route::middleware(['auth', 'account.active', \App\Http\Middleware\EnforceOrganizationStorageLimit::class])->group(function () {
 
@@ -80,6 +96,7 @@ Route::middleware(['auth', 'account.active', \App\Http\Middleware\EnforceOrganiz
         Route::get('/activity-requests/create/from-activity/{gpoaActivity}', [ActivityRequestController::class, 'createFromActivity'])->name('activity-requests.create-from-activity');
         Route::get('/activity-requests/create', [ActivityRequestController::class, 'create'])->name('activity-requests.create');
         Route::post('/activity-requests', [ActivityRequestController::class, 'store'])->name('activity-requests.store');
+        Route::post('/activity-requests/{activityRequest}/cancel', [ActivityRequestController::class, 'cancel'])->name('activity-requests.cancel');
         Route::get('/activity-requests/{activityRequest}', [ActivityRequestController::class, 'show'])->name('activity-requests.show');
         Route::get('/activity-requests/{activityRequest}/pdf', [ActivityRequestController::class, 'downloadPdf'])->name('activity-requests.pdf');
         Route::get('/activity-requests/{activityRequest}/report', [ActivityReportController::class, 'create'])->name('activity-reports.create');

@@ -142,6 +142,13 @@ class ActivityRequestAvailabilityTest extends TestCase
             'category' => 'Makakalikasan (Clean and Green)',
             'status' => ActivityRequest::STATUS_PENDING,
         ]);
+        ActivityReport::create([
+            'activity_request_id' => ActivityRequest::where('title', 'Existing Symposium Request')->value('id'),
+            'narrative_content' => ['body' => 'The prior report was submitted.'],
+            'narrative_source' => 'generated',
+            'submitted_at' => now(),
+            'status' => 'pending',
+        ]);
 
         $this->actingAs($user)
             ->from(route('activity-requests.create-from-activity', $plannedActivity))
@@ -153,31 +160,33 @@ class ActivityRequestAvailabilityTest extends TestCase
         $this->assertDatabaseMissing('activity_requests', ['title' => 'Limit Check Activity']);
     }
 
-    public function test_past_activity_without_narrative_report_blocks_new_requests_and_shows_report_link(): void
+    public function test_pending_activity_without_narrative_report_blocks_new_requests_and_shows_notice(): void
     {
         $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('New Planned Event', '2026-10-10', 'Main Hall');
         $outstanding = $this->createExistingRequest($user, $gpoa, 'Past Activity Needs Report', '2026-09-30');
+        $outstanding->update(['status' => ActivityRequest::STATUS_PENDING]);
 
         $this->actingAs($user)
             ->get(route('activity-requests.create'))
-            ->assertRedirect(route('activity-monitor.index'))
-            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Past Activity Needs Report'));
+            ->assertOk()
+            ->assertSee('Please submit the Narrative report for:')
+            ->assertSee('Past Activity Needs Report');
 
         $this->get(route('activity-requests.create-from-activity', $plannedActivity))
-            ->assertRedirect(route('activity-monitor.index'));
+            ->assertOk()
+            ->assertSee('Past Activity Needs Report');
 
         $this->get(route('activity-monitor.index'))
             ->assertOk()
-            ->assertSee('You have 1 activity report to submit before requesting a new activity')
+            ->assertSee('Please submit the Narrative report for:')
             ->assertSee(route('activity-reports.create', $outstanding), false)
-            ->assertSee('Submit pending report first')
             ->assertDontSee('Request activity');
     }
 
     public function test_store_cannot_be_used_to_bypass_the_outstanding_report_guard(): void
     {
-        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        $this->travelTo('2026-10-02 00:00:00');
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('Direct Post Event', '2026-10-10', 'Main Hall');
         $this->createExistingRequest($user, $gpoa, 'Outstanding Before Direct Post', '2026-10-01');
 
@@ -185,14 +194,14 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->from(route('activity-monitor.index'))
             ->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity))
             ->assertRedirect(route('activity-monitor.index'))
-            ->assertSessionHasErrors('activity_request');
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Outstanding Before Direct Post'));
 
         $this->assertDatabaseMissing('activity_requests', ['title' => 'Direct Post Event']);
     }
 
     public function test_new_requests_are_allowed_after_the_previous_narrative_report_is_submitted(): void
     {
-        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        $this->travelTo('2026-10-02 00:00:00');
         [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('After Report Event', '2026-10-10', 'Main Hall');
         $previousRequest = $this->createExistingRequest($user, $gpoa, 'Past Activity Reported', '2026-09-30');
         $previousRequest->update(['venue' => 'Previous Hall']);
@@ -211,7 +220,7 @@ class ActivityRequestAvailabilityTest extends TestCase
             ->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
     }
 
-    public function test_earlier_future_activity_without_a_report_does_not_block_new_requests(): void
+    public function test_future_activity_without_a_report_blocks_in_default_any_mode(): void
     {
         $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
         [$user, $gpoa] = $this->makeRequestContext('Future Existing Planned', '2026-10-20', 'Main Hall');
@@ -219,10 +228,105 @@ class ActivityRequestAvailabilityTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('activity-requests.create'))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('Future Existing Request');
     }
 
-    public function test_needs_revision_report_remains_outstanding(): void
+    public function test_after_date_mode_ignores_future_requests_and_blocks_past_requests(): void
+    {
+        config(['activity_requests.strictness' => 'after_date']);
+        $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('After Date New Event', '2026-10-20', 'Main Hall');
+        $this->createExistingRequest($user, $gpoa, 'After Date Future Request', '2026-10-20');
+
+        $this->actingAs($user)
+            ->get(route('activity-requests.create'))
+            ->assertOk()
+            ->assertDontSee('You can\'t request a new activity yet.');
+
+        $pastRequest = $this->createExistingRequest($user, $gpoa, 'After Date Past Request', '2026-10-01');
+        $this->get(route('activity-requests.create'))
+            ->assertOk()
+            ->assertSee('After Date Past Request');
+        $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity))
+            ->assertRedirect(route('activity-monitor.index'));
+        $this->assertDatabaseMissing('activity_requests', ['title' => 'After Date New Event']);
+    }
+
+    public function test_notice_lists_every_pending_narrative_request(): void
+    {
+        [$user, $gpoa] = $this->makeRequestContext('New Planned Event', '2026-10-10', 'Main Hall');
+        $first = $this->createExistingRequest($user, $gpoa, 'Teachers\' Day', '2026-11-02');
+        $second = $this->createExistingRequest($user, $gpoa, 'Induction and Oath Taking', '2026-10-03');
+        $first->update(['status' => ActivityRequest::STATUS_PENDING]);
+        $second->update(['status' => ActivityRequest::STATUS_PENDING]);
+
+        $this->actingAs($user)
+            ->get(route('activity-monitor.index'))
+            ->assertOk()
+            ->assertSee('Teachers\' Day')
+            ->assertSee('Nov 02, 2026')
+            ->assertSee('Induction and Oath Taking')
+            ->assertSee('Oct 03, 2026')
+            ->assertSee(route('activity-reports.create', $first), false)
+            ->assertSee(route('activity-reports.create', $second), false);
+    }
+
+    public function test_cancelled_request_is_audited_and_no_longer_blocks_creation(): void
+    {
+        $this->travelTo('2026-10-02 00:00:00');
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('After Cancel Event', '2026-10-10', 'Main Hall');
+        $previousRequest = $this->createExistingRequest($user, $gpoa, 'Mistaken Request', '2026-10-01');
+        $previousRequest->update(['status' => ActivityRequest::STATUS_PENDING]);
+
+        $this->actingAs($user)
+            ->post(route('activity-requests.cancel', $previousRequest))
+            ->assertRedirect(route('activity-monitor.index'));
+
+        $this->assertSame(ActivityRequest::STATUS_CANCELLED, $previousRequest->fresh()->status);
+        $this->assertDatabaseHas('activity_log', [
+            'description' => 'activity_request.cancelled',
+            'subject_id' => $previousRequest->id,
+        ]);
+        $this->get(route('activity-requests.create'))->assertOk();
+        $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity))
+            ->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
+    }
+
+    public function test_rejected_request_does_not_block_creation(): void
+    {
+        $this->travelTo('2026-10-02 00:00:00');
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('After Rejection Event', '2026-10-10', 'Main Hall');
+        $this->createExistingRequest($user, $gpoa, 'Rejected Request', '2026-10-01')
+            ->update(['status' => ActivityRequest::STATUS_REJECTED, 'venue' => 'Other Hall']);
+
+        $this->actingAs($user)->get(route('activity-requests.create'))->assertOk();
+        $this->post(route('activity-requests.store'), $this->activityRequestPayload($gpoa, $plannedActivity))
+            ->assertRedirect(route('activity-requests.show', ActivityRequest::latest('id')->firstOrFail()));
+    }
+
+    public function test_unapproved_request_without_a_letter_can_be_cancelled_but_request_with_letter_cannot(): void
+    {
+        $this->travelTo('2026-10-02 00:00:00');
+        [$user, $gpoa, $plannedActivity] = $this->makeRequestContext('New Activity', '2026-10-10', 'Main Hall');
+        $cancelable = $this->createExistingRequest($user, $gpoa, 'Cancel Eligible', '2026-10-01');
+        $cancelable->update(['gpoa_activity_id' => $plannedActivity->id, 'status' => ActivityRequest::STATUS_PENDING]);
+        $plannedActivity->update(['activity_request_id' => $cancelable->id]);
+        $letterUploaded = $this->createExistingRequest($user, $gpoa, 'Letter Already Uploaded', '2026-10-01');
+        $letterUploaded->update(['communication_letter' => 'letters/already-uploaded.pdf']);
+
+        $this->actingAs($user)
+            ->get(route('activity-monitor.index'))
+            ->assertOk()
+            ->assertSee(route('activity-requests.cancel', $cancelable), false)
+            ->assertDontSee('action="' . route('activity-requests.cancel', $letterUploaded) . '"', false);
+
+        $this->post(route('activity-requests.cancel', $letterUploaded))
+            ->assertUnprocessable();
+        $this->assertNotSame(ActivityRequest::STATUS_CANCELLED, $letterUploaded->fresh()->status);
+    }
+
+    public function test_submitted_report_with_needs_revision_does_not_block_new_requests(): void
     {
         $this->travelTo(today()->setDate(2026, 10, 2)->startOfDay());
         [$user, $gpoa] = $this->makeRequestContext('Needs Revision New Event', '2026-10-10', 'Main Hall');
@@ -237,8 +341,8 @@ class ActivityRequestAvailabilityTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('activity-requests.create'))
-            ->assertRedirect(route('activity-monitor.index'))
-            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Past Report Needs Revision'));
+            ->assertOk()
+            ->assertDontSee('You can\'t request a new activity yet.');
     }
 
     public function test_admin_is_not_blocked_by_organization_outstanding_report_rule(): void

@@ -7,13 +7,12 @@ use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
 use App\Models\UserNotification;
-use App\Services\OutstandingActivityReportService;
+use App\Services\ActivityRequestEligibility;
 use App\Services\VenueAvailabilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class ActivityRequestController extends Controller
@@ -103,17 +102,13 @@ class ActivityRequestController extends Controller
             ->download('activity-request-' . $activityRequest->id . '.pdf');
     }
 
-    public function monitor(Request $request, OutstandingActivityReportService $outstandingReportService)
+    public function monitor(Request $request, ActivityRequestEligibility $eligibility)
     {
         $user = auth()->user();
-        $outstandingReports = $outstandingReportService->forUser($user)
-            ->map(fn (ActivityRequest $activityRequest) => [
-                'title' => $activityRequest->title,
-                'url' => route('activity-reports.create', $activityRequest),
-            ])
-            ->values();
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+        $narrativePendingRequests = $eligibility->pendingNarratives($user, $term, $schoolYear);
+        $pendingNarrativeRequestIds = $narrativePendingRequests->modelKeys();
 
         $gpoas = Gpoa::where('user_id', $user->id)
             ->where('term', $term)
@@ -201,7 +196,7 @@ class ActivityRequestController extends Controller
         $archivedCount = $statusCounts['Archived'];
         $progressPercent = $activities->isEmpty() ? 0 : (int) round(($completedCount / $activities->count()) * 100);
 
-        return view('users.activity-monitor', compact('activities', 'pendingActivities', 'completedCount', 'ongoingCount', 'pendingCount', 'archivedCount', 'progressPercent', 'term', 'schoolYear', 'statusFilter', 'statusCounts', 'tab', 'sort', 'search', 'outstandingReports'));
+        return view('users.activity-monitor', compact('activities', 'pendingActivities', 'completedCount', 'ongoingCount', 'pendingCount', 'archivedCount', 'progressPercent', 'term', 'schoolYear', 'statusFilter', 'statusCounts', 'tab', 'sort', 'search', 'narrativePendingRequests', 'pendingNarrativeRequestIds'));
     }
 
     public function statuses()
@@ -220,13 +215,12 @@ class ActivityRequestController extends Controller
         ]);
     }
 
-    public function create(Request $request, OutstandingActivityReportService $outstandingReportService)
+    public function create(Request $request, ActivityRequestEligibility $eligibility)
     {
         $user = auth()->user();
-        $outstandingReports = $outstandingReportService->forUser($user);
-        if ($outstandingReports->isNotEmpty()) {
-            return $this->outstandingReportRedirect($outstandingReports);
-        }
+        $term = $user->term ?? '1st Term';
+        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+        $narrativePendingRequests = $eligibility->pendingNarratives($user, $term, $schoolYear);
 
         if ($request->filled('gpoa') && $request->filled('activity')) {
             $requestedActivity = GpoaActivity::with('gpoa')->find($request->query('activity'));
@@ -292,19 +286,15 @@ class ActivityRequestController extends Controller
             'usedCount',
             'limitCount',
             'atCap',
-            'activityLimitTemplate'
+            'activityLimitTemplate',
+            'narrativePendingRequests'
         ));
     }
 
-    public function createFromActivity(GpoaActivity $gpoaActivity, OutstandingActivityReportService $outstandingReportService)
+    public function createFromActivity(GpoaActivity $gpoaActivity, ActivityRequestEligibility $eligibility)
     {
         $gpoaActivity->load(['gpoa.user', 'gpoa.activities', 'activityRequest', 'activityRequest.programFlows']);
         abort_unless((int) $gpoaActivity->gpoa?->user_id === (int) auth()->id(), 403);
-
-        $outstandingReports = $outstandingReportService->forUser(auth()->user());
-        if ($outstandingReports->isNotEmpty()) {
-            return $this->outstandingReportRedirect($outstandingReports);
-        }
 
         if ($gpoaActivity->activityRequest) {
             return redirect()->route('activity-requests.show', $gpoaActivity->activityRequest)
@@ -317,6 +307,9 @@ class ActivityRequestController extends Controller
         }
 
         $user = auth()->user();
+        $term = $user->term ?? '1st Term';
+        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+        $narrativePendingRequests = $eligibility->pendingNarratives($user, $term, $schoolYear);
         $gpoa = $gpoaActivity->gpoa;
         $availableGpoas = Gpoa::where('user_id', $user->id)
             ->with('activities')
@@ -369,15 +362,18 @@ class ActivityRequestController extends Controller
         return view('users.create-request', compact(
             'availableGpoas', 'gpoa', 'selectedGpoaId', 'selectedActivityId', 'activityLimits',
             'categoryCounts', 'usedCount', 'limitCount', 'atCap', 'activityLimitTemplate',
-            'fromPlannedActivity', 'prefill', 'programFlows', 'gpoaActivity'
+            'fromPlannedActivity', 'prefill', 'programFlows', 'gpoaActivity', 'narrativePendingRequests'
         ));
     }
 
-    public function store(Request $request, VenueAvailabilityService $venueAvailability, OutstandingActivityReportService $outstandingReportService)
+    public function store(Request $request, VenueAvailabilityService $venueAvailability, ActivityRequestEligibility $eligibility)
     {
-        $outstandingReports = $outstandingReportService->forUser(auth()->user());
-        if ($outstandingReports->isNotEmpty()) {
-            return $this->outstandingReportRedirect($outstandingReports, true);
+        $user = auth()->user();
+        $term = $user->term ?? '1st Term';
+        $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
+        $narrativePendingRequests = $eligibility->pendingNarratives($user, $term, $schoolYear);
+        if ($narrativePendingRequests->isNotEmpty()) {
+            return redirect()->route('activity-monitor.index')->with('error', $this->narrativePendingMessage($narrativePendingRequests));
         }
 
         $programFlows = collect($request->input('program_flows', []))
@@ -443,6 +439,7 @@ class ActivityRequestController extends Controller
             $existingCount = ActivityRequest::where('user_id', auth()->id())
                 ->where('gpoa_id', $gpoa->id)
                 ->where('category', $validated['category'])
+                ->whereNotIn('status', [ActivityRequest::STATUS_REJECTED, ActivityRequest::STATUS_CANCELLED, 'archived', 'deleted'])
                 ->count();
 
             if ($existingCount >= $categoryLimit) {
@@ -524,6 +521,32 @@ class ActivityRequestController extends Controller
             ->with('success', 'Activity request added.');
     }
 
+    public function cancel(ActivityRequest $activityRequest)
+    {
+        $this->authorize('update', $activityRequest);
+
+        abort_if(
+            $activityRequest->status === ActivityRequest::STATUS_APPROVED
+                || filled($activityRequest->communication_letter)
+                || in_array($activityRequest->status, [ActivityRequest::STATUS_REJECTED, ActivityRequest::STATUS_CANCELLED, 'archived'], true),
+            422,
+            'Only unapproved activity requests without a communication letter can be cancelled.'
+        );
+
+        $activityRequest->update(['status' => ActivityRequest::STATUS_CANCELLED]);
+        $activityRequest->gpoaActivity()
+            ->where('activity_request_id', $activityRequest->id)
+            ->update(['activity_request_id' => null]);
+
+        activity('activity_requests')
+            ->performedOn($activityRequest)
+            ->causedBy(auth()->user())
+            ->withProperties(['title' => $activityRequest->title])
+            ->log('activity_request.cancelled');
+
+        return redirect()->route('activity-monitor.index')->with('success', 'Activity request cancelled.');
+    }
+
     private function categoryRequestLimit(string $category): ?int
     {
         $categoryKeys = [
@@ -538,20 +561,13 @@ class ActivityRequestController extends Controller
         return $limit === null ? null : (int) $limit;
     }
 
-    private function outstandingReportRedirect(Collection $outstandingReports, bool $withValidationErrors = false)
+    private function narrativePendingMessage($narrativePendingRequests): string
     {
-        $firstRequest = $outstandingReports->first();
-        $message = "Submit the pending report for {$firstRequest->title} before requesting a new activity.";
-        $reportLinks = $outstandingReports->map(fn (ActivityRequest $activityRequest) => [
-            'title' => $activityRequest->title,
-            'url' => route('activity-reports.create', $activityRequest),
-        ])->values()->all();
-        $redirect = redirect()->route('activity-monitor.index')
-            ->with('outstandingReports', $reportLinks);
+        $titles = $narrativePendingRequests
+            ->map(fn (ActivityRequest $activityRequest) => $activityRequest->title)
+            ->implode(', ');
 
-        return $withValidationErrors
-            ? $redirect->withErrors(['activity_request' => $message])
-            : $redirect->with('error', $message);
+        return "You can't request a new activity yet. Please submit the Narrative report for: {$titles}.";
     }
 
 }

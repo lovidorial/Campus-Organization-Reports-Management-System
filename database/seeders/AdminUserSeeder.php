@@ -18,7 +18,7 @@ class AdminUserSeeder extends Seeder
             return;
         }
 
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => $email],
             [
                 'name' => 'Admin',
@@ -26,5 +26,9 @@ class AdminUserSeeder extends Seeder
                 'role' => 'admin',
             ]
         );
+
+        if ($admin->email_verified_at === null) {
+            $admin->forceFill(['email_verified_at' => now()])->save();
+        }
     }
 }

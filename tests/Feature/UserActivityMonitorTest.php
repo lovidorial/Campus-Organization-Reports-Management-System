@@ -14,6 +14,85 @@ class UserActivityMonitorTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_unrequested_planned_activity_has_request_action_without_narrative_pending_badge(): void
+    {
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Not Yet Requested',
+            'date' => '2026-11-02',
+            'venue' => 'Main Hall',
+            'category' => 'Education',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-monitor.index', ['tab' => 'todo']))
+            ->assertOk()
+            ->assertSee('Not Yet Requested')
+            ->assertSee('Request')
+            ->assertDontSee('Narrative pending');
+    }
+
+    public function test_requested_activity_shows_pending_badge_and_unrequested_todo_row_is_locked_with_reason(): void
+    {
+        $this->travelTo('2026-10-25 10:00:00');
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $requestedActivity = GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Earlier Activity',
+            'date' => '2026-10-03',
+            'venue' => 'Main Hall',
+            'category' => 'Education',
+        ]);
+        $blockingRequest = ActivityRequest::create([
+            'user_id' => $user->id,
+            'gpoa_id' => $gpoa->id,
+            'gpoa_activity_id' => $requestedActivity->id,
+            'title' => $requestedActivity->title,
+            'date' => $requestedActivity->date,
+            'venue' => $requestedActivity->venue,
+            'category' => $requestedActivity->category,
+            'status' => ActivityRequest::STATUS_PENDING,
+        ]);
+        $requestedActivity->update(['activity_request_id' => $blockingRequest->id]);
+        GpoaActivity::create([
+            'gpoa_id' => $gpoa->id,
+            'title' => 'Not Yet Requested',
+            'date' => '2026-11-02',
+            'venue' => 'Other Hall',
+            'category' => 'Education',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('activity-monitor.index', ['tab' => 'todo']))
+            ->assertOk()
+            ->assertSee('Not Yet Requested')
+            ->assertSee('>Locked</button>', false)
+            ->assertSee('Complete previous activity first.')
+            ->assertSee('Pending requirement: Earlier Activity Narrative Report')
+            ->assertSee(route('activity-reports.create', $blockingRequest), false)
+            ->assertSee('Request locked');
+
+        $this->get(route('activity-monitor.index', ['tab' => 'submitted']))
+            ->assertOk()
+            ->assertSee('Earlier Activity')
+            ->assertSee('Narrative pending');
+    }
+
     public function test_user_activity_monitor_shows_current_gpoa_activities_without_approval_gate(): void
     {
         $user = User::factory()->create();

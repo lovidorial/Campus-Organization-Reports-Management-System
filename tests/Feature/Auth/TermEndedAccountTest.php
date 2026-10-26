@@ -33,7 +33,7 @@ class TermEndedAccountTest extends TestCase
                 'captcha' => 'ABCDE',
             ])
             ->assertRedirect('/login')
-            ->assertSessionHasErrors(['email' => self::BLOCK_MESSAGE]);
+            ->assertSessionHasErrors(['email' => 'This account is inactive. Please contact the OSDW office.']);
 
         $this->assertGuest();
         $this->assertDatabaseHas('activity_log', [
@@ -45,7 +45,7 @@ class TermEndedAccountTest extends TestCase
         $this->assertSame($user->id, $activity?->properties['user_id'] ?? null);
     }
 
-    public function test_term_ended_login_message_appears_once_in_the_top_alert(): void
+    public function test_archived_officer_gets_the_inactive_account_message_once(): void
     {
         $user = User::factory()->create(['officer_status' => 'archived']);
 
@@ -61,10 +61,9 @@ class TermEndedAccountTest extends TestCase
         $response = $this->get('/login')->assertOk();
         $content = $response->getContent();
 
-        $this->assertSame(1, substr_count($content, 'Account Access Expired'));
-        $this->assertStringContainsString('This account is no longer active because its term of service has ended.', $content);
-        $this->assertStringContainsString('For assistance or inquiries, please contact us at osdwcsuaparri@gmail.com', $content);
-        $this->assertStringNotContainsString('class="form-error"', $content);
+        $this->assertSame(1, substr_count($content, 'This account is inactive. Please contact the OSDW office.'));
+        $this->assertStringContainsString('class="form-error">This account is inactive. Please contact the OSDW office.', $content);
+        $this->assertStringNotContainsString('Account Access Expired', $content);
     }
 
     public function test_archived_at_alone_blocks_an_otherwise_active_user(): void
@@ -80,7 +79,7 @@ class TermEndedAccountTest extends TestCase
                 'password' => 'password',
                 'captcha' => 'ABCDE',
             ])
-            ->assertSessionHasErrors(['email' => self::BLOCK_MESSAGE]);
+            ->assertSessionHasErrors(['email' => 'This account has been archived.']);
 
         $this->assertGuest();
     }
@@ -212,7 +211,7 @@ class TermEndedAccountTest extends TestCase
                 'captcha' => 'ABCDE',
             ])
             ->assertRedirect('/login')
-            ->assertSessionHasErrors(['email' => self::BLOCK_MESSAGE]);
+            ->assertSessionHasErrors(['email' => 'This account has been archived.']);
 
         $this->assertGuest();
 
@@ -422,7 +421,7 @@ class TermEndedAccountTest extends TestCase
                 'password' => 'wrong-password',
                 'captcha' => 'ABCDE',
             ])
-            ->assertSessionHasErrors(['email' => trans('auth.failed')]);
+            ->assertSessionHasErrors(['password' => 'Incorrect password.']);
 
         $this->assertGuest();
         $this->assertDatabaseMissing('activity_log', [
@@ -456,7 +455,7 @@ class TermEndedAccountTest extends TestCase
                 'password' => 'NewPassword123',
                 'captcha' => 'ABCDE',
             ])
-            ->assertSessionHasErrors(['email' => self::BLOCK_MESSAGE]);
+            ->assertSessionHasErrors(['email' => 'This account is inactive. Please contact the OSDW office.']);
 
         $this->assertGuest();
     }

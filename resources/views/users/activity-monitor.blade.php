@@ -7,24 +7,10 @@
     @endphp
 
     <main class="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8" x-data="{ activityDetailsOpen: false, activityDetails: {} }" @show-activity-details="activityDetails = $event.detail; activityDetailsOpen = true" @keydown.escape.window="activityDetailsOpen = false">
-        @if($errors->has('activity_date'))
-            <div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>
-        @endif
-        @if($outstandingReports->isNotEmpty())
-            <section x-data="{ visible: true }" x-show="visible" class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950" role="status">
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="font-semibold">You have {{ $outstandingReports->count() }} activity report{{ $outstandingReports->count() === 1 ? '' : 's' }} to submit before requesting a new activity</p>
-                        <ul class="mt-2 list-inside list-disc space-y-1 text-sm">
-                            @foreach($outstandingReports as $outstandingReport)
-                                <li><a href="{{ $outstandingReport['url'] }}" class="font-semibold underline">Submit report</a> <span>for {{ $outstandingReport['title'] }}</span></li>
-                            @endforeach
-                        </ul>
-                    </div>
-                    <button type="button" @click="visible = false" aria-label="Dismiss outstanding reports notice" class="shrink-0 rounded px-2 py-1 font-semibold hover:bg-amber-100">×</button>
-                </div>
-            </section>
-        @endif
+        @if(session('error'))<div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>@endif
+        @if(session('success'))<div role="status" class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
+        @if($errors->has('activity_date'))<div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>@endif
+        @include('users.partials.narrative-pending-notice', ['narrativePendingRequests' => $narrativePendingRequests])
         <header class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Activity Monitor</h1>
@@ -32,8 +18,8 @@
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('gpoa.create') }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">GPOA</a>
-                @if($outstandingReports->isNotEmpty())
-                    <button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="cursor-not-allowed rounded-md bg-slate-300 px-3 py-2 text-sm font-semibold text-slate-600">Submit pending report first</button>
+                @if($narrativePendingRequests->isNotEmpty())
+                    <a href="{{ route('activity-reports.create', $narrativePendingRequests->first()) }}" title="Complete previous activity first. Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report" class="rounded-md bg-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-400">Request locked</a>
                 @else
                     <a href="{{ route('activity-requests.create') }}" class="rounded-md bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800">Request activity</a>
                 @endif
@@ -66,10 +52,9 @@
                 <section class="rounded-lg border border-dashed border-slate-300 bg-white px-5 py-8">
                     <h2 class="font-semibold text-slate-900">No submissions yet</h2>
                     <p class="mt-1 text-sm text-slate-500">Start a planned activity from your To do list to begin monitoring.</p>
-                    @if($outstandingReports->isNotEmpty())
+                    @if($narrativePendingRequests->isNotEmpty())
                         <div class="mt-4">
-                            <button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="cursor-not-allowed rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500">Submit your pending report first</button>
-                            <p class="mt-2 text-sm text-slate-600">{{ $outstandingReports->first()['title'] }}@if(!empty($outstandingReports->first()['url'])) <a href="{{ $outstandingReports->first()['url'] }}" class="font-semibold text-sky-700 underline">Submit report</a>@endif</p>
+                            <a href="{{ route('activity-reports.create', $narrativePendingRequests->first()) }}" class="font-semibold text-sky-700 underline">Submit report for {{ $narrativePendingRequests->first()->title }}</a>
                         </div>
                     @else
                         <ul class="mt-4 space-y-2">
@@ -108,7 +93,7 @@
                                 $reportDate = $activity->end_date ?? $activity->date;
                             @endphp
                             <tr>
-                                <td class="px-4 py-3"><div class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }}</div>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" datetime="{{ $activity->last_submitted_at->toIso8601String() }}" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</td>
+                                <td class="px-4 py-3"><div class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }} @if($activityRequest && in_array($activityRequest->id, $pendingNarrativeRequestIds, true))<span class="ml-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Narrative pending</span>@endif</div>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" datetime="{{ $activity->last_submitted_at->toIso8601String() }}" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block whitespace-nowrap text-sm text-slate-500">to {{ $activity->end_date->format('M d, Y') }}</span>@endif</td>
                                 <td class="whitespace-nowrap px-4 py-3"><div class="flex gap-2 whitespace-nowrap"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500' }}">{{ $letterPresent ? '✓' : '–' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $activityRequest?->report?->status === 'needs_revision' ? 'border-amber-200 bg-amber-50 text-amber-700' : ($reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">{{ $activityRequest?->report?->status === 'needs_revision' ? '!' : ($reportPresent ? '✓' : '–') }} Report</span></div></td>
                                 <td class="px-4 py-3"><x-status-pill :status="$activity->monitor_status" /> @if($activity->monitor_late)<span class="ml-1"><x-status-pill status="Late" /></span>@endif</td>
@@ -117,12 +102,23 @@
                                     @if($activityRequest)
                                         <a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">PDF</a>
                                     @endif
+                                    @if($activityRequest && !$letterPresent && !in_array($activityRequest->status, ['approved', 'rejected', 'cancelled', 'archived'], true))
+                                        <form method="POST" action="{{ route('activity-requests.cancel', $activityRequest) }}" class="inline-flex" data-confirm data-confirm-title="Cancel this request?" data-confirm-message="The request will be withdrawn and can be requested again." data-confirm-label="Cancel request" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">Cancel request</button></form>
+                                    @endif
                                     @if($activity->archived_at)
                                         <form method="POST" action="{{ route('activities.restore', $activity) }}" class="inline-flex">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Restore</button></form>
                                     @elseif($activity->monitor_status === 'Completed')
                                         <form method="POST" action="{{ route('activities.archive', $activity) }}" class="inline-flex" data-confirm data-confirm-title="Archive this activity?" data-confirm-message="Archived activities are excluded from the totals. You can restore it later." data-confirm-label="Archive" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Archive</button></form>
                                     @elseif(!$activityRequest)
-                                        @if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="inline-flex items-center justify-center whitespace-nowrap cursor-not-allowed rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Start request</a>@endif
+                                        @if($narrativePendingRequests->isNotEmpty())
+                                            <div class="flex flex-col items-end gap-1">
+                                                <button type="button" disabled title="Complete previous activity first. Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report" aria-label="Locked. Complete previous activity first. Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report" class="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path stroke-linecap="round" d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>Locked
+                                                </button>
+                                                <span class="max-w-48 whitespace-normal text-right text-[11px] leading-4 text-slate-700">Complete previous activity first.</span>
+                                                <span class="max-w-48 whitespace-normal text-right text-[10px] leading-4 text-slate-500">Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report</span>
+                                            </div>
+                                        @else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Request</a>@endif
                                     @elseif(!$letterPresent)
                                         <a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
                                     @elseif($activityRequest->report?->status === 'needs_revision')
@@ -173,11 +169,13 @@
                         $createFromActivityUrl = route('activity-requests.create-from-activity', $activity);
                     @endphp
                     <article class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+                        @if($activityRequest && in_array($activityRequest->id, $pendingNarrativeRequestIds, true))<span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Narrative pending</span>@endif
+                        @if($activityRequest && !$letterPresent && !in_array($activityRequest->status, ['approved', 'rejected', 'cancelled', 'archived'], true))<form method="POST" action="{{ route('activity-requests.cancel', $activityRequest) }}" class="flex justify-end" data-confirm data-confirm-title="Cancel this request?" data-confirm-message="The request will be withdrawn and can be requested again." data-confirm-label="Cancel request" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">Cancel request</button></form>@endif
                         <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activities->firstItem() + $loop->index }}. {{ $activity->title }}</h2><p class="whitespace-nowrap text-sm text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}@if($activity->end_date && $activity->end_date->ne($activity->date))<span class="block whitespace-nowrap text-sm text-slate-500">to {{ $activity->end_date->format('M d, Y') }}</span>@endif</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitor_status" /></div>
                             <div class="flex items-center justify-between gap-2"><div class="flex flex-nowrap gap-2 whitespace-nowrap"><span title="Communication letter {{ $letterPresent ? 'uploaded' : 'not uploaded' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500' }}">{{ $letterPresent ? '✓' : '–' }} Letter</span><span title="Narrative report {{ $reportPresent ? 'submitted' : 'not submitted' }}" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] {{ $activityRequest?->report?->status === 'needs_revision' ? 'border-amber-200 bg-amber-50 text-amber-700' : ($reportPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">{{ $activityRequest?->report?->status === 'needs_revision' ? '!' : ($reportPresent ? '✓' : '–') }} Report</span></div><div class="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">PDF</a>@endif
                             @if($activity->archived_at)<form method="POST" action="{{ route('activities.restore', $activity) }}" class="inline-flex">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">Restore</button></form>
                             @elseif($activity->monitor_status === 'Completed')<form method="POST" action="{{ route('activities.archive', $activity) }}" class="inline-flex" data-confirm data-confirm-title="Archive this activity?" data-confirm-message="Archived activities are excluded from the totals. You can restore it later." data-confirm-label="Archive" data-confirm-variant="warning">@csrf<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold">Archive</button></form>
-                            @elseif(!$activityRequest)@if($outstandingReports->isNotEmpty())<button type="button" disabled title="{{ $outstandingReports->first()['title'] }}" class="inline-flex items-center justify-center whitespace-nowrap cursor-not-allowed rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">Submit pending report first</button>@else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Start request</a>@endif
+                            @elseif(!$activityRequest)@if($narrativePendingRequests->isNotEmpty())<div class="flex min-w-0 flex-col items-end gap-1"><button type="button" disabled title="Complete previous activity first. Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report" aria-label="Locked. Complete previous activity first. Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report" class="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path stroke-linecap="round" d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>Locked</button><span class="max-w-48 whitespace-normal text-right text-[11px] leading-4 text-slate-700">Complete previous activity first.</span><span class="max-w-48 whitespace-normal text-right text-[10px] leading-4 text-slate-500">Pending requirement: {{ $narrativePendingRequests->first()->title }} Narrative Report</span></div>@else<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Request</a>@endif
                             @elseif(!$letterPresent)<a href="{{ $createFromActivityUrl }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white">Upload letter</a>
                             @elseif($activityRequest->report?->status === 'needs_revision')<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Fix &amp; resubmit</a>
                             @elseif(!$reportPresent)<a href="{{ route('activity-reports.create', $activityRequest) }}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Submit report</a>

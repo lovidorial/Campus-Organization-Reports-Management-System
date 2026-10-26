@@ -69,5 +69,6 @@ class OrganizationAccountCreationTest extends TestCase
 
         $secretary = User::query()->where('email', 'secretary@example.com')->firstOrFail();
         $this->assertTrue(Hash::check('Password123', $secretary->password));
+        $this->assertNull($secretary->email_verified_at);
     }
 }

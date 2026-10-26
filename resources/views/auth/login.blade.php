@@ -20,10 +20,10 @@
         <div class="login-page">
             <div class="login-card">
                 <div class="login-panel login-panel-left">
-                    <span class="sr-only">OSDW – Cagayan State University – Office of Student Development and Welfare – OrgTrack</span>
                 </div>
 
                 <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
+                    @php($summaryErrors = collect($errors->getMessages())->except(['email', 'password', 'captcha'])->flatten())
                     @php($termEndedLogin = $errors->first('email') === \App\Models\User::TERM_ENDED_MESSAGE || request()->boolean('term_ended'))
                     @if($termEndedLogin)
                         @php($termEndedParts = explode('For assistance or inquiries, please contact us at ', \App\Models\User::TERM_ENDED_MESSAGE, 2))
@@ -40,43 +40,43 @@
                         <p class="login-subtext">Sign in to your account.</p>
                     </div>
 
-                    @if ($errors->any() || $termEndedLogin)
-                            @if ($termEndedLogin)
-                                <div class="alert alert-error !mb-0 !gap-2 !p-3 text-sm">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <svg class="alert-icon !m-0 !h-4 !w-4 !basis-4" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                                <circle cx="12" cy="12" r="10"></circle>
-                                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                            </svg>
-                                            <strong>Account Access Expired</strong>
-                                        </div>
-                                        <p class="mt-1 text-sm">{{ $termEndedParts[0] }}</p>
-                                        <p class="mt-1 text-xs">For assistance or inquiries, please contact us at {{ $termEndedParts[1] ?? '' }}</p>
+                    @if ($termEndedLogin || session()->has('login_retry_after') || $summaryErrors->isNotEmpty())
+                        @if ($termEndedLogin)
+                            <div class="alert alert-error !mb-0 !gap-2 !p-3 text-sm">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="alert-icon !m-0 !h-4 !w-4 !basis-4" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                        <strong>Account Access Expired</strong>
                                     </div>
+                                    <p class="mt-1 text-sm">{{ $termEndedParts[0] }}</p>
+                                    <p class="mt-1 text-xs">For assistance or inquiries, please contact us at {{ $termEndedParts[1] ?? '' }}</p>
                                 </div>
-                            @else
-                                <div class="alert alert-error" @if (session()->has('login_retry_after')) x-show="remaining > 0" @endif>
-                                    <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                    </svg>
-                                    <div>
-                                        <strong>Login Failed</strong>
-                                        <ul class="error-list">
-                                            @if (session()->has('login_retry_after'))
-                                                <li x-text="lockoutMessage">{{ $errors->first('email') }}</li>
-                                            @else
-                                                @foreach ($errors->all() as $error)
-                                                    <li>{{ $error }}</li>
-                                                @endforeach
-                                            @endif
-                                        </ul>
-                                    </div>
+                            </div>
+                        @else
+                            <div class="alert alert-error" @if (session()->has('login_retry_after')) x-show="remaining > 0" @endif>
+                                <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                                <div>
+                                    <strong>Login Failed</strong>
+                                    <ul class="error-list">
+                                        @if (session()->has('login_retry_after'))
+                                            <li x-text="lockoutMessage">{{ $errors->first('email') }}</li>
+                                        @else
+                                            @foreach ($summaryErrors as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        @endif
+                                    </ul>
                                 </div>
-                            @endif
+                            </div>
+                        @endif
                     @endif
 
                     @if (session('status'))
@@ -84,8 +84,27 @@
                             <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            {{ session('status') }}
+                            @if (session('status') === 'identity-verification-sent')
+                                We sent a confirmation link to your email. Please confirm your identity to continue.
+                            @elseif (session('status') === 'identity-verification-throttled')
+                                A confirmation link was sent recently. Check your email or try again later.
+                            @else
+                                {{ session('status') }}
+                            @endif
                         </div>
+                    @endif
+                    @if (session('verification_user_id'))
+                        <form method="POST" action="{{ URL::temporarySignedRoute('verification.resend', now()->addMinutes(60), ['id' => session('verification_user_id')]) }}" class="mb-4 text-center">
+                            @csrf
+                            <input type="hidden" name="email" value="{{ session('verification_email', old('email')) }}">
+                            <button type="submit" class="font-semibold text-orange-700 underline hover:text-orange-900">Resend verification email</button>
+                        </form>
+                    @endif
+                    @if (session('verification-status'))
+                        <p role="status" class="mb-4 text-center text-sm text-green-700">{{ session('verification-status') }}</p>
+                    @endif
+                    @if (session('verification-error'))
+                        <p role="alert" class="mb-4 text-center text-sm text-red-700">{{ session('verification-error') }}</p>
                     @endif
 
                     <form method="POST" action="{{ route('login') }}" class="login-form">
@@ -208,7 +227,9 @@
                         return `${minutes}:${String(seconds).padStart(2, '0')}`;
                     },
                     get lockoutMessage() {
-                        return `Too many login attempts. Please try again in ${this.formattedTime}.`;
+                        const minutes = Math.floor(this.remaining / 60);
+                        const seconds = this.remaining % 60;
+                        return `Too many attempts. Try again in ${minutes} minutes ${seconds} seconds.`;
                     },
                     start() {
                         if (this.remaining <= 0) return;

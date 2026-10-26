@@ -2,16 +2,22 @@
 
 namespace App\Models;
 
+use App\Mail\ConfirmIdentityMail;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use App\Models\OrganizationWorkflow;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, MustVerifyEmailTrait;
 
     public const TERM_ENDED_MESSAGE = "This account is no longer active because its term of service has ended. If you are the outgoing officer, your organization's newly appointed Secretary should have received updated login credentials from OSDW. For assistance or inquiries, please contact us at osdwcsuaparri@gmail.com or send us a message through the CSUAparri-OSDW Facebook page.";
 
@@ -119,6 +125,49 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function hasVerifiedEmail(): bool
+    {
+        return $this->isAdmin() || $this->email_verified_at !== null;
+    }
+
+    public function sendEmailVerificationNotification(): bool
+    {
+        if ($this->isAdmin() || $this->hasVerifiedEmail()) {
+            return false;
+        }
+
+        $key = 'identity-verification-resend:'.$this->getKey();
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            return false;
+        }
+        RateLimiter::hit($key, 3600);
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
+        );
+        $mailer = Mail::to($this->getEmailForVerification());
+        $message = new ConfirmIdentityMail($this, $verificationUrl);
+
+        if (config('queue.default') === 'sync') {
+            $mailer->send($message);
+        } else {
+            $mailer->queue($message);
+        }
+
+        return true;
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if ($user->isAdmin() && $user->email_verified_at === null) {
+                $user->email_verified_at = now();
+            }
+        });
     }
 
     public function isTermEnded(): bool

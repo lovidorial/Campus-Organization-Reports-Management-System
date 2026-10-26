@@ -10,6 +10,7 @@
                     <p class="page-description">Submit a detailed activity request under your approved GPOA.</p>
                 </div>
             </div>
+            @include('users.partials.narrative-pending-notice', ['narrativePendingRequests' => $narrativePendingRequests])
             <form action="{{ route('activity-requests.store') }}" method="POST" enctype="multipart/form-data" class="gpoa-form" id="requestForm" data-loading data-loading-text="Uploading…">
                 @csrf
 
@@ -431,7 +432,11 @@
                     <a href="{{ route('activity-requests.index') }}" class="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-300 md:w-auto">
                         Cancel
                     </a>
-                    <button type="submit" class="btn-secondary min-h-11 w-full md:w-auto">Submit Activity Request</button>
+                    @if($narrativePendingRequests->isNotEmpty())
+                        <button type="button" disabled class="btn-secondary min-h-11 w-full cursor-not-allowed opacity-60 md:w-auto">Narrative report pending</button>
+                    @else
+                        <button type="submit" class="btn-secondary min-h-11 w-full md:w-auto">Submit Activity Request</button>
+                    @endif
                 </div>
             </form>
         </div>

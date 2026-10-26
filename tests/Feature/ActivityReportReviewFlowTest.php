@@ -28,7 +28,10 @@ class ActivityReportReviewFlowTest extends TestCase
             ->from(route('activity-monitor.index'))
             ->get(route('activity-reports.create', $activityRequest))
             ->assertOk()
-            ->assertSee('Narrative Report');
+            ->assertSee('Narrative Report')
+            ->assertSee('Organization Head')
+            ->assertSee('Adviser')
+            ->assertSee('Dean');
 
         $this->actingAs($user)
             ->post(route('activity-reports.store', $activityRequest), $this->reportPayload([
@@ -230,8 +233,8 @@ class ActivityReportReviewFlowTest extends TestCase
             'narrative_source' => 'generated',
             'narrative_content' => 'The activity was conducted as planned.',
             'signed_by_secretary' => '1',
-            'signed_by_governor' => '1',
-            'signed_by_advisor' => '1',
+            'signed_by_organization_head' => '1',
+            'signed_by_adviser' => '1',
             'signed_by_dean_president' => '1',
         ], $attributes);
     }

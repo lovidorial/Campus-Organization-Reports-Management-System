@@ -69,9 +69,9 @@
             <div class="space-y-2 text-sm text-gray-700">
                 @foreach([
                     'signed_by_secretary' => 'Secretary',
-                    'signed_by_governor' => 'Governor',
-                    'signed_by_advisor' => 'Advisor',
-                    'signed_by_dean_president' => 'Dean/President',
+                    'signed_by_organization_head' => 'Organization Head',
+                    'signed_by_adviser' => 'Adviser',
+                    'signed_by_dean_president' => 'Dean',
                 ] as $field => $label)
                 <label class="flex items-center gap-2">
                     <input type="checkbox" name="{{ $field }}" value="1" required {{ old($field) ? 'checked' : '' }}
