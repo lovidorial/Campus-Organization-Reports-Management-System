@@ -432,6 +432,7 @@ class AdminController extends Controller
     public function viewFile($activityId, $fileType)
     {
         $activity = ActivityRequest::with('report')->findOrFail($activityId);
+        $this->authorize('view', $activity);
 
         $filePath = match ($fileType) {
             'communication' => $activity->communication_letter,
@@ -460,6 +461,7 @@ class AdminController extends Controller
     public function downloadFile($activityId, $fileType)
     {
         $activity = ActivityRequest::with('report')->findOrFail($activityId);
+        $this->authorize('view', $activity);
 
         $filePath = match ($fileType) {
             'communication' => $activity->communication_letter,
@@ -492,6 +494,7 @@ class AdminController extends Controller
 
     public function viewGpoaDocument(Gpoa $gpoa)
     {
+        $this->authorize('view', $gpoa);
         abort_unless($gpoa->document_path, 404, 'GPOA document not found');
 
         foreach (['private', 'public'] as $diskName) {

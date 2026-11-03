@@ -14,6 +14,15 @@ class UserActivityMonitorTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_activity_monitor_handles_empty_narrative_collection(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('activity-monitor.index'))
+            ->assertOk();
+    }
+
     public function test_unrequested_planned_activity_has_request_action_without_narrative_pending_badge(): void
     {
         $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);

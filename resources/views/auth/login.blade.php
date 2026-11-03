@@ -23,7 +23,9 @@
                 </div>
 
                 <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
-                    @php($summaryErrors = collect($errors->getMessages())->except(['email', 'password', 'captcha'])->flatten())
+                    @php($loginLockoutActive = (int) session('login_retry_after', 0) > 0)
+                    @php($showLoginError = $errors->any() || $loginLockoutActive)
+                    @php($loginErrorMessage = $errors->first())
                     @php($termEndedLogin = $errors->first('email') === \App\Models\User::TERM_ENDED_MESSAGE || request()->boolean('term_ended'))
                     @if($termEndedLogin)
                         @php($termEndedParts = explode('For assistance or inquiries, please contact us at ', \App\Models\User::TERM_ENDED_MESSAGE, 2))
@@ -40,7 +42,7 @@
                         <p class="login-subtext">Sign in to your account.</p>
                     </div>
 
-                    @if ($termEndedLogin || session()->has('login_retry_after') || $summaryErrors->isNotEmpty())
+                    @if ($termEndedLogin || $showLoginError)
                         @if ($termEndedLogin)
                             <div class="alert alert-error !mb-0 !gap-2 !p-3 text-sm">
                                 <div class="min-w-0 flex-1">
@@ -57,7 +59,7 @@
                                 </div>
                             </div>
                         @else
-                            <div class="alert alert-error" @if (session()->has('login_retry_after')) x-show="remaining > 0" @endif>
+                            <div class="alert alert-error" @if ($loginLockoutActive) x-show="remaining > 0" @endif>
                                 <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -66,12 +68,12 @@
                                 <div>
                                     <strong>Login Failed</strong>
                                     <ul class="error-list">
-                                        @if (session()->has('login_retry_after'))
-                                            <li x-text="lockoutMessage">{{ $errors->first('email') }}</li>
-                                        @else
-                                            @foreach ($summaryErrors as $error)
-                                                <li>{{ $error }}</li>
-                                            @endforeach
+                                        @if ($loginLockoutActive)
+                                            @php($retryMinutes = intdiv((int) session('login_retry_after'), 60))
+                                            @php($retrySeconds = (int) session('login_retry_after') % 60)
+                                            <li>Too many attempts. Try again in <span x-text="formattedTime">{{ sprintf('%d:%02d', $retryMinutes, $retrySeconds) }}</span>.</li>
+                                        @elseif (filled($loginErrorMessage))
+                                            <li>{{ $loginErrorMessage }}</li>
                                         @endif
                                     </ul>
                                 </div>
@@ -127,7 +129,7 @@
                                         class="form-input {{ $errors->has('email') && ! $termEndedLogin ? 'form-input--error' : '' }}"
                                     />
                                 </div>
-                                @if (! session()->has('login_retry_after') && ! $termEndedLogin)
+                                @if (! $showLoginError && ! $termEndedLogin)
                                     @error('email')
                                         <span class="form-error">{{ $message }}</span>
                                     @enderror
@@ -158,9 +160,11 @@
                                         </svg>
                                     </button>
                                 </div>
-                                @error('password')
-                                    <span class="form-error">{{ $message }}</span>
-                                @enderror
+                                @if (! $showLoginError)
+                                    @error('password')
+                                        <span class="form-error">{{ $message }}</span>
+                                    @enderror
+                                @endif
                             </div>
 
                             <div class="form-actions student-group">
@@ -193,9 +197,11 @@
                                         class="form-input captcha-input {{ $errors->has('captcha') ? 'form-input--error' : '' }}"
                                     />
                                 </div>
-                                @error('captcha')
-                                    <span class="form-error">{{ $message }}</span>
-                                @enderror
+                                @if (! $showLoginError)
+                                    @error('captcha')
+                                        <span class="form-error">{{ $message }}</span>
+                                    @enderror
+                                @endif
                             </div>
 
                             <button type="submit" class="login-button student-submit-button" x-bind:disabled="remaining > 0">
@@ -225,11 +231,6 @@
                         const minutes = Math.floor(this.remaining / 60);
                         const seconds = this.remaining % 60;
                         return `${minutes}:${String(seconds).padStart(2, '0')}`;
-                    },
-                    get lockoutMessage() {
-                        const minutes = Math.floor(this.remaining / 60);
-                        const seconds = this.remaining % 60;
-                        return `Too many attempts. Try again in ${minutes} minutes ${seconds} seconds.`;
                     },
                     start() {
                         if (this.remaining <= 0) return;

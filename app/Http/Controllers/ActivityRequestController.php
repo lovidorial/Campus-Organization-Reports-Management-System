@@ -108,7 +108,7 @@ class ActivityRequestController extends Controller
         $term = $user->term ?? '1st Term';
         $schoolYear = $user->school_year ?? (date('Y') . '-' . (date('Y') + 1));
         $narrativePendingRequests = $eligibility->pendingNarratives($user, $term, $schoolYear);
-        $pendingNarrativeRequestIds = $narrativePendingRequests->modelKeys();
+        $pendingNarrativeRequestIds = $narrativePendingRequests->pluck('id')->all();
 
         $gpoas = Gpoa::where('user_id', $user->id)
             ->where('term', $term)

@@ -90,6 +90,24 @@ class AuthenticationTest extends TestCase
             ->assertSessionHasErrors(['password' => 'Incorrect password.']);
     }
 
+    public function test_wrong_password_login_page_displays_the_error_only_once(): void
+    {
+        $user = User::factory()->create();
+
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertRedirect('/login');
+
+        $page = $this->get('/login')->assertOk()->assertSee('Incorrect password.');
+
+        $this->assertSame(1, substr_count($page->getContent(), 'Incorrect password.'));
+    }
+
     public function test_empty_and_invalid_email_fields_have_individual_validation_messages(): void
     {
         $this->from('/login')
@@ -153,6 +171,12 @@ class AuthenticationTest extends TestCase
             ->assertRedirect('/login')
             ->assertSessionHasErrors('email');
         $this->assertStringContainsString('Too many attempts', session('errors')->first('email'));
+
+        $lockoutPage = $this->get('/login')->assertOk();
+        $lockoutPage->assertSee('loginLockoutCountdown(60)', false)
+            ->assertSee('Too many attempts. Try again in')
+            ->assertSee('>1:00</span>', false);
+        $this->assertSame(1, substr_count($lockoutPage->getContent(), 'Too many attempts.'));
     }
 
     public function test_wrong_captchas_count_toward_login_lockout(): void
