@@ -18,6 +18,7 @@ class ActivityRequest extends Model
         'preceding_activity', 'description', 'participants_count',
         'communication_letter', 'status', 'reject_reason',
         'communication_letter_signed_at',
+        'validation_status', 'validation_notes', 'validated_at',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class ActivityRequest extends Model
         'sdgs' => 'array',
         'estimated_budget' => 'decimal:2',
         'communication_letter_signed_at' => 'datetime',
+        'validated_at' => 'datetime',
     ];
 
     public const STATUS_PENDING = 'pending';

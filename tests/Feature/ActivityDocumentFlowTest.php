@@ -8,6 +8,10 @@ use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
+use App\Models\OrganizationWorkflow;
+use App\Models\WorkflowSubmission;
+use App\Services\DocumentValidationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +29,7 @@ class ActivityDocumentFlowTest extends TestCase
         $response = $this->actingAs($user)
             ->from(route('activity-requests.show', $request))
             ->post(route('activity-requests.communication-letter.store', $request), [
-                'communication_letter' => UploadedFile::fake()->create('letter.pdf', 20, 'application/pdf'),
+                'communication_letter' => $this->pdf('Campus Organization<br>Activity: Student Leadership Seminar<br>Date: March 10, 2025<br>Signed by: President'),
             ]);
 
         $response->assertRedirect(route('activity-requests.show', $request));
@@ -34,7 +38,7 @@ class ActivityDocumentFlowTest extends TestCase
 
         $this->from(route('activity-requests.show', $request))
             ->post(route('activity-requests.communication-letter.store', $request), [
-                'communication_letter' => UploadedFile::fake()->create('letter.pdf', 20, 'application/pdf'),
+                'communication_letter' => $this->pdf('Campus Organization<br>Activity: Student Leadership Seminar<br>Date: March 10, 2025<br>Signed by: President'),
                 'signed_confirmation' => '1',
             ])
             ->assertRedirect(route('activity-requests.show', $request));
@@ -46,6 +50,84 @@ class ActivityDocumentFlowTest extends TestCase
 
         $this->get(route('activity-requests.documents.show', [$request, 'communication-letter']))
             ->assertOk();
+    }
+
+    public function test_invalid_communication_letter_is_not_stored(): void
+    {
+        Storage::fake('private');
+        [$user, $request] = $this->createActivityRequest();
+        $file = $this->pdf('Wrong Organization<br>Activity: Unrelated Event<br>Date: April 4, 2026<br>Signed by: Officer');
+
+        $this->actingAs($user)
+            ->from(route('activity-requests.show', $request))
+            ->post(route('activity-requests.communication-letter.store', $request), [
+                'communication_letter' => $file,
+                'signed_confirmation' => '1',
+            ])
+            ->assertRedirect(route('activity-requests.show', $request))
+            ->assertSessionHasErrors('communication_letter');
+
+        $this->assertNull($request->fresh()->communication_letter);
+        Storage::disk('private')->assertDirectoryEmpty('activity-documents/communication-letters');
+        $this->assertDatabaseHas('workflow_events', [
+            'event_type' => 'document_validated',
+            'description' => 'Communication letter validation: invalid',
+        ]);
+    }
+
+    public function test_needs_review_communication_letter_is_stored_and_logged(): void
+    {
+        Storage::fake('private');
+        [$user, $request] = $this->createActivityRequest();
+        $this->app->bind(DocumentValidationService::class, fn () => new class extends DocumentValidationService
+        {
+            protected function extractWithOcr(string $path, string $mime): ?string
+            {
+                return null;
+            }
+        });
+
+        $this->actingAs($user)
+            ->from(route('activity-requests.show', $request))
+            ->post(route('activity-requests.communication-letter.store', $request), [
+                'communication_letter' => $this->pdf(''),
+                'signed_confirmation' => '1',
+            ])
+            ->assertRedirect(route('activity-requests.show', $request));
+
+        $request->refresh();
+        $this->assertSame('needs_review', $request->validation_status);
+        $this->assertStringContainsString('OCR is unavailable', $request->validation_notes);
+        Storage::disk('private')->assertExists($request->communication_letter);
+        $this->assertDatabaseHas('workflow_events', [
+            'event_type' => 'document_validated',
+            'description' => 'Communication letter validation: needs_review',
+        ]);
+    }
+
+    public function test_workflow_submission_file_validation_records_workflow_event(): void
+    {
+        Storage::fake('private');
+        $user = User::factory()->create(['org_name' => 'Campus Council']);
+        $workflow = OrganizationWorkflow::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+        ]);
+        $path = $this->pdf('Campus Council<br>Date: October 28, 2026<br>Approved by: Dean')
+            ->store('workflow-submissions', 'private');
+
+        $submission = WorkflowSubmission::create([
+            'organization_workflow_id' => $workflow->id,
+            'document_type' => OrganizationWorkflow::DOC_ACTIVITY_REQUEST,
+            'file_path' => $path,
+        ]);
+
+        $this->assertSame('valid', $submission->fresh()->validation_status);
+        $this->assertDatabaseHas('workflow_events', [
+            'workflow_submission_id' => $submission->id,
+            'event_type' => 'document_validated',
+        ]);
     }
 
     public function test_narrative_report_can_be_uploaded_for_an_unapproved_activity_and_completes_monitoring(): void
@@ -144,7 +226,7 @@ class ActivityDocumentFlowTest extends TestCase
 
     private function createActivityRequest(?string $communicationLetter = null): array
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['org_name' => 'Campus Organization']);
         $gpoa = Gpoa::create([
             'user_id' => $user->id,
             'term' => '1st Term',
@@ -183,5 +265,13 @@ class ActivityDocumentFlowTest extends TestCase
             'signed_by_adviser' => '1',
             'signed_by_dean_president' => '1',
         ], $values);
+    }
+
+    private function pdf(string $html): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent(
+            'communication-letter.pdf',
+            Pdf::loadHTML('<html><body>' . $html . '</body></html>')->output()
+        );
     }
 }

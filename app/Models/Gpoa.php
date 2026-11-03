@@ -11,11 +11,13 @@ class Gpoa extends Model
     protected $fillable = [
         'user_id', 'term', 'school_year', 'college', 'document_path',
         'status', 'approved_by', 'approved_at', 'stored_at', 'reject_reason', 'prepared_by',
+        'validation_status', 'validation_notes', 'validated_at',
     ];
 
     protected $casts = [
         'approved_at' => 'datetime',
         'stored_at'   => 'datetime',
+        'validated_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

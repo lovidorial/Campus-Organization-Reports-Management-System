@@ -6,6 +6,7 @@ use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\ActivityRequest;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -30,7 +31,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [
@@ -141,14 +142,14 @@ class GpoaPlannedActivitiesTest extends TestCase
     public function test_store_accepts_missing_optional_category_and_source_of_funds(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027', 'org_name' => 'Sample Org']);
 
         $this->actingAs($user)->post(route('gpoa.store'), [
             'colleges' => 'CICS',
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [$this->completeActivityPayload()],
@@ -163,7 +164,7 @@ class GpoaPlannedActivitiesTest extends TestCase
     public function test_store_still_rejects_missing_person_in_charge(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027', 'org_name' => 'Sample Org']);
         $activity = $this->completeActivityPayload();
         $activity['person_in_charge'] = '';
 
@@ -172,7 +173,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [$activity],
@@ -184,7 +185,7 @@ class GpoaPlannedActivitiesTest extends TestCase
     public function test_store_accepts_empty_facilities_materials(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027']);
+        $user = User::factory()->create(['term' => '1st Term', 'school_year' => '2026-2027', 'org_name' => 'Sample Org']);
         $activity = $this->completeActivityPayload();
         $activity['facilities_materials'] = '';
 
@@ -193,7 +194,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [$activity],
@@ -224,7 +225,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => UploadedFile::fake()->createWithContent('gpoa.pdf', \Barryvdh\DomPDF\Facade\Pdf::loadHTML('<p>Sample Org Date: October 28, 2026 Approved by: Adviser</p>')->output()),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => $plannedActivities,
@@ -238,7 +239,7 @@ class GpoaPlannedActivitiesTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['org_name' => 'Sample Org']);
         $activityData = $this->completeActivityPayload();
         $activityData['title'] = 'Leadership Seminar';
         $activityData['date'] = today()->addDays(2)->toDateString();
@@ -248,7 +249,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [$activityData],
@@ -270,7 +271,7 @@ class GpoaPlannedActivitiesTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['org_name' => 'Sample Org']);
         $monthDate = today()->addMonth()->startOfMonth();
         $rangeStart = today()->addDays(2);
         $rangeEnd = today()->addDays(3);
@@ -280,7 +281,7 @@ class GpoaPlannedActivitiesTest extends TestCase
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [
@@ -331,14 +332,14 @@ class GpoaPlannedActivitiesTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['org_name' => 'Sample Org']);
 
         $response = $this->actingAs($user)->post(route('gpoa.store'), [
             'colleges' => 'CICS',
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('gpoa.pdf', 1024, 'application/pdf'),
+            'document_path' => $this->validGpoaPdf(),
             'approved_confirmation' => '1',
             'verify' => '1',
             'planned_activities' => [[
@@ -371,5 +372,13 @@ class GpoaPlannedActivitiesTest extends TestCase
             'facilities_materials' => 'Projector',
             'estimated_budget' => '5000',
         ];
+    }
+
+    private function validGpoaPdf(): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent(
+            'gpoa.pdf',
+            Pdf::loadHTML('<p>Sample Org Date: October 28, 2026 Approved by: Adviser</p>')->output()
+        );
     }
 }

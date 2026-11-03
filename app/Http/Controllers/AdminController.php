@@ -198,6 +198,10 @@ class AdminController extends Controller
     {
         $this->authorize('review', $activityReport);
 
+        if ($activityReport->activityRequest?->validation_status === 'invalid') {
+            return redirect()->back()->with('error', 'This activity cannot be approved because its communication letter failed document validation.');
+        }
+
         $activityReport->update([
             'status' => 'approved',
             'reviewed_at' => now(),

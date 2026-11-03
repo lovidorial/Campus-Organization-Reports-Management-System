@@ -4,6 +4,12 @@
     <h2 class="text-2xl font-bold text-gray-800 mt-2">GPOA Details</h2>
     <p class="text-sm text-gray-500">{{ $gpoa->term }} / SY {{ $gpoa->school_year }}</p>
     <span class="mt-3 inline-flex rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">Locked after submission. Contact your administrator to request changes.</span>
+    @if($gpoa->validation_status)
+        <div class="mt-3 rounded-lg border px-4 py-3 text-sm {{ $gpoa->validation_status === 'valid' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : ($gpoa->validation_status === 'needs_review' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800') }}">
+            <p class="font-semibold">Document validation: {{ str_replace('_', ' ', ucfirst($gpoa->validation_status)) }}</p>
+            @if($gpoa->validation_notes)<p class="mt-1 whitespace-pre-line">{{ $gpoa->validation_notes }}</p>@endif
+        </div>
+    @endif
 </div>
 
 <!-- GPOA Status and Summary -->

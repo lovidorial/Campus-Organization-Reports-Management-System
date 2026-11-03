@@ -8,6 +8,7 @@ use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\GpoaImportParser;
+use App\Services\DocumentValidationService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -176,7 +177,7 @@ class GpoaController extends Controller
         return null;
     }
 
-    public function store(Request $request)
+    public function store(Request $request, DocumentValidationService $documentValidation)
     {
         $user = $request->user();
         if (! $user->isAdmin()) {
@@ -218,16 +219,33 @@ class GpoaController extends Controller
             ]);
         }
 
+        $documentValidationResult = $documentValidation->validateUpload($request->file('document_path'), 'gpoa', [
+            'organization_name' => $user->organization?->name ?? $user->org_name,
+        ]);
+        if ($documentValidationResult['status'] === 'invalid') {
+            $documentValidation->logValidation(new Gpoa([
+                'user_id' => $user->id,
+                'term' => $validated['term'],
+                'school_year' => $validated['school_year'],
+            ]), 'gpoa', $documentValidationResult);
+            throw ValidationException::withMessages([
+                'document_path' => $documentValidationResult['notes'],
+            ]);
+        }
+
         $documentPath = $request->file('document_path')->store('uploads/gpoa', 'private');
 
         try {
-            $gpoa = DB::transaction(function () use ($user, $validated, $documentPath, $request): Gpoa {
+            $gpoa = DB::transaction(function () use ($user, $validated, $documentPath, $request, $documentValidationResult): Gpoa {
                 $gpoa = Gpoa::create([
                     'user_id'       => $user->id,
                     'term'          => $validated['term'],
                     'school_year'   => $validated['school_year'],
                     'college'       => $validated['colleges'],
                     'document_path' => $documentPath,
+                    'validation_status' => $documentValidationResult['status'],
+                    'validation_notes' => implode("\n", $documentValidationResult['notes']),
+                    'validated_at' => now(),
                     'prepared_by'   => $validated['prepared_by'],
                     'status'        => 'approved',
                     'approved_at'   => now(),
@@ -250,6 +268,8 @@ class GpoaController extends Controller
             throw $exception;
         }
 
+        $documentValidation->logValidation($gpoa, 'gpoa', $documentValidationResult);
+
         User::where('role', 'admin')->each(function (User $admin) use ($gpoa, $user) {
             UserNotification::create([
                 'user_id' => $admin->id,
@@ -261,6 +281,7 @@ class GpoaController extends Controller
 
         return redirect()->route('dashboard')
             ->with('success', 'GPOA submitted successfully.')
+            ->with('documentValidation', $documentValidationResult)
             ->with('clearGpoaDraftKey', 'gpoa-draft:'.$user->id.':'.$validated['school_year']);
     }
 
@@ -293,7 +314,7 @@ class GpoaController extends Controller
         return view('gpoa.edit', compact('gpoa', 'plannedActivitySeed'));
     }
 
-    public function update(Request $request, Gpoa $gpoa)
+    public function update(Request $request, Gpoa $gpoa, DocumentValidationService $documentValidation)
     {
         $this->authorize('update', $gpoa);
 
@@ -309,11 +330,24 @@ class GpoaController extends Controller
         ]);
 
         if ($request->hasFile('document_path')) {
+            $documentValidationResult = $documentValidation->validateUpload($request->file('document_path'), 'gpoa', [
+                'organization_name' => $gpoa->user?->organization?->name ?? $gpoa->user?->org_name,
+            ]);
+            if ($documentValidationResult['status'] === 'invalid') {
+                $documentValidation->logValidation($gpoa, 'gpoa', $documentValidationResult);
+                throw ValidationException::withMessages([
+                    'document_path' => $documentValidationResult['notes'],
+                ]);
+            }
+
             if ($gpoa->document_path) {
                 Storage::disk('private')->delete($gpoa->document_path);
                 Storage::disk('public')->delete($gpoa->document_path);
             }
             $gpoa->document_path = $request->file('document_path')->store('uploads/gpoa', 'private');
+            $gpoa->validation_status = $documentValidationResult['status'];
+            $gpoa->validation_notes = implode("\n", $documentValidationResult['notes']);
+            $gpoa->validated_at = now();
         }
 
         $gpoa->update([
@@ -323,6 +357,10 @@ class GpoaController extends Controller
         ]);
 
         $this->syncPlannedActivities($gpoa, $request->input('planned_activities', []));
+
+        if (isset($documentValidationResult)) {
+            $documentValidation->logValidation($gpoa, 'gpoa', $documentValidationResult);
+        }
 
         return redirect()->route('dashboard')
             ->with('success', 'GPOA updated successfully.')

@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityRequest;
 use App\Models\ActivityReportPhoto;
+use App\Services\DocumentValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ActivityDocumentController extends Controller
 {
-    public function storeCommunicationLetter(Request $request, ActivityRequest $activityRequest)
+    public function storeCommunicationLetter(Request $request, ActivityRequest $activityRequest, DocumentValidationService $documentValidation)
     {
         $this->authorize('update', $activityRequest);
 
@@ -18,13 +20,30 @@ class ActivityDocumentController extends Controller
             'signed_confirmation' => 'required|accepted',
         ]);
 
+        $user = $activityRequest->user;
+        $validation = $documentValidation->validateUpload($validated['communication_letter'], 'communication_letter', [
+            'organization_name' => $user?->organization?->name ?? $user?->org_name,
+            'activity_title' => $activityRequest->title,
+            'activity_date' => $activityRequest->date?->toDateString(),
+        ]);
+        if ($validation['status'] === 'invalid') {
+            $documentValidation->logValidation($activityRequest, 'communication_letter', $validation);
+            throw ValidationException::withMessages([
+                'communication_letter' => $validation['notes'],
+            ]);
+        }
+
         $path = $validated['communication_letter']->store('activity-documents/communication-letters', 'private');
         $previousPath = $activityRequest->communication_letter;
 
         $activityRequest->update([
             'communication_letter' => $path,
             'communication_letter_signed_at' => now(),
+            'validation_status' => $validation['status'],
+            'validation_notes' => implode("\n", $validation['notes']),
+            'validated_at' => now(),
         ]);
+        $documentValidation->logValidation($activityRequest, 'communication_letter', $validation);
 
         if ($previousPath && Storage::disk('private')->exists($previousPath)) {
             Storage::disk('private')->delete($previousPath);
@@ -33,7 +52,9 @@ class ActivityDocumentController extends Controller
             Storage::disk('public')->delete($previousPath);
         }
 
-        return back()->with('success', 'Communication letter uploaded.');
+        return back()
+            ->with('success', 'Communication letter uploaded.')
+            ->with('documentValidation', $validation);
     }
 
     public function show(ActivityRequest $activityRequest, string $documentType)

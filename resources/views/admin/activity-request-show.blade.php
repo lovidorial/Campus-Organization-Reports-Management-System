@@ -1,4 +1,5 @@
 <x-app-layout>
+    @if(session('error'))<div role="alert" class="mx-auto mt-4 max-w-7xl rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>@endif
     @php
         $activityRequest = $activityRequest;
         $report = $activityRequest->report;
@@ -122,6 +123,8 @@
                         'statusClass' => filled($activityRequest->communication_letter) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600',
                         'viewUrl' => filled($activityRequest->communication_letter) ? route('admin.file.view', [$activityRequest->id, 'communication']) : null,
                         'title' => 'Communication Letter – ' . $activityRequest->title,
+                        'validationStatus' => $activityRequest->validation_status,
+                        'validationNotes' => $activityRequest->validation_notes,
                     ],
                     [
                         'label' => 'Narrative Report (PDF)',
@@ -164,7 +167,11 @@
                                 <h2 class="text-sm font-bold text-slate-900">{{ $document['label'] }}</h2>
                                 <div class="mt-2 flex items-center gap-2">
                                     <span class="inline-flex rounded-full px-2 py-1 text-[10px] font-semibold {{ $document['statusClass'] }}">{{ $document['statusText'] }}</span>
+                                    @if(($document['label'] ?? '') === 'Communication Letter (PDF)' && $document['validationStatus'])
+                                        <span class="inline-flex rounded-full px-2 py-1 text-[10px] font-semibold {{ $document['validationStatus'] === 'valid' ? 'bg-emerald-100 text-emerald-700' : ($document['validationStatus'] === 'needs_review' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-700') }}">Validation: {{ str_replace('_', ' ', ucfirst($document['validationStatus'])) }}</span>
+                                    @endif
                                 </div>
+                                @if(($document['label'] ?? '') === 'Communication Letter (PDF)' && filled($document['validationNotes']))<p class="mt-2 whitespace-pre-line text-xs text-amber-900">{{ $document['validationNotes'] }}</p>@endif
                             </div>
                         </div>
                         @if($document['viewUrl'])

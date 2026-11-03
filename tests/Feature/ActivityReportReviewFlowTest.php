@@ -106,6 +106,26 @@ class ActivityReportReviewFlowTest extends TestCase
         $this->assertSame('Completed', $plannedActivity->fresh()->monitoringStatus()['status']);
     }
 
+    public function test_admin_cannot_approve_activity_with_invalid_communication_letter(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'user']);
+        [, , $activityRequest] = $this->activityFixture($user, '2026-09-30');
+        $activityRequest->update([
+            'communication_letter' => 'letters/invalid.pdf',
+            'validation_status' => 'invalid',
+            'validation_notes' => 'Organization name not found.',
+        ]);
+        $report = $this->createReport($activityRequest);
+
+        $this->actingAs($admin)
+            ->post(route('admin.reports.approve', $report))
+            ->assertRedirect()
+            ->assertSessionHas('error', 'This activity cannot be approved because its communication letter failed document validation.');
+
+        $this->assertSame('pending', $report->fresh()->status);
+    }
+
     public function test_admin_can_request_revision_with_feedback_and_notify_organization(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

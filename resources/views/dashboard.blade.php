@@ -1,4 +1,16 @@
 <x-app-layout>
+    @if(session('documentValidation'))
+        <div class="mx-auto mt-4 max-w-7xl rounded-md border px-4 py-3 text-sm {{ session('documentValidation.status') === 'valid' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900' }}" role="status">
+            <p class="font-semibold">GPOA document validation: {{ str_replace('_', ' ', ucfirst(session('documentValidation.status'))) }}</p>
+            @if(session('documentValidation.notes'))
+                <ul class="mt-1 list-inside list-disc">
+                    @foreach(session('documentValidation.notes') as $note)
+                        <li>{{ $note }}</li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+    @endif
 
 @php
     $user = auth()->user();

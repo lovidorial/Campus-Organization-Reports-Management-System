@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Gpoa;
 use App\Models\User;
+use App\Services\DocumentValidationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -38,14 +40,14 @@ class GpoaDocumentRequiredTest extends TestCase
     public function test_gpoa_store_requires_approved_confirmation(): void
     {
         Storage::fake('private');
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization']);
 
         $response = $this->actingAs($user)->post(route('gpoa.store'), [
             'colleges' => 'CICS',
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
+            'document_path' => UploadedFile::fake()->createWithContent('approved-gpoa.pdf', Pdf::loadHTML('<p>Campus Organization Date: October 28, 2026 Approved by: Adviser</p>')->output()),
             'planned_activities' => [[
                 ...$this->completePlannedActivity(),
             ]],
@@ -59,14 +61,14 @@ class GpoaDocumentRequiredTest extends TestCase
     public function test_gpoa_store_creates_an_approved_gpoa(): void
     {
         Storage::fake('private');
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization']);
 
         $response = $this->actingAs($user)->post(route('gpoa.store'), [
             'colleges' => 'CICS',
             'term' => '1st Term',
             'school_year' => '2026-2027',
             'prepared_by' => 'Jane Doe',
-            'document_path' => UploadedFile::fake()->create('approved-gpoa.pdf', 20, 'application/pdf'),
+            'document_path' => UploadedFile::fake()->createWithContent('approved-gpoa.pdf', Pdf::loadHTML('<p>Campus Organization Date: October 28, 2026 Approved by: Adviser</p>')->output()),
             'planned_activities' => [[
                 ...$this->completePlannedActivity(),
             ]],
@@ -82,6 +84,64 @@ class GpoaDocumentRequiredTest extends TestCase
         $gpoa = Gpoa::where('user_id', $user->id)->firstOrFail();
         $this->assertNotNull($gpoa->approved_at);
         Storage::disk('private')->assertExists($gpoa->document_path);
+    }
+
+    public function test_gpoa_store_keeps_scanned_document_as_needs_review(): void
+    {
+        Storage::fake('private');
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization']);
+        $this->app->bind(DocumentValidationService::class, fn () => new class extends DocumentValidationService
+        {
+            protected function extractWithOcr(string $path, string $mime): ?string
+            {
+                return null;
+            }
+        });
+
+        $this->actingAs($user)
+            ->post(route('gpoa.store'), [
+                'colleges' => 'CICS',
+                'term' => '1st Term',
+                'school_year' => '2026-2027',
+                'prepared_by' => 'Jane Doe',
+                'document_path' => UploadedFile::fake()->createWithContent('scanned.pdf', Pdf::loadHTML('<html><body></body></html>')->output()),
+                'planned_activities' => [$this->completePlannedActivity()],
+                'approved_confirmation' => '1',
+                'verify' => '1',
+            ])
+            ->assertRedirect(route('dashboard', absolute: false))
+            ->assertSessionHas('documentValidation.status', 'needs_review');
+
+        $gpoa = Gpoa::query()->firstOrFail();
+        $this->assertSame('needs_review', $gpoa->validation_status);
+        $this->assertStringContainsString('OCR is unavailable', $gpoa->validation_notes);
+    }
+
+    public function test_invalid_gpoa_is_not_saved_and_validation_attempt_is_logged(): void
+    {
+        Storage::fake('private');
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization']);
+
+        $this->actingAs($user)
+            ->from(route('gpoa.create'))
+            ->post(route('gpoa.store'), [
+                'colleges' => 'CICS',
+                'term' => '1st Term',
+                'school_year' => '2026-2027',
+                'prepared_by' => 'Jane Doe',
+                'document_path' => UploadedFile::fake()->createWithContent('wrong-gpoa.pdf', Pdf::loadHTML('<p>Other Organization</p>')->output()),
+                'planned_activities' => [$this->completePlannedActivity()],
+                'approved_confirmation' => '1',
+                'verify' => '1',
+            ])
+            ->assertRedirect(route('gpoa.create'))
+            ->assertSessionHasErrors('document_path');
+
+        $this->assertDatabaseCount('gpoas', 0);
+        $this->assertDatabaseHas('workflow_events', [
+            'event_type' => 'document_validated',
+            'description' => 'Gpoa validation: invalid',
+        ]);
     }
 
     public function test_migration_approves_legacy_submitted_gpoas_and_backfills_approval_time(): void

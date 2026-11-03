@@ -8,6 +8,13 @@
     @endphp
 
     <main class="mx-auto max-w-6xl space-y-3 p-0 sm:p-4">
+        @if(session('documentValidation'))
+            @php($uploadValidation = session('documentValidation'))
+            <div role="status" class="rounded-md border px-4 py-3 text-sm {{ $uploadValidation['status'] === 'valid' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900' }}">
+                <p class="font-semibold">Communication letter validation: {{ str_replace('_', ' ', ucfirst($uploadValidation['status'])) }}</p>
+                @if($uploadValidation['notes'])<ul class="mt-1 list-inside list-disc">@foreach($uploadValidation['notes'] as $note)<li>{{ $note }}</li>@endforeach</ul>@endif
+            </div>
+        @endif
         @if($errors->has('activity_date'))
             <div role="alert" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first('activity_date') }}</div>
         @endif
@@ -148,6 +155,12 @@
                 <h2 class="mb-2 text-sm font-bold text-slate-800">Communication Letter</h2>
                 @if($request->communication_letter)
                     <a href="{{ route('activity-requests.documents.show', [$request, 'communication-letter']) }}" data-file-viewer data-title="Communication Letter" class="text-xs font-semibold text-sky-700 underline">{{ basename($request->communication_letter) }}</a>
+                    @if($request->validation_status)
+                        <div class="mt-2 rounded border px-3 py-2 text-xs {{ $request->validation_status === 'valid' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : ($request->validation_status === 'needs_review' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800') }}">
+                            <p class="font-semibold">Document validation: {{ str_replace('_', ' ', ucfirst($request->validation_status)) }}</p>
+                            @if($request->validation_notes)<p class="mt-1 whitespace-pre-line">{{ $request->validation_notes }}</p>@endif
+                        </div>
+                    @endif
                 @else
                     <p class="mb-2 text-xs text-slate-500">No letter uploaded.</p>
                 @endif

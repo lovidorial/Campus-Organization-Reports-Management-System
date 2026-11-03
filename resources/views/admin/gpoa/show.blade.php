@@ -31,7 +31,11 @@
                         @if($gpoa->document_path)
                             <a href="{{ route('admin.gpoa.document', $gpoa) }}" data-file-viewer data-title="Approved GPOA Document" class="text-xs font-semibold text-emerald-700 underline">View approved document</a>
                         @endif
+                        @if($gpoa->validation_status)
+                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $gpoa->validation_status === 'valid' ? 'bg-emerald-100 text-emerald-700' : ($gpoa->validation_status === 'needs_review' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-700') }}">Validation: {{ str_replace('_', ' ', ucfirst($gpoa->validation_status)) }}</span>
+                        @endif
                     </div>
+                    @if(filled($gpoa->validation_notes))<p class="mt-3 whitespace-pre-line text-sm text-amber-900">{{ $gpoa->validation_notes }}</p>@endif
 
                     <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
                         <span class="uppercase tracking-[0.12em] text-slate-400">Submitted</span>

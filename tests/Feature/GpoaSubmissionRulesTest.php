@@ -7,6 +7,7 @@ use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -21,7 +22,7 @@ class GpoaSubmissionRulesTest extends TestCase
 
     public function test_new_gpoa_is_blocked_when_prior_plan_has_pending_or_ongoing_activities(): void
     {
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization']);
         $gpoa = $this->createGpoa($user, '1st Term', '2025-2026');
         $gpoa->activities()->create(['title' => 'Letter not uploaded', 'date' => '2025-09-01']);
         $ongoing = $gpoa->activities()->create(['title' => 'Waiting for report', 'date' => '2025-09-02']);
@@ -123,7 +124,7 @@ class GpoaSubmissionRulesTest extends TestCase
 
         $this->assertDatabaseMissing('gpoas', ['user_id' => $user->id, 'term' => '1st Term', 'school_year' => '2030-2031']);
 
-        $otherUser = User::factory()->create(['role' => 'user', 'term' => '1st Term', 'school_year' => '2027-2028']);
+        $otherUser = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization', 'term' => '1st Term', 'school_year' => '2027-2028']);
         $this->actingAs($otherUser)->post(route('gpoa.store'), $this->payload('2nd Term', '2035-2036'))
             ->assertRedirect(route('dashboard', absolute: false));
         $this->assertDatabaseHas('gpoas', ['user_id' => $otherUser->id, 'term' => '1st Term', 'school_year' => '2027-2028']);
@@ -132,7 +133,7 @@ class GpoaSubmissionRulesTest extends TestCase
     public function test_second_submission_for_the_same_period_returns_validation_error_and_keeps_one_gpoa(): void
     {
         Storage::fake('private');
-        $user = User::factory()->create(['role' => 'user', 'term' => '1st Term', 'school_year' => '2032-2033']);
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization', 'term' => '1st Term', 'school_year' => '2032-2033']);
         $payload = $this->payload('1st Term', '2032-2033');
 
         $this->actingAs($user)->post(route('gpoa.store'), $payload)
@@ -153,7 +154,7 @@ class GpoaSubmissionRulesTest extends TestCase
     public function test_planned_activity_sync_failure_rolls_back_gpoa_and_uploaded_pdf(): void
     {
         Storage::fake('private');
-        $user = User::factory()->create(['role' => 'user', 'term' => '1st Term', 'school_year' => '2033-2034']);
+        $user = User::factory()->create(['role' => 'user', 'org_name' => 'Campus Organization', 'term' => '1st Term', 'school_year' => '2033-2034']);
         $activityInsertFailed = false;
 
         DB::listen(function (QueryExecuted $query) use (&$activityInsertFailed): void {
@@ -215,7 +216,7 @@ class GpoaSubmissionRulesTest extends TestCase
             'term' => $term,
             'school_year' => $schoolYear,
             'prepared_by' => 'Test Officer',
-            'document_path' => UploadedFile::fake()->create('approved.pdf', 10, 'application/pdf'),
+            'document_path' => UploadedFile::fake()->createWithContent('approved.pdf', Pdf::loadHTML('<p>Campus Organization Sample Org Date: October 28, 2026 Approved by: Adviser</p>')->output()),
             'planned_activities' => [[
                 'title' => 'New activity',
                 'time_frame' => 'exact_date',
