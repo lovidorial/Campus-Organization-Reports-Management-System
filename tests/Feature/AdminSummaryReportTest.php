@@ -200,4 +200,130 @@ class AdminSummaryReportTest extends TestCase
             unlink($temporaryFile);
         }
     }
+
+    public function test_summary_report_calculates_sdg_totals_by_completion_status_and_filters(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $org = Organization::create([
+            'name' => 'SDG Org',
+            'type' => 'Student Organization',
+            'college' => 'CICS',
+            'is_active' => true,
+        ]);
+        $user = User::factory()->create([
+            'role' => 'user',
+            'organization_id' => $org->id,
+            'org_name' => $org->name,
+            'college' => 'CICS',
+        ]);
+
+        $gpoa = Gpoa::create([
+            'user_id' => $user->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'submitted',
+        ]);
+
+        $completed1 = $gpoa->activities()->create([
+            'title' => 'Completed SDG Activity 1',
+            'date' => '2026-11-01',
+            'venue' => 'Hall A',
+            'category' => 'Outreach',
+            'sdgs' => [1, 2],
+        ]);
+        $completed2 = $gpoa->activities()->create([
+            'title' => 'Completed SDG Activity 2',
+            'date' => '2026-11-03',
+            'venue' => 'Hall B',
+            'category' => 'Outreach',
+            'sdgs' => [2],
+        ]);
+        $notCompleted1 = $gpoa->activities()->create([
+            'title' => 'Ongoing SDG Activity 3',
+            'date' => '2026-11-05',
+            'venue' => 'Hall C',
+            'category' => 'Outreach',
+            'sdgs' => '1,3',
+        ]);
+        $notCompleted2 = $gpoa->activities()->create([
+            'title' => 'Unspecified SDG Activity',
+            'date' => '2026-11-07',
+            'venue' => 'Hall D',
+            'category' => 'Outreach',
+            'sdgs' => null,
+        ]);
+
+        foreach ([$completed1, $completed2, $notCompleted1] as $activity) {
+            $request = ActivityRequest::create([
+                'user_id' => $user->id,
+                'gpoa_id' => $gpoa->id,
+                'gpoa_activity_id' => $activity->id,
+                'title' => $activity->title,
+                'date' => $activity->date,
+                'venue' => $activity->venue,
+                'category' => $activity->category,
+                'communication_letter' => 'letters/letter.pdf',
+                'status' => ActivityRequest::STATUS_PENDING,
+            ]);
+            $activity->update(['activity_request_id' => $request->id]);
+            if ($activity->id === $completed1->id || $activity->id === $completed2->id) {
+                ActivityReport::create([
+                    'activity_request_id' => $request->id,
+                    'narrative_report' => 'reports/approved.pdf',
+                    'narrative_source' => 'uploaded',
+                    'status' => 'approved',
+                    'submitted_at' => now(),
+                ]);
+            }
+        }
+
+        $response = $this->actingAs($admin)->get(route('admin.summary-report', [
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('SDG Summary');
+        $response->assertSee('No Poverty');
+        $response->assertSee('Completed');
+        $response->assertSee('Not Completed');
+        $response->assertSee('2');
+        $response->assertSee('Unspecified');
+
+        $filtered = $this->actingAs($admin)->get(route('admin.summary-report', [
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'Completed',
+        ]));
+
+        $filtered->assertOk();
+        $filtered->assertSee('No Poverty');
+        $filtered->assertSee('1');
+        $filtered->assertDontSee('Unspecified');
+
+        $exportResponse = $this->actingAs($admin)->get(route('admin.summary-report.download', [
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+        ]));
+
+        $exportResponse->assertOk();
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'sdg-summary-');
+        file_put_contents($temporaryFile, $exportResponse->streamedContent());
+
+        try {
+            $workbook = IOFactory::createReader('Xlsx')->load($temporaryFile);
+            $this->assertTrue($workbook->sheetNameExists('SDG Summary'));
+            $sdgSheet = $workbook->getSheetByName('SDG Summary');
+            $sheetData = $sdgSheet->toArray();
+            $this->assertStringContainsString('No Poverty', (string) $sheetData[1][0]);
+            $this->assertSame('1', (string) $sheetData[1][1]);
+            $this->assertSame('2', (string) $sheetData[1][3]);
+        } finally {
+            unlink($temporaryFile);
+        }
+    }
 }

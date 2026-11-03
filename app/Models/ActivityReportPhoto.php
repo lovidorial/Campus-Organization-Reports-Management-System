@@ -12,6 +12,7 @@ class ActivityReportPhoto extends Model
         'path',
         'caption',
         'sort_order',
+        'file_size', 'mime_type', 'sha256',
     ];
 
     public function activityReport(): BelongsTo

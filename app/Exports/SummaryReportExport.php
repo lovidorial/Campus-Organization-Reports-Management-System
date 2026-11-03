@@ -25,6 +25,7 @@ class SummaryReportExport implements WithMultipleSheets
         private readonly Collection $organizationSummary,
         private readonly Collection $categorySummary,
         private readonly Collection $statusSummary,
+        private readonly Collection $sdgSummary,
         private readonly array $filters = [],
         private readonly bool $includeSummaries = true,
     ) {
@@ -38,6 +39,7 @@ class SummaryReportExport implements WithMultipleSheets
             $sheets[] = new OrganizationSummarySheet($this->organizationSummary);
             $sheets[] = new CategorySummarySheet($this->categorySummary);
             $sheets[] = new StatusSummarySheet($this->statusSummary);
+            $sheets[] = new SdgSummarySheet($this->sdgSummary);
         }
 
         return $sheets;
@@ -297,6 +299,43 @@ class StatusSummarySheet implements FromCollection, ShouldAutoSize, WithHeadings
 
         return [
             "A1:B{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
+            '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
+        ];
+    }
+}
+
+class SdgSummarySheet implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
+{
+    public function __construct(private readonly Collection $sdgSummary)
+    {
+    }
+
+    public function collection(): Collection
+    {
+        return $this->sdgSummary;
+    }
+
+    public function headings(): array
+    {
+        return ['SDG', 'Completed', 'Not Completed', 'Total'];
+    }
+
+    public function map($summary): array
+    {
+        return [$summary['label'], $summary['completed'], $summary['not_completed'], $summary['total']];
+    }
+
+    public function title(): string
+    {
+        return 'SDG Summary';
+    }
+
+    public function styles(Worksheet $sheet): array
+    {
+        $lastRow = max(1, $sheet->getHighestRow());
+
+        return [
+            "A1:D{$lastRow}" => ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD1D5DB']]]],
             '1' => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE5E7EB']]],
         ];
     }

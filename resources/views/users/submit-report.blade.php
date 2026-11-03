@@ -9,8 +9,6 @@
 @php
     $selectedSource = old('narrative_source', $existingReport?->narrative_source ?? ($existingReport?->narrative_report ? 'uploaded' : 'generated'));
     $hasExistingUpload = $existingReport?->narrative_source === 'uploaded' && filled($existingReport?->narrative_report);
-    $existingPhotoCount = $existingReport?->photos->count() ?? 0;
-    $remainingPhotoCount = max(0, 10 - $existingPhotoCount);
 @endphp
 
 <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-8 max-w-xl">
@@ -84,16 +82,6 @@
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Photos of the finished activity {{ $existingPhotoCount > 0 ? '(optional, ' . $remainingPhotoCount . ' more allowed)' : '(at least 1 required, up to 10)' }}</label>
-            <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple
-                   class="w-full border border-gray-300 rounded-lg px-3 py-2">
-            <p class="text-xs text-gray-500 mt-1">Previously submitted photos are kept when you resubmit.</p>
-            @error('photos')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-            @error('photos.*')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-            <div id="photoPreview" class="grid grid-cols-2 gap-3 mt-3 sm:grid-cols-3"></div>
-        </div>
-
-        <div>
             <label for="attendance_sheet" class="mb-2 block text-sm font-semibold text-gray-700">Attendance sheet (optional)</label>
             @if(filled($existingReport?->attendance_sheet_path))
                 <p class="mb-2 text-xs text-gray-500">An attendance sheet is already on file. Uploading another replaces it.</p>
@@ -128,20 +116,5 @@
     narrativeSourceInputs.forEach(input => input.addEventListener('change', updateNarrativeSourceFields));
     updateNarrativeSourceFields();
 
-    document.querySelector('input[name="photos[]"]').addEventListener('change', function(event) {
-        const preview = document.getElementById('photoPreview');
-        preview.innerHTML = '';
-
-        Array.from(event.target.files).slice(0, 10).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.className = 'w-full h-24 object-cover rounded-lg border border-gray-200';
-                preview.appendChild(img);
-            };
-            reader.readAsDataURL(file);
-        });
-    });
 </script>
 </x-app-layout>

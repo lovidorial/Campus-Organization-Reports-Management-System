@@ -61,6 +61,7 @@ class AdminSummaryReportController extends Controller
                 $data['organizationSummary'],
                 $data['categorySummary'],
                 $data['statusSummary'],
+                $data['sdgSummary'],
                 $data['filters'],
                 $request->boolean('include_category_summary', true),
             ),
@@ -139,6 +140,7 @@ class AdminSummaryReportController extends Controller
                 'status' => $status,
                 'activity_count' => $counts[$status],
             ]),
+            'sdgSummary' => $this->sdgSummary($activities),
             'lateSummary' => ['status' => 'Late', 'activity_count' => $counts['Late']],
             'filters' => $filters,
             'organizationLabel' => $allActivities->first(fn ($activity) => (string) $activity->gpoa?->user_id === (string) $filters['organization'])?->gpoa?->user?->org_name
@@ -244,5 +246,121 @@ class AdminSummaryReportController extends Controller
             })
             ->sortBy('organization')
             ->values();
+    }
+
+    private function sdgSummary($activities)
+    {
+        $totals = collect();
+
+        foreach ($activities as $activity) {
+            $sdgs = $this->normalizeSdgs($activity->sdgs ?? null);
+
+            if ($sdgs === []) {
+                $sdgs = ['Unspecified'];
+            }
+
+            $isCompleted = in_array((string) ($activity->monitoring_status ?? ''), ['Completed', 'Archived'], true);
+
+            foreach ($sdgs as $sdgKey) {
+                $key = is_numeric((string) $sdgKey) ? (int) $sdgKey : (string) $sdgKey;
+                $label = $key === 'Unspecified'
+                    ? 'Unspecified'
+                    : (($this->sdgMeta((string) $key)['label'] ?? ('SDG ' . $key)));
+
+                $index = $totals->search(fn ($row) => ($row['key'] ?? null) === $key);
+
+                if ($index === false) {
+                    $totals->push([
+                        'key' => $key,
+                        'label' => $label,
+                        'completed' => 0,
+                        'not_completed' => 0,
+                        'total' => 0,
+                    ]);
+
+                    $index = $totals->count() - 1;
+                }
+
+                $row = $totals->get($index, ['key' => $key, 'label' => $label, 'completed' => 0, 'not_completed' => 0, 'total' => 0]);
+
+                if ($isCompleted) {
+                    $row['completed'] += 1;
+                } else {
+                    $row['not_completed'] += 1;
+                }
+
+                $row['total'] = $row['completed'] + $row['not_completed'];
+                $totals->offsetSet($index, $row);
+            }
+        }
+
+        return $totals
+            ->sortBy(function ($row) {
+                if (($row['key'] ?? null) === 'Unspecified') {
+                    return PHP_INT_MAX;
+                }
+
+                return is_numeric((string) $row['key']) ? (int) $row['key'] : PHP_INT_MAX;
+            })
+            ->values();
+    }
+
+    private function normalizeSdgs(mixed $sdgs): array
+    {
+        if (is_string($sdgs)) {
+            $decoded = json_decode($sdgs, true);
+            if (is_array($decoded)) {
+                $sdgs = $decoded;
+            } else {
+                $sdgs = preg_split('/[\s,]+/', trim($sdgs), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            }
+        }
+
+        if (! is_array($sdgs)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($sdgs as $value) {
+            if (is_array($value)) {
+                foreach ($value as $nestedValue) {
+                    $normalized[] = $nestedValue;
+                }
+                continue;
+            }
+
+            $normalized[] = $value;
+        }
+
+        return array_values(array_filter(array_map(function ($value): ?string {
+            if ($value === null || $value === '') {
+                return null;
+            }
+
+            if (is_array($value)) {
+                return null;
+            }
+
+            $trimmed = trim((string) $value);
+            if ($trimmed === '') {
+                return null;
+            }
+
+            if (str_contains($trimmed, 'Unspecified')) {
+                return 'Unspecified';
+            }
+
+            $number = preg_replace('/\D+/', '', $trimmed);
+            if ($number !== '' && (int) $number >= 1 && (int) $number <= 17) {
+                return (string) (int) $number;
+            }
+
+            return $trimmed;
+        }, $normalized), fn ($value) => $value !== null && $value !== ''));
+    }
+
+    private function sdgMeta(string $sdg): array
+    {
+        return config('sdg.' . $sdg, ['label' => 'SDG ' . $sdg]);
     }
 }

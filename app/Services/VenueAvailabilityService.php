@@ -42,9 +42,7 @@ class VenueAvailabilityService
             })
             ->whereNotIn('status', ['cancelled', 'deleted'])
             ->whereDate('date', '<=', $endDate)
-            ->where(function ($query) use ($startDate) {
-                $query->whereNull('end_date')->orWhereDate('end_date', '>=', $startDate);
-            });
+            ->whereRaw('DATE(COALESCE(end_date, date)) >= ?', [$startDate]);
 
         if ($exceptId !== null) {
             $query->whereKeyNot($exceptId);

@@ -7,8 +7,10 @@ use App\Models\GpoaActivity;
 use App\Models\ActivityRequest;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Rules\ValidateDocumentContent;
 use App\Services\GpoaImportParser;
 use App\Services\DocumentValidationService;
+use App\Services\StoredFileMetadata;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +83,7 @@ class GpoaController extends Controller
         }
 
         $validated = $request->validate([
-            'file' => 'required|file|mimes:docx,xlsx|max:10240',
+            'file' => ['required', 'file', 'mimes:docx,xlsx', 'max:10240', new ValidateDocumentContent(['docx', 'xlsx'])],
             'school_year' => 'required|string|max:20',
         ], [
             'file.required' => 'Choose a Word (.docx) or Excel (.xlsx) file to import.',
@@ -202,7 +204,7 @@ class GpoaController extends Controller
             'term'                => 'required|string|max:50',
             'school_year'         => 'required|string|max:20',
             'prepared_by'         => 'required|string|max:255',
-            'document_path'       => 'required|file|mimes:pdf|max:20480',
+            'document_path'       => ['required', 'file', 'mimes:pdf', 'max:20480', new ValidateDocumentContent(['pdf'])],
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
             'approved_confirmation' => 'required|accepted',
             'verify'              => 'required|accepted',
@@ -234,15 +236,19 @@ class GpoaController extends Controller
         }
 
         $documentPath = $request->file('document_path')->store('uploads/gpoa', 'private');
+        $documentMetadata = StoredFileMetadata::fromUpload($request->file('document_path'));
 
         try {
-            $gpoa = DB::transaction(function () use ($user, $validated, $documentPath, $request, $documentValidationResult): Gpoa {
+            $gpoa = DB::transaction(function () use ($user, $validated, $documentPath, $documentMetadata, $request, $documentValidationResult): Gpoa {
                 $gpoa = Gpoa::create([
                     'user_id'       => $user->id,
                     'term'          => $validated['term'],
                     'school_year'   => $validated['school_year'],
                     'college'       => $validated['colleges'],
                     'document_path' => $documentPath,
+                    'document_size' => $documentMetadata['size'],
+                    'document_mime_type' => $documentMetadata['mime_type'],
+                    'document_sha256' => $documentMetadata['sha256'],
                     'validation_status' => $documentValidationResult['status'],
                     'validation_notes' => implode("\n", $documentValidationResult['notes']),
                     'validated_at' => now(),
@@ -323,7 +329,7 @@ class GpoaController extends Controller
         $validated = $request->validate([
             'colleges' => 'required|string|max:100',
             'prepared_by' => 'required|string|max:255',
-            'document_path' => ($gpoa->document_path ? 'nullable' : 'required') . '|file|mimes:pdf|max:20480',
+            'document_path' => [$gpoa->document_path ? 'nullable' : 'required', 'file', 'mimes:pdf', 'max:20480', new ValidateDocumentContent(['pdf'])],
             'planned_activities'  => 'required|array|min:1|max:' . config('gpoa.max_planned_activities'),
         ], [
             'planned_activities.max' => 'A GPOA may contain no more than ' . config('gpoa.max_planned_activities') . ' planned activities.',
@@ -344,7 +350,12 @@ class GpoaController extends Controller
                 Storage::disk('private')->delete($gpoa->document_path);
                 Storage::disk('public')->delete($gpoa->document_path);
             }
-            $gpoa->document_path = $request->file('document_path')->store('uploads/gpoa', 'private');
+            $documentUpload = $request->file('document_path');
+            $gpoa->document_path = $documentUpload->store('uploads/gpoa', 'private');
+            $documentMetadata = StoredFileMetadata::fromUpload($documentUpload);
+            $gpoa->document_size = $documentMetadata['size'];
+            $gpoa->document_mime_type = $documentMetadata['mime_type'];
+            $gpoa->document_sha256 = $documentMetadata['sha256'];
             $gpoa->validation_status = $documentValidationResult['status'];
             $gpoa->validation_notes = implode("\n", $documentValidationResult['notes']);
             $gpoa->validated_at = now();

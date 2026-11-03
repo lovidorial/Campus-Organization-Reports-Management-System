@@ -42,6 +42,7 @@ class DocumentValidationService
             return $this->result('invalid', ['Unsupported file type.']);
         }
 
+        $extractionFailure = false;
         try {
             if ($mime === 'application/pdf') {
                 $parser = new Parser();
@@ -50,15 +51,29 @@ class DocumentValidationService
                 $text = '';
             }
         } catch (Throwable) {
-            return $this->result('invalid', ['File is corrupted or unreadable.']);
+            if (! in_array($documentType, ['communication_letter', 'narrative_report'], true)) {
+                return $this->result('invalid', ['File is corrupted or unreadable.']);
+            }
+
+            $text = '';
+            $extractionFailure = true;
         }
 
-        if ($text === '') {
+        $minimumTextLength = max(1, (int) ($rules['minimum_text_length'] ?? 1));
+        $requiresReadableText = in_array($documentType, ['communication_letter', 'narrative_report'], true);
+        if ($text === '' || ($requiresReadableText && $this->readableTextLength($text) < $minimumTextLength)) {
             $ocrText = $this->extractWithOcr($path, $mime);
             if ($ocrText === null) {
-                return $this->result('needs_review', ['Text could not be extracted; OCR is unavailable.']);
+                $message = $extractionFailure
+                    ? 'PDF text extraction failed; OCR is unavailable. Administrator review required.'
+                    : 'Text could not be extracted; OCR is unavailable.';
+
+                return $this->result('needs_review', [$message]);
             }
             $text = trim($ocrText);
+            if ($requiresReadableText && $this->readableTextLength($text) < $minimumTextLength) {
+                return $this->result('needs_review', ['OCR did not extract enough readable text. Administrator review required.']);
+            }
         }
 
         if ($text === '') {
@@ -142,53 +157,131 @@ class DocumentValidationService
 
     protected function extractWithOcr(string $path, string $mime): ?string
     {
-        $ocrClass = 'thiagoalessio\\TesseractOCR\\TesseractOCR';
-        if (! class_exists($ocrClass)) {
+        if (! config('document_validation.ocr.enabled', true)) {
             return null;
         }
-        $tesseractPath = (new ExecutableFinder())->find('tesseract');
+
+        $ocrClass = 'thiagoalessio\\TesseractOCR\\TesseractOCR';
+        if (! $this->tesseractWrapperAvailable()) {
+            return null;
+        }
+        $tesseractPath = $this->findTesseractExecutable();
         if ($tesseractPath === null) {
             return null;
         }
 
-        $files = [$path];
-        $temporaryFiles = [];
-        if ($mime === 'application/pdf') {
-            $imagickClass = 'Imagick';
-            if (! class_exists($imagickClass)) {
-                return null;
-            }
-
-            try {
-                $image = new $imagickClass();
-                $image->setResolution(180, 180);
-                $image->readImage($path . '[0]');
-                $temporary = tempnam(sys_get_temp_dir(), 'orgtrack-ocr-') . '.png';
-                $image->setImageFormat('png');
-                $image->writeImage($temporary);
-                $image->clear();
-                $files = [$temporary];
-                $temporaryFiles[] = $temporary;
-            } catch (Throwable) {
-                return null;
-            }
-        }
-
+        $temporaryDirectory = null;
         try {
+            if ($mime === 'application/pdf') {
+                if (! $this->pdfRendererAvailable()) {
+                    return null;
+                }
+
+                $temporaryDirectory = $this->createOcrTemporaryDirectory();
+                $files = $this->renderPdfPages($path, $temporaryDirectory);
+                if ($files === null || $files === []) {
+                    return null;
+                }
+            } else {
+                $files = [$path];
+            }
+
             $text = '';
             foreach ($files as $imagePath) {
-                $ocr = new $ocrClass($imagePath);
-                $text .= $ocr->executable($tesseractPath)->run() . "\n";
+                $text .= $this->recognizeImage($imagePath, $tesseractPath, $ocrClass) . "\n";
             }
 
             return $text;
         } catch (Throwable) {
             return null;
         } finally {
-            foreach ($temporaryFiles as $temporaryFile) {
-                @unlink($temporaryFile);
+            $this->removeOcrTemporaryDirectory($temporaryDirectory);
+        }
+    }
+
+    protected function tesseractWrapperAvailable(): bool
+    {
+        return class_exists('thiagoalessio\\TesseractOCR\\TesseractOCR');
+    }
+
+    protected function findTesseractExecutable(): ?string
+    {
+        $configuredPath = config('document_validation.ocr.tesseract_path');
+
+        return filled($configuredPath) && is_file($configuredPath)
+            ? $configuredPath
+            : (new ExecutableFinder())->find('tesseract');
+    }
+
+    protected function pdfRendererAvailable(): bool
+    {
+        return class_exists('Imagick');
+    }
+
+    protected function renderPdfPages(string $path, string $temporaryDirectory): ?array
+    {
+        $imagickClass = 'Imagick';
+        $image = new $imagickClass();
+        $image->setResolution((int) config('document_validation.ocr.dpi', 200), (int) config('document_validation.ocr.dpi', 200));
+        $image->readImage($path);
+        $pageCount = $image->getNumberImages();
+        $maximumPages = max(1, (int) config('document_validation.ocr.maximum_pages', 100));
+        if ($pageCount < 1 || $pageCount > $maximumPages) {
+            $image->clear();
+
+            return null;
+        }
+
+        $files = [];
+        for ($page = 0; $page < $pageCount; $page++) {
+            $image->setIteratorIndex($page);
+            $pageImage = $image->getImage();
+            $pageImage->setImageFormat('png');
+            $imagePath = $temporaryDirectory . DIRECTORY_SEPARATOR . sprintf('page-%04d.png', $page + 1);
+            $pageImage->writeImage($imagePath);
+            $pageImage->clear();
+            $files[] = $imagePath;
+        }
+        $image->clear();
+
+        return $files;
+    }
+
+    protected function recognizeImage(string $imagePath, string $tesseractPath, string $ocrClass): string
+    {
+        $ocr = new $ocrClass($imagePath);
+        $language = (string) config('document_validation.ocr.language', 'eng');
+
+        return $ocr->executable($tesseractPath)->lang($language)->run();
+    }
+
+    protected function createOcrTemporaryDirectory(): string
+    {
+        $directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'orgtrack-ocr-' . bin2hex(random_bytes(12));
+        if (! mkdir($directory, 0700) && ! is_dir($directory)) {
+            throw new \RuntimeException('Temporary OCR directory could not be created.');
+        }
+
+        return $directory;
+    }
+
+    protected function removeOcrTemporaryDirectory(?string $directory): void
+    {
+        if (! $directory || ! is_dir($directory)) {
+            return;
+        }
+
+        foreach (glob($directory . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+            if (is_file($file)) {
+                @unlink($file);
             }
         }
+        @rmdir($directory);
+    }
+
+    private function readableTextLength(string $text): int
+    {
+        return preg_match_all('/[\\pL\\pN]/u', $text) ?: 0;
     }
 
     private function logWorkflowEvent(Model $record, string $documentType, array $result): void

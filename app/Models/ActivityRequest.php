@@ -17,6 +17,7 @@ class ActivityRequest extends Model
         'facilities_materials', 'estimated_budget', 'remarks', 'source_of_funds',
         'preceding_activity', 'description', 'participants_count',
         'communication_letter', 'status', 'reject_reason',
+        'communication_letter_size', 'communication_letter_mime_type', 'communication_letter_sha256',
         'communication_letter_signed_at',
         'validation_status', 'validation_notes', 'validated_at',
     ];

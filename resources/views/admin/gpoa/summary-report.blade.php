@@ -203,6 +203,51 @@
                 </table>
             </div>
 
+            @php
+                $sdgTotals = $sdgSummary->pluck('total')->filter(fn ($value) => is_numeric($value))->all();
+                $maxSdgTotal = $sdgTotals !== [] ? max($sdgTotals) : 1;
+            @endphp
+            <div class="report-summary-block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <h2 class="font-semibold text-slate-900">SDG Summary</h2>
+                </div>
+                <div class="p-4">
+                    <table class="w-full min-w-[540px] text-sm">
+                        <thead class="border-b bg-slate-50">
+                            <tr>
+                                <th class="p-3 text-left">SDG</th>
+                                <th class="p-3 text-right">Completed</th>
+                                <th class="p-3 text-right">Not Completed</th>
+                                <th class="p-3 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($sdgSummary as $summary)
+                                @php
+                                    $total = (int) ($summary['total'] ?? 0);
+                                    $barWidth = max(8, (($maxSdgTotal > 0 ? ($total / $maxSdgTotal) : 0) * 100));
+                                @endphp
+                                <tr class="border-b align-middle">
+                                    <td class="p-3"><div class="flex items-center gap-2"><span class="font-medium">{{ $summary['label'] }}</span></div></td>
+                                    <td class="p-3 text-right">{{ $summary['completed'] }}</td>
+                                    <td class="p-3 text-right">{{ $summary['not_completed'] }}</td>
+                                    <td class="p-3 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <div class="h-2.5 w-28 overflow-hidden rounded-full bg-slate-200">
+                                                <div class="h-full rounded-full bg-emerald-500" style="width: {{ $barWidth }}%"></div>
+                                            </div>
+                                            <span class="font-semibold">{{ $total }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="p-5 text-center text-slate-500">No SDG data for the selected filters.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[1500px] text-sm">

@@ -79,6 +79,23 @@
                 <tr><td><span class="pill late">Late</span></td><td class="number">{{ $lateCount }}</td></tr>
             </tbody>
         </table>
+
+        <h2>SDG Summary</h2>
+        <table>
+            <thead><tr><th>SDG</th><th class="number">Completed</th><th class="number">Not Completed</th><th class="number">Total</th></tr></thead>
+            <tbody>
+                @forelse($sdgSummary as $summary)
+                    <tr>
+                        <td>{{ $summary['label'] }}</td>
+                        <td class="number">{{ $summary['completed'] }}</td>
+                        <td class="number">{{ $summary['not_completed'] }}</td>
+                        <td class="number">{{ $summary['total'] }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4">No SDG data for the selected filters.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     @endif
 
     <h2>Planned Activities</h2>

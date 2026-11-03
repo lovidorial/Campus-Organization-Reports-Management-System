@@ -12,6 +12,7 @@ class Gpoa extends Model
         'user_id', 'term', 'school_year', 'college', 'document_path',
         'status', 'approved_by', 'approved_at', 'stored_at', 'reject_reason', 'prepared_by',
         'validation_status', 'validation_notes', 'validated_at',
+        'document_size', 'document_mime_type', 'document_sha256',
     ];
 
     protected $casts = [

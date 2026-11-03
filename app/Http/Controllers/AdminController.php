@@ -15,11 +15,17 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\AdminActivityMonitoringService;
+use App\Services\OutstandingActivityReportService;
+use App\Services\StoredFileMetadata;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AdminController extends Controller
 {
-    public function monitoringDashboard(AdminActivityMonitoringService $monitoringService, BackupService $backupService)
+    public function monitoringDashboard(
+        AdminActivityMonitoringService $monitoringService,
+        BackupService $backupService,
+        OutstandingActivityReportService $reportService
+    )
     {
         $activities = $monitoringService->all();
         $stats = $monitoringService->counts($activities);
@@ -36,6 +42,9 @@ class AdminController extends Controller
             })->count(),
             'late' => $stats['Late'],
         ];
+        $outstandingReportCount = $reportService->forAdmin()
+            ->where('report_status', '!=', 'Submitted')
+            ->count();
         $dashboardData = $monitoringService->dashboardData($visibleActivities);
         $organizationProgress = $monitoringService->organizationProgress($visibleActivities);
         $recentActivities = $visibleActivities
@@ -48,7 +57,33 @@ class AdminController extends Controller
         $schedulerLastRunAt = Cache::get('scheduler_last_run_at');
         $nextDueAt = $backupService->nextBackupDueAt($backupSetting);
 
-       return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'backupWarning', 'nextDueAt', 'schedulerLastRunAt'));
+       return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'backupWarning', 'nextDueAt', 'schedulerLastRunAt', 'outstandingReportCount'));
+    }
+
+    public function outstandingReports(Request $request, OutstandingActivityReportService $reportService)
+    {
+        $filters = $request->validate([
+            'organization' => ['nullable', 'integer', 'exists:users,id'],
+            'college' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:Missing,Overdue,Needs revision,Submitted'],
+            'school_year' => ['nullable', 'string', 'max:20'],
+            'term' => ['nullable', 'string', 'max:50'],
+        ]);
+        $allReports = $reportService->forAdmin();
+        $reports = $allReports->filter(fn (array $row) => (! filled($filters['organization'] ?? null) || (string) $row['organization_id'] === (string) $filters['organization'])
+            && (! filled($filters['college'] ?? null) || mb_strtolower((string) $row['college']) === mb_strtolower((string) $filters['college']))
+            && (! filled($filters['status'] ?? null) || $row['report_status'] === $filters['status'])
+            && (! filled($filters['school_year'] ?? null) || $row['school_year'] === $filters['school_year'])
+            && (! filled($filters['term'] ?? null) || $row['term'] === $filters['term']))->values();
+        $organizations = $allReports->unique('organization_id')->sortBy('organization')->values();
+        $colleges = $allReports->pluck('college')->filter(fn ($college) => $college !== '—')->unique()->sort()->values();
+        $terms = $allReports->pluck('term')->filter()->unique()->sort()->values();
+        $schoolYears = $allReports->pluck('school_year')->filter()->unique()->sort()->values();
+        $outstandingCount = $allReports->where('report_status', '!=', 'Submitted')->count();
+
+        return view('admin.narrative-reports.outstanding', compact(
+            'reports', 'organizations', 'colleges', 'terms', 'schoolYears', 'filters', 'outstandingCount'
+        ));
     }
 
     public function monitor(Request $request, AdminActivityMonitoringService $monitoringService)
@@ -79,6 +114,29 @@ class AdminController extends Controller
                 ? (bool) $activity->archived_at
                 : $activity->last_submitted_at !== null)->values();
         $activities = $monitoringService->paginate($selectedTabActivities, $request);
+        $documentStatuses = [];
+        foreach ($activities as $activity) {
+            $activityRequest = $activity->activityRequest;
+            $report = $activityRequest?->report;
+            $documentStatuses[$activity->id] = [
+                'communication' => StoredFileMetadata::status(
+                    $activityRequest?->communication_letter,
+                    $activityRequest?->communication_letter_sha256
+                ),
+                'narrative' => StoredFileMetadata::status(
+                    $report?->narrative_report,
+                    $report?->narrative_report_sha256
+                ),
+                'attendance' => StoredFileMetadata::status(
+                    $report?->attendance_sheet_path,
+                    $report?->attendance_sheet_sha256
+                ),
+                'gpoa' => StoredFileMetadata::status(
+                    $activity->gpoa?->document_path,
+                    $activity->gpoa?->document_sha256
+                ),
+            ];
+        }
         $stats = $monitoringService->counts($allActivities);
         $organizations = $allActivities->pluck('gpoa.user')->filter()->unique('id')->sortBy('org_name')->values();
         $categories = $allActivities->pluck('category')->filter()->unique()->sort()->values();
@@ -89,7 +147,7 @@ class AdminController extends Controller
         $organizationProgress = $monitoringService->organizationProgress($progressActivities);
 
         return view('admin.activity-monitoring', compact(
-            'activities', 'stats', 'organizations', 'categories', 'colleges', 'terms', 'schoolYears', 'organizationProgress', 'tab', 'statusCounts'
+            'activities', 'documentStatuses', 'stats', 'organizations', 'categories', 'colleges', 'terms', 'schoolYears', 'organizationProgress', 'tab', 'statusCounts'
         ));
     }
 

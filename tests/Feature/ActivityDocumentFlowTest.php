@@ -46,6 +46,9 @@ class ActivityDocumentFlowTest extends TestCase
         $request->refresh();
         $this->assertNotNull($request->communication_letter_signed_at);
         $this->assertStringStartsWith('activity-documents/communication-letters/', $request->communication_letter);
+        $this->assertGreaterThan(0, $request->communication_letter_size);
+        $this->assertNotEmpty($request->communication_letter_mime_type);
+        $this->assertSame(64, strlen($request->communication_letter_sha256));
         Storage::disk('private')->assertExists($request->communication_letter);
 
         $this->get(route('activity-requests.documents.show', [$request, 'communication-letter']))
@@ -73,6 +76,23 @@ class ActivityDocumentFlowTest extends TestCase
             'event_type' => 'document_validated',
             'description' => 'Communication letter validation: invalid',
         ]);
+    }
+
+    public function test_renamed_text_file_with_pdf_extension_is_rejected(): void
+    {
+        Storage::fake('private');
+        [$user, $request] = $this->createActivityRequest();
+
+        $this->actingAs($user)
+            ->from(route('activity-requests.show', $request))
+            ->post(route('activity-requests.communication-letter.store', $request), [
+                'communication_letter' => UploadedFile::fake()->createWithContent('renamed.pdf', 'This is plain text, not a PDF.'),
+                'signed_confirmation' => '1',
+            ])
+            ->assertRedirect(route('activity-requests.show', $request))
+            ->assertSessionHasErrors('communication_letter');
+
+        $this->assertNull($request->fresh()->communication_letter);
     }
 
     public function test_needs_review_communication_letter_is_stored_and_logged(): void
@@ -140,8 +160,7 @@ class ActivityDocumentFlowTest extends TestCase
 
         $response = $this->post(route('activity-reports.store', $request), $this->reportConfirmation([
             'narrative_source' => 'uploaded',
-            'narrative_report' => UploadedFile::fake()->create('narrative.pdf', 40, 'application/pdf'),
-            'photos' => [UploadedFile::fake()->image('activity.jpg')],
+            'narrative_report' => $this->pdf('Narrative report contents.'),
         ]));
 
         $response->assertRedirect(route('activity-requests.show', $request));
@@ -149,6 +168,8 @@ class ActivityDocumentFlowTest extends TestCase
         $this->assertSame('uploaded', $report->narrative_source);
         $this->assertNull($report->narrative_content);
         $this->assertStringStartsWith('activity-documents/narrative-reports/', $report->narrative_report);
+        $this->assertSame(64, strlen($report->narrative_report_sha256));
+        $this->assertNotEmpty($report->narrative_report_mime_type);
         Storage::disk('private')->assertExists($report->narrative_report);
         $this->assertSame('Ongoing', $activity->fresh()->monitoringStatus()['status']);
 
@@ -165,7 +186,6 @@ class ActivityDocumentFlowTest extends TestCase
         $response = $this->actingAs($user)->post(route('activity-reports.store', $request), $this->reportConfirmation([
             'narrative_source' => 'generated',
             'narrative_content' => 'The activity brought student volunteers together.',
-            'photos' => [UploadedFile::fake()->image('activity.jpg')],
         ]));
 
         $response->assertRedirect(route('activity-requests.show', $request));

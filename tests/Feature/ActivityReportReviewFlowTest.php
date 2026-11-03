@@ -9,6 +9,7 @@ use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\User;
 use App\Models\UserNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -31,12 +32,12 @@ class ActivityReportReviewFlowTest extends TestCase
             ->assertSee('Narrative Report')
             ->assertSee('Organization Head')
             ->assertSee('Adviser')
-            ->assertSee('Dean');
+            ->assertSee('Dean')
+            ->assertDontSee('name="photos[]"', false)
+            ->assertSee('Attendance sheet (optional)');
 
         $this->actingAs($user)
-            ->post(route('activity-reports.store', $activityRequest), $this->reportPayload([
-                'photos' => [UploadedFile::fake()->image('proof.jpg')],
-            ]))
+            ->post(route('activity-reports.store', $activityRequest), $this->reportPayload())
             ->assertRedirect(route('activity-requests.show', $activityRequest));
 
         $this->assertDatabaseHas('activity_reports', [
@@ -63,14 +64,62 @@ class ActivityReportReviewFlowTest extends TestCase
             ->assertDontSee('Available after the activity end date');
     }
 
-    public function test_initial_report_requires_at_least_one_photo(): void
+    public function test_initial_report_does_not_require_photos_or_attendance_sheet(): void
     {
         $user = User::factory()->create(['role' => 'user']);
         [, , $activityRequest] = $this->activityFixture($user, '2026-09-30');
 
         $this->actingAs($user)
             ->post(route('activity-reports.store', $activityRequest), $this->reportPayload())
-            ->assertSessionHasErrors('photos');
+            ->assertRedirect(route('activity-requests.show', $activityRequest));
+
+        $this->assertDatabaseHas('activity_reports', [
+            'activity_request_id' => $activityRequest->id,
+            'status' => 'pending',
+            'attendance_sheet_path' => null,
+        ]);
+    }
+
+    public function test_narrative_report_validation_unavailable_is_saved_for_admin_review(): void
+    {
+        Storage::fake('private');
+        $user = User::factory()->create(['role' => 'user']);
+        [, , $activityRequest] = $this->activityFixture($user, '2026-09-30');
+        $this->app->bind(\App\Services\DocumentValidationService::class, fn () => new class extends \App\Services\DocumentValidationService
+        {
+            protected function extractWithOcr(string $path, string $mime): ?string
+            {
+                return null;
+            }
+        });
+
+        $this->actingAs($user)
+            ->post(route('activity-reports.store', $activityRequest), $this->reportPayload([
+                'narrative_source' => 'uploaded',
+                'narrative_report' => UploadedFile::fake()->createWithContent(
+                    'scanned-narrative.pdf',
+                    Pdf::loadHTML('<html><body></body></html>')->output()
+                ),
+            ]))
+            ->assertRedirect(route('activity-requests.show', $activityRequest));
+
+        $report = ActivityReport::where('activity_request_id', $activityRequest->id)->firstOrFail();
+        $this->assertSame('needs_review', $report->validation_status);
+        $this->assertStringContainsString('OCR is unavailable', $report->validation_notes);
+        $this->assertSame('pending', $report->status);
+        Storage::disk('private')->assertExists($report->narrative_report);
+    }
+
+    public function test_corrupt_image_attendance_sheet_is_rejected(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        [, , $activityRequest] = $this->activityFixture($user, '2026-09-30');
+
+        $this->actingAs($user)
+            ->post(route('activity-reports.store', $activityRequest), $this->reportPayload([
+                'attendance_sheet' => UploadedFile::fake()->createWithContent('corrupt.jpg', "\xFF\xD8\xFF\xE0" . str_repeat("\0", 100)),
+            ]))
+            ->assertSessionHasErrors('attendance_sheet');
 
         $this->assertDatabaseCount('activity_reports', 0);
     }
@@ -184,7 +233,10 @@ class ActivityReportReviewFlowTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('activity-reports.store', $activityRequest), $this->reportPayload([
-                'attendance_sheet' => UploadedFile::fake()->create('attendance.pdf', 120, 'application/pdf'),
+                'attendance_sheet' => UploadedFile::fake()->createWithContent(
+                    'attendance.pdf',
+                    Pdf::loadHTML('<html><body>Attendance sheet.</body></html>')->output()
+                ),
             ]))
             ->assertRedirect(route('activity-requests.show', $activityRequest));
 

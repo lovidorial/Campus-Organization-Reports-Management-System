@@ -31,13 +31,14 @@
             $statusColorClasses = ['Pending' => 'bg-amber-500', 'Ongoing' => 'bg-sky-500', 'Completed' => 'bg-emerald-500', 'Archived' => 'bg-slate-300'];
         @endphp
 
-        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7" aria-label="Activity monitoring totals">
+        <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8" aria-label="Activity monitoring totals">
             @foreach([
                 ['Total', $stats['Total'], 'text-slate-900', route('admin.activities'), null],
                 ['Pending', $stats['Pending'], 'text-slate-700', route('admin.activities', ['tab' => 'todo', 'status' => 'Pending']), 'Not yet submitted'],
                 ['Ongoing', $stats['Ongoing'], 'text-sky-700', route('admin.activities', ['tab' => 'recent', 'status' => 'Ongoing']), null],
                 ['Completed', $stats['Completed'], 'text-emerald-700', route('admin.activities', ['tab' => 'recent', 'status' => 'Completed']), null],
                 ['Late', $stats['Late'], 'text-rose-700', route('admin.activities', ['tab' => 'recent', 'status' => 'Late']), 'Narrative report missing after the deadline.'],
+                ['Missing Reports', $outstandingReportCount, 'text-rose-700', route('admin.narrative-reports.outstanding'), 'Missing, overdue, or needs revision.'],
                 ['Archived', $stats['Archived'], 'text-slate-600', route('admin.activities', ['tab' => 'recent', 'status' => 'Archived']), 'Excluded from totals'],
                 ['Active Organizations', $dashboardData['activeOrganizations'], 'text-sky-800', route('admin.organizations.index'), null],
             ] as [$label, $count, $color, $url, $helper])
@@ -48,6 +49,8 @@
                 </a>
             @endforeach
         </section>
+
+        <a href="{{ route('admin.narrative-reports.outstanding') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:underline">Open centralized narrative report tracking</a>
 
         <section class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Monitoring alerts">
             <a href="{{ route('admin.activities', ['tab' => 'recent']) }}" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-amber-200 hover:bg-amber-50/30 animate-fade-up">

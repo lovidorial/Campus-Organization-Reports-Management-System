@@ -156,6 +156,8 @@ class AdminActivityMonitoringTest extends TestCase
             'narrative_source' => 'uploaded',
             'submitted_at' => now(),
             'status' => 'pending',
+            'validation_status' => 'needs_review',
+            'validation_notes' => 'OCR did not extract enough readable text. Administrator review required.',
         ]);
         $request->programFlows()->create(['time' => '9:00 AM', 'flow' => 'Opening', 'person_in_charge' => 'Chair', 'sort_order' => 0]);
 
@@ -169,6 +171,8 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertSee('admin/activities?tab=recent&amp;status=Pending', false)
             ->assertSee(route('admin.reports.approve', $report), false)
             ->assertSee(route('admin.reports.request-revision', $report), false)
+            ->assertSee('Validation: Needs review')
+            ->assertSee('OCR did not extract enough readable text.')
             ->assertSee('data-file-viewer', false);
 
         $this->actingAs($owner)
@@ -320,6 +324,60 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertSee('Narrative Report')
             ->assertDontSee('Pending GPOAs')
             ->assertDontSee('Recent Submissions');
+    }
+
+    public function test_admin_monitor_marks_a_deleted_stored_document_as_unreadable(): void
+    {
+        Storage::fake('private');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $owner = User::factory()->create(['org_name' => 'Integrity Test Organization']);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = $this->plannedActivity($gpoa, 'Unreadable Letter Activity', '2026-10-15');
+        $path = 'activity-documents/communication-letters/deleted.pdf';
+        $contents = '%PDF-1.7 valid test content';
+        Storage::disk('private')->put($path, $contents);
+        $request = $this->createRequest($owner, $gpoa, $activity, $path);
+        $request->update(['communication_letter_sha256' => hash('sha256', $contents)]);
+        $activity->update(['activity_request_id' => $request->id]);
+        Storage::disk('private')->delete($path);
+
+        $this->actingAs($admin)
+            ->get(route('admin.activities'))
+            ->assertOk()
+            ->assertSee('Unreadable Letter Activity')
+            ->assertSee('Letter: File unreadable');
+    }
+
+    public function test_admin_monitor_marks_checksum_mismatch_as_unreadable(): void
+    {
+        Storage::fake('private');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $owner = User::factory()->create(['org_name' => 'Checksum Test Organization']);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $activity = $this->plannedActivity($gpoa, 'Changed Letter Activity', '2026-10-15');
+        $path = 'activity-documents/communication-letters/changed.pdf';
+        Storage::disk('private')->put($path, 'different file bytes');
+        $request = $this->createRequest($owner, $gpoa, $activity, $path);
+        $request->update(['communication_letter_sha256' => hash('sha256', 'original file bytes')]);
+        $activity->update(['activity_request_id' => $request->id]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.activities'))
+            ->assertOk()
+            ->assertSee('Changed Letter Activity')
+            ->assertSee('Letter: File unreadable');
     }
 
     public function test_completed_activity_archive_restore_is_policy_checked_and_filtered(): void

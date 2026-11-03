@@ -133,6 +133,8 @@
                         'statusClass' => $report && filled($report->narrative_report) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600',
                         'viewUrl' => $report && filled($report->narrative_report) ? route('admin.file.view', [$activityRequest->id, 'narrative']) : null,
                         'title' => 'Narrative Report – ' . $activityRequest->title,
+                        'validationStatus' => $report?->validation_status,
+                        'validationNotes' => $report?->validation_notes,
                     ],
                     [
                         'label' => 'Attendance Sheet (PDF)',
@@ -167,11 +169,11 @@
                                 <h2 class="text-sm font-bold text-slate-900">{{ $document['label'] }}</h2>
                                 <div class="mt-2 flex items-center gap-2">
                                     <span class="inline-flex rounded-full px-2 py-1 text-[10px] font-semibold {{ $document['statusClass'] }}">{{ $document['statusText'] }}</span>
-                                    @if(($document['label'] ?? '') === 'Communication Letter (PDF)' && $document['validationStatus'])
+                                    @if($document['validationStatus'] ?? null)
                                         <span class="inline-flex rounded-full px-2 py-1 text-[10px] font-semibold {{ $document['validationStatus'] === 'valid' ? 'bg-emerald-100 text-emerald-700' : ($document['validationStatus'] === 'needs_review' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-700') }}">Validation: {{ str_replace('_', ' ', ucfirst($document['validationStatus'])) }}</span>
                                     @endif
                                 </div>
-                                @if(($document['label'] ?? '') === 'Communication Letter (PDF)' && filled($document['validationNotes']))<p class="mt-2 whitespace-pre-line text-xs text-amber-900">{{ $document['validationNotes'] }}</p>@endif
+                                @if(filled($document['validationNotes'] ?? null))<p class="mt-2 whitespace-pre-line text-xs text-amber-900">{{ $document['validationNotes'] }}</p>@endif
                             </div>
                         </div>
                         @if($document['viewUrl'])

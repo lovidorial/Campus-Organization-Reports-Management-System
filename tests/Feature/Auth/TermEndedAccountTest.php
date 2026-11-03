@@ -383,7 +383,7 @@ class TermEndedAccountTest extends TestCase
             ->assertSee('Retained Submitted Activity')
             ->assertSee('Archived Submitter Name');
 
-        $detailSheet = (new SummaryReportExport(collect([$activity]), collect(), collect(), collect()))->sheets()[0];
+        $detailSheet = (new SummaryReportExport(collect([$activity]), collect(), collect(), collect(), collect()))->sheets()[0];
         $this->assertSame('Archived Submitter Name', $detailSheet->map($activity)[1]);
 
         $this->assertDatabaseHas('gpoas', ['id' => $gpoa->id]);

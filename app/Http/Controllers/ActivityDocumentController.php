@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityRequest;
 use App\Models\ActivityReportPhoto;
 use App\Services\DocumentValidationService;
+use App\Services\StoredFileMetadata;
+use App\Rules\ValidateDocumentContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +18,7 @@ class ActivityDocumentController extends Controller
         $this->authorize('update', $activityRequest);
 
         $validated = $request->validate([
-            'communication_letter' => 'required|file|mimes:pdf|max:20480',
+            'communication_letter' => ['required', 'file', 'mimes:pdf', 'max:20480', new ValidateDocumentContent(['pdf'])],
             'signed_confirmation' => 'required|accepted',
         ]);
 
@@ -34,10 +36,14 @@ class ActivityDocumentController extends Controller
         }
 
         $path = $validated['communication_letter']->store('activity-documents/communication-letters', 'private');
+        $metadata = StoredFileMetadata::fromUpload($validated['communication_letter']);
         $previousPath = $activityRequest->communication_letter;
 
         $activityRequest->update([
             'communication_letter' => $path,
+            'communication_letter_size' => $metadata['size'],
+            'communication_letter_mime_type' => $metadata['mime_type'],
+            'communication_letter_sha256' => $metadata['sha256'],
             'communication_letter_signed_at' => now(),
             'validation_status' => $validation['status'],
             'validation_notes' => implode("\n", $validation['notes']),

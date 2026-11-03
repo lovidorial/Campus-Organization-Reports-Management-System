@@ -184,6 +184,12 @@
                     @if($request->report->narrative_report)
                         <a href="{{ route('activity-requests.documents.show', [$request, 'narrative-report']) }}" data-file-viewer data-title="Narrative Report" class="text-xs font-semibold text-sky-700 underline">View report PDF</a>
                     @endif
+                    @if($request->report->validation_status)
+                        <div class="mt-2 rounded border px-3 py-2 text-xs {{ $request->report->validation_status === 'valid' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : ($request->report->validation_status === 'needs_review' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800') }}">
+                            <p class="font-semibold">Document validation: {{ str_replace('_', ' ', ucfirst($request->report->validation_status)) }}</p>
+                            @if($request->report->validation_notes)<p class="mt-1 whitespace-pre-line">{{ $request->report->validation_notes }}</p>@endif
+                        </div>
+                    @endif
                     @if(data_get($request->report->narrative_content, 'body'))
                         <div class="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-700">{{ data_get($request->report->narrative_content, 'body') }}</div>
                     @endif

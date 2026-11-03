@@ -93,6 +93,7 @@
                                 $letterPresent = filled($activityRequest?->communication_letter);
                                 $reportPresent = $activityRequest?->report && (filled($activityRequest->report->narrative_report) || filled($activityRequest->report->narrative_content));
                                 $reportFilePresent = filled($activityRequest?->report?->narrative_report);
+                                $documentStatus = $documentStatuses[$activity->id] ?? [];
                                 $viewUrl = $activityRequest
                                     ? route('admin.activity-requests.show', [$activityRequest, 'back' => $backToMonitorUrl])
                                     : route('admin.gpoa.show', $activity->gpoa_id);
@@ -122,15 +123,18 @@
                                     </div></details>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</td>
-                                <td class="px-4 py-3"><div class="flex gap-2">
-                                    <a @if($letterPresent) href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter – {{ $activity->title }}" @else aria-disabled="true" @endif title="Communication letter{{ $letterPresent ? ' uploaded' : ' not uploaded' }}" class="inline-flex h-8 w-8 items-center justify-center rounded border {{ $letterPresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400' }}">
+                                <td class="px-4 py-3"><div class="flex flex-wrap gap-2">
+                                    <a @if(($documentStatus['communication'] ?? 'Missing') === 'Uploaded' && $activityRequest) href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter – {{ $activity->title }}" @else aria-disabled="true" @endif title="Communication letter: {{ $documentStatus['communication'] ?? 'Missing' }}" class="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] {{ ($documentStatus['communication'] ?? 'Missing') === 'Uploaded' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : (($documentStatus['communication'] ?? 'Missing') === 'File unreadable' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">
                                         <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75ZM14 4v4h4M8.5 13h7m-7 3.5h7"/></svg><span class="sr-only">Communication letter</span>
+                                        Letter: {{ $documentStatus['communication'] ?? 'Missing' }}
                                     </a>
-                                    <a @if($reportFilePresent) href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report – {{ $activity->title }}" @else aria-disabled="true" @endif title="Narrative report: {{ $activityRequest?->report?->reviewStatusLabel() ?? 'not submitted' }}" class="relative inline-flex h-8 w-8 items-center justify-center rounded border {{ $reportFilePresent ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400' }}">
+                                    <a @if(($documentStatus['narrative'] ?? 'Missing') === 'Uploaded' && $activityRequest) href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report – {{ $activity->title }}" @else aria-disabled="true" @endif title="Narrative report: {{ $documentStatus['narrative'] ?? 'Missing' }}" class="relative inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] {{ ($documentStatus['narrative'] ?? 'Missing') === 'Uploaded' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : (($documentStatus['narrative'] ?? 'Missing') === 'File unreadable' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">
                                         <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4.25 4.25v12.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75ZM14 4v4h4M8.5 13h7m-7 3.5h7"/></svg>
                                         @if($reportPresent)<span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" aria-label="Pending review"></span>@endif
-                                        <span class="sr-only">Narrative report</span>
+                                        Report: {{ $documentStatus['narrative'] ?? 'Missing' }}
                                     </a>
+                                    <span class="inline-flex items-center rounded border px-2 py-1 text-[11px] {{ ($documentStatus['attendance'] ?? 'Missing') === 'File unreadable' ? 'border-rose-200 bg-rose-50 text-rose-700' : (($documentStatus['attendance'] ?? 'Missing') === 'Uploaded' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">Attendance: {{ $documentStatus['attendance'] ?? 'Missing' }}</span>
+                                    <span class="inline-flex items-center rounded border px-2 py-1 text-[11px] {{ ($documentStatus['gpoa'] ?? 'Missing') === 'File unreadable' ? 'border-rose-200 bg-rose-50 text-rose-700' : (($documentStatus['gpoa'] ?? 'Missing') === 'Uploaded' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500') }}">GPOA: {{ $documentStatus['gpoa'] ?? 'Missing' }}</span>
                                 </div></td>
                                 <td class="px-4 py-3"><x-status-pill :status="$activity->monitoring_status" /> @if($activity->monitoring_late)<span class="ml-1"><x-status-pill status="Late" /></span>@endif</td>
                                 <td class="px-4 py-3 text-right"><div class="flex justify-end gap-2"><a href="{{ $viewUrl }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">View</a>@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="rounded border border-rose-200 px-2 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50" title="Download activity PDF">PDF</a>@endif</div></td>
@@ -147,6 +151,7 @@
                         $letterPresent = filled($activityRequest?->communication_letter);
                         $reportPresent = $activityRequest?->report && (filled($activityRequest->report->narrative_report) || filled($activityRequest->report->narrative_content));
                         $reportFilePresent = filled($activityRequest?->report?->narrative_report);
+                        $documentStatus = $documentStatuses[$activity->id] ?? [];
                         $viewUrl = $activityRequest
                             ? route('admin.activity-requests.show', [$activityRequest, 'back' => $backToMonitorUrl])
                             : route('admin.gpoa.show', $activity->gpoa_id);
@@ -155,9 +160,11 @@
                         <div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold text-slate-900">{{ $activity->title }}</h2><p class="text-xs text-slate-500">{{ $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—' }}</p><p class="text-xs text-slate-500">Submitted by {{ $activity->gpoa?->user?->name ?? '—' }}</p>@if($activity->last_submitted_at)<time class="text-xs text-slate-500" title="{{ $activity->last_submitted_at->format('M j, Y g:i A') }}">{{ $activity->last_submitted_at->diffForHumans() }}</time>@endif</div><x-status-pill :status="$activity->monitoring_status" /></div>
                         <p class="text-sm text-slate-700">{{ $activity->date?->format('M j, Y') ?? '—' }}</p>
                         <div class="flex items-center justify-between">
-                            <div class="flex gap-2">
-                                @if($letterPresent)<a href="{{ route('admin.file.view', [$activityRequest->id, 'communication']) }}" data-file-viewer data-title="Communication Letter – {{ $activity->title }}" class="text-xs font-semibold text-emerald-700 underline">Letter</a>@else<span class="text-xs text-slate-400">Letter missing</span>@endif
-                                @if($reportFilePresent)<a href="{{ route('admin.file.view', [$activityRequest->id, 'narrative']) }}" data-file-viewer data-title="Narrative Report – {{ $activity->title }}" class="relative text-xs font-semibold text-sky-700 underline">Report @if($reportPresent)<span class="text-amber-600" aria-label="Pending review">●</span>@endif</a>@elseif($reportPresent)<span class="text-xs text-slate-600">Report <span class="text-amber-600" aria-label="Pending review">●</span></span>@else<span class="text-xs text-slate-400">Report missing</span>@endif
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs {{ ($documentStatus['communication'] ?? 'Missing') === 'File unreadable' ? 'font-semibold text-rose-700' : 'text-slate-600' }}">Letter: {{ $documentStatus['communication'] ?? 'Missing' }}</span>
+                                <span class="text-xs {{ ($documentStatus['narrative'] ?? 'Missing') === 'File unreadable' ? 'font-semibold text-rose-700' : 'text-slate-600' }}">Report: {{ $documentStatus['narrative'] ?? 'Missing' }}</span>
+                                <span class="text-xs {{ ($documentStatus['attendance'] ?? 'Missing') === 'File unreadable' ? 'font-semibold text-rose-700' : 'text-slate-600' }}">Attendance: {{ $documentStatus['attendance'] ?? 'Missing' }}</span>
+                                <span class="text-xs {{ ($documentStatus['gpoa'] ?? 'Missing') === 'File unreadable' ? 'font-semibold text-rose-700' : 'text-slate-600' }}">GPOA: {{ $documentStatus['gpoa'] ?? 'Missing' }}</span>
                             </div>
                             <div class="flex gap-2"><a href="{{ $viewUrl }}" class="rounded border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">View</a>@if($activityRequest)<a href="{{ route('activity-requests.pdf', $activityRequest) }}" data-download-loading class="rounded border border-rose-200 px-2 py-1.5 text-xs font-semibold text-rose-700" title="Download activity PDF">PDF</a>@endif</div>
                         </div>

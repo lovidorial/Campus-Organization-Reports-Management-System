@@ -130,6 +130,7 @@ Route::middleware(['auth', 'account.active', \App\Http\Middleware\EnforceOrganiz
 
         Route::get('/dashboard', [AdminController::class, 'monitoringDashboard'])->name('dashboard');
         Route::get('/activities', [AdminController::class, 'monitor'])->name('activities');
+        Route::get('/narrative-reports/outstanding', [AdminController::class, 'outstandingReports'])->name('narrative-reports.outstanding');
         Route::get('/activity-requests/{activityRequest}', [AdminController::class, 'showRequest'])->name('activity-requests.show');
         Route::get('/activities/statuses', [AdminController::class, 'activityStatuses'])->name('activities.statuses');
         Route::get('/summary-report', [AdminSummaryReportController::class, 'index'])->name('summary-report');
