@@ -12,6 +12,11 @@ class AdminGpoaController extends Controller
         $query = Gpoa::with(['user', 'activities'])
             ->withCount('activities')
             ->excludeAdmins()
+            ->when($request->term, fn ($query) => $query->where('term', $request->term))
+            ->when($request->school_year, fn ($query) => $query->where('school_year', $request->school_year))
+            ->when($request->college, fn ($query) => $query->where('college', $request->college))
+            ->when($request->organization, fn ($query) => $query->whereHas('user.organization', fn ($organizationQuery) => $organizationQuery->whereKey($request->organization)))
+            ->when($request->classification, fn ($query) => $query->whereHas('user.organization', fn ($organizationQuery) => $organizationQuery->where('type', $request->classification)))
             ->when($request->search, function ($query) use ($request) {
                 $search = trim($request->search);
 
@@ -27,9 +32,14 @@ class AdminGpoaController extends Controller
 
         $gpoas = $query->latest()->paginate(20)->appends($request->query());
 
-        $stats = ['total' => Gpoa::excludeAdmins()->count()];
+        $stats = ['total' => $gpoas->total()];
+        $terms = Gpoa::excludeAdmins()->select('term')->distinct()->orderBy('term')->pluck('term');
+        $schoolYears = Gpoa::excludeAdmins()->select('school_year')->distinct()->orderByDesc('school_year')->pluck('school_year');
+        $colleges = Gpoa::excludeAdmins()->select('college')->whereNotNull('college')->distinct()->orderBy('college')->pluck('college');
+        $organizations = \App\Models\Organization::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $classifications = \App\Models\Organization::query()->where('is_active', true)->whereNotNull('type')->distinct()->orderBy('type')->pluck('type');
 
-        return view('admin.gpoa.index', compact('gpoas', 'stats'));
+        return view('admin.gpoa.index', compact('gpoas', 'stats', 'terms', 'schoolYears', 'colleges', 'organizations', 'classifications'));
     }
 
     public function show(Gpoa $gpoa)

@@ -46,3 +46,315 @@
     }
     .animate-fade-up { animation: orgtrack-fade-up 350ms ease-out both; }
 }
+
+:root {
+    --orgtrack-orange: #c6531b;
+    --orgtrack-orange-deep: #9f3d13;
+    --orgtrack-ink: #202b36;
+    --orgtrack-muted: #64717d;
+    --orgtrack-line: #dfe5e9;
+    --orgtrack-canvas: #f3f5f6;
+}
+
+body[data-interface] {
+    min-width: 320px;
+    background: var(--orgtrack-canvas);
+    color: var(--orgtrack-ink);
+    font-family: "Aptos", "Segoe UI", sans-serif;
+    text-rendering: optimizeLegibility;
+}
+
+body[data-interface] #sidebar {
+    background: linear-gradient(180deg, #2b211c 0%, #211b18 100%) !important;
+    border-right: 1px solid rgb(255 255 255 / 8%);
+    box-shadow: 8px 0 24px rgb(23 30 36 / 8%);
+}
+
+#overlay {
+    background-color: rgba(15, 23, 42, 0.38) !important;
+}
+
+body[data-interface] #sidebar > div:first-child {
+    min-height: 76px;
+    padding: 1rem 1rem;
+    border-color: rgb(255 255 255 / 10%) !important;
+}
+
+body[data-interface] #sidebar > div:first-child img {
+    background: #fff;
+    padding: 4px;
+}
+
+body[data-interface] #sidebar nav {
+    padding: 1rem 0.75rem;
+}
+
+body[data-interface] #sidebar nav ul {
+    display: grid;
+    gap: 0.25rem;
+}
+
+body[data-interface] #sidebar nav li > div:first-child {
+    padding-top: 1rem;
+}
+
+body[data-interface] #sidebar nav li > div:first-child p {
+    color: #c8bdb6 !important;
+    font-size: 0.625rem;
+    letter-spacing: 0.13em;
+}
+
+body[data-interface] #sidebar nav a,
+body[data-interface] #sidebar nav button {
+    min-height: 40px;
+    border-radius: 6px;
+    color: #f8f4f1 !important;
+    font-weight: 500;
+    transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+body[data-interface] #sidebar nav a:hover,
+body[data-interface] #sidebar nav button:hover,
+body[data-interface] #sidebar nav button[aria-expanded="true"] {
+    background: rgb(255 255 255 / 8%) !important;
+}
+
+body[data-interface] #sidebar nav a.sidebar-link-active {
+    background: rgb(198 83 27 / 26%) !important;
+    box-shadow: inset 3px 0 #f18a4d;
+    color: #fff !important;
+}
+
+body[data-interface] #sidebar nav a.sidebar-link-active svg {
+    color: #ffb078 !important;
+}
+
+body[data-interface] #sidebar > div:last-child {
+    padding: 1rem 0.75rem;
+    border-color: rgb(255 255 255 / 10%) !important;
+}
+
+body[data-interface] #sidebar > div:last-child > div {
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 5%) !important;
+}
+
+body[data-interface] main {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+body[data-interface] main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+    min-height: 2.5rem;
+    border-color: #cbd4da;
+    border-radius: 6px;
+    background-color: #fff;
+    color: var(--orgtrack-ink);
+    box-shadow: 0 1px 2px rgb(23 30 36 / 4%);
+}
+
+body[data-interface] main textarea {
+    min-height: 6rem;
+}
+
+body[data-interface] main :is(input, select, textarea):focus {
+    border-color: var(--orgtrack-orange) !important;
+    outline: 2px solid rgb(198 83 27 / 14%);
+    outline-offset: 1px;
+    --tw-ring-color: rgb(198 83 27 / 24%);
+}
+
+body[data-interface] main table {
+    border-color: var(--orgtrack-line);
+}
+
+body[data-interface] main table thead {
+    background-color: #f5f7f8;
+}
+
+body[data-interface] main table thead th {
+    color: #586571;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+body[data-interface] main table tbody tr:hover {
+    background-color: #fafbfb;
+}
+
+body[data-interface] main :is(.overflow-x-auto, [class*="overflow-x-auto"]) {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+}
+
+body[data-interface] [role="dialog"] > div:last-child {
+    max-height: calc(100dvh - 3rem);
+    overflow-y: auto;
+    border: 1px solid var(--orgtrack-line);
+    border-radius: 8px;
+    box-shadow: 0 24px 70px rgb(18 27 35 / 22%);
+}
+
+@media (max-width: 767px) {
+    body[data-interface] main {
+        padding: 1rem 0.875rem 1.5rem;
+    }
+
+    body[data-interface] main table {
+        font-size: 0.8125rem;
+    }
+
+    body[data-interface] [role="dialog"] {
+        padding: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body[data-interface] *,
+    body[data-interface] *::before,
+    body[data-interface] *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard > header h1 {
+    color: #202b36;
+    font-size: 1.65rem;
+    font-weight: 700;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard > header p {
+    color: #687581;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard > header a,
+body[data-interface="admin"] .admin-monitoring-dashboard > div a.inline-flex.rounded-lg {
+    background-color: var(--orgtrack-orange);
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] > a {
+    min-height: 108px;
+    border-color: #e0e5e8;
+    border-top: 3px solid #d56a32;
+    border-radius: 7px;
+    padding: 1rem;
+    box-shadow: 0 2px 6px rgb(23 30 36 / 4%);
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card {
+    min-height: 124px;
+    border-top: 3px solid #c6531b;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card-gold { border-top-color: #e7a51a; }
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card-navy { border-top-color: #334e68; }
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card-green { border-top-color: #16834a; }
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card-blue { border-top-color: #2876a8; }
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card-red { border-top-color: #c43d43; }
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel {
+    border-color: #dfe5e9;
+    border-radius: 7px;
+    box-shadow: 0 2px 8px rgb(23 30 36 / 4%);
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel h2 {
+    color: #26333e;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel thead {
+    background: #f5f7f8;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel thead th {
+    color: #586571;
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-alert-tile {
+    border-left: 3px solid #c6531b;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-alert-amber { border-left-color: #d99a12; }
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-alert-rose { border-left-color: #c43d43; }
+body[data-interface="admin"] .admin-monitoring-dashboard .admin-alert-blue { border-left-color: #2876a8; }
+
+body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] > a:hover {
+    border-color: #d3dade;
+    border-top-color: var(--orgtrack-orange);
+    box-shadow: 0 8px 18px rgb(23 30 36 / 8%);
+    transform: translateY(-1px);
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Monitoring alerts"] > a,
+body[data-interface="admin"] .admin-monitoring-dashboard article,
+body[data-interface="admin"] .admin-monitoring-dashboard > details,
+body[data-interface="admin"] .admin-monitoring-dashboard > section.overflow-hidden {
+    border-color: #e0e5e8;
+    border-radius: 7px;
+    box-shadow: 0 2px 8px rgb(23 30 36 / 4%);
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard article h2,
+body[data-interface="admin"] .admin-monitoring-dashboard > details summary h2,
+body[data-interface="admin"] .admin-monitoring-dashboard > section.overflow-hidden h2 {
+    color: #26333e;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+body[data-interface="admin"] .admin-monitoring-dashboard canvas {
+    max-width: 100%;
+}
+
+body[data-interface="organization"] .orgtrack-welcome {
+    border: 1px solid rgb(255 255 255 / 28%);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgb(73 47 25 / 12%);
+}
+
+body[data-interface="organization"] .orgtrack-statistics > div:first-child > :is(a, article) {
+    min-height: 112px;
+    border-radius: 7px;
+    box-shadow: 0 2px 7px rgb(23 30 36 / 5%);
+}
+
+body[data-interface="organization"] .orgtrack-progress,
+body[data-interface="organization"] .orgtrack-gpoa-summary,
+body[data-interface="organization"] .orgtrack-activity-list,
+body[data-interface="organization"] .orgtrack-attention {
+    border-color: #e0e5e8;
+    border-radius: 7px;
+    box-shadow: 0 2px 8px rgb(23 30 36 / 4%);
+}
+
+body[data-interface="organization"] .orgtrack-progress h2,
+body[data-interface="organization"] .orgtrack-activity-list h3 {
+    color: #26333e;
+}
+
+@media (max-width: 639px) {
+    body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] {
+        gap: 0.625rem;
+    }
+
+    body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Monitoring charts"] {
+        gap: 0.75rem;
+    }
+
+    body[data-interface="organization"] .orgtrack-welcome {
+        padding: 1rem;
+    }
+
+    body[data-interface="organization"] .orgtrack-activity-list {
+        padding: 0.875rem;
+    }
+}

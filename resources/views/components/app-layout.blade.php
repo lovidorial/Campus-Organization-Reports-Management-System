@@ -31,7 +31,7 @@
         #sidebar nav li > a[onclick]:hover, #sidebar > div:last-child div[x-show] a[onclick]:hover { color: #FFB74D !important; background-color: rgba(255, 255, 255, 0.08) !important; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" data-interface="{{ auth()->user()->isAdmin() ? 'admin' : 'organization' }}">
 <div class="flex min-h-screen">
 
     <!-- Sidebar -->
@@ -98,7 +98,8 @@
                 <li>
                     <a href="{{ route('dashboard') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('dashboard') ? 'sidebar-link-active' : '' }}">
-                         Dashboard
+                                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 10.5 12 3.75l8.25 6.75v9.75h-6v-6h-4.5v6h-6V10.5Z"/></svg>
+                                                <span>Dashboard</span>
                     </a>
                 </li>
                 <li x-data="{ open: {{ request()->routeIs('gpoa.*') || request()->routeIs('activities.calendar') || request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? 'true' : 'false' }} }">
@@ -107,7 +108,7 @@
                             :aria-expanded="open.toString()"
                             class="flex items-center justify-between gap-3 w-full px-4 py-2.5 rounded-lg transition font-bold text-white"
                             :style="open || {{ request()->routeIs('gpoa.*') || request()->routeIs('activities.calendar') || request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? 'true' : 'false' }} ? 'background-color: rgba(233,99,26,0.10);' : 'background-color: transparent;'">
-                        <span>Documents & Activities</span>
+                        <span class="flex items-center gap-3"><svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5h7.5L19.5 8.25v9.75A2.25 2.25 0 0 1 17.25 20.25h-10.5A2.25 2.25 0 0 1 4.5 18V6.75A2.25 2.25 0 0 1 6.75 4.5h1.5Zm7.5 0v3.75h3.75M8.25 12h7.5M8.25 15.75h5.25"/></svg>Documents &amp; Activities</span>
                         <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" :class="open ? 'rotate-90' : ''">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
@@ -123,40 +124,44 @@
                          class="overflow-hidden space-y-1 mt-1 pl-4">
                         <a href="{{ route('gpoa.index') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white {{ request()->routeIs('gpoa.*') ? 'sidebar-link-active' : '' }}">
-                            My GPOA
+                            <svg class="mr-2 inline h-4 w-4 align-[-3px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 19.5h13.5M7.5 16.5V8.25h9v8.25M9 11.25h6"/></svg>My GPOA
                         </a>
                                 <a href="{{ route('activity-monitor.index') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white {{ request()->routeIs('activity-monitor.*') || request()->routeIs('activity-requests.*') ? 'sidebar-link-active' : '' }}">
-                                     Activity Monitor
+                            <svg class="mr-2 inline h-4 w-4 align-[-3px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 18.75V7.5A1.5 1.5 0 0 1 6 6h12a1.5 1.5 0 0 1 1.5 1.5v11.25M7.5 10.5h9M7.5 14.25h6"/></svg>Activity Monitor
                         </a>
                         <a href="{{ route('activities.calendar') }}"
                            class="block px-4 py-2 rounded-lg transition font-bold text-white {{ request()->routeIs('activities.calendar') ? 'sidebar-link-active' : '' }}">
-                            Activity Calendar
+                            <svg class="mr-2 inline h-4 w-4 align-[-3px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.25m9-2.25v2.25M4.5 8.25h15M6 20.25h12a1.5 1.5 0 0 0 1.5-1.5V8.25h-15v10.5a1.5 1.5 0 0 0 1.5 1.5Z"/></svg>Activity Calendar
                         </a>
                     </div>
                 </li>
                 <li>
                     <a href="{{ route('organization.officers.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('organization.officers.*') ? 'sidebar-link-active' : '' }}">
-                         Officer Archive
+                                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75v-1.5a3 3 0 0 0-3-3h-3a3 3 0 0 0-3 3v1.5M12 11.25a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25Z"/></svg>
+                                                <span>Officer Archive</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('organization.members.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('organization.members.*') ? 'sidebar-link-active' : '' }}">
-                         Org Chart
+                                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v4.5m-6 0h12M6 9v3m12-3v3M6 12h12m-9 0v3m6-3v3M4.5 19.5h3v-4.5h-3v4.5Zm12 0h3v-4.5h-3v4.5Zm-6 0h3V15h-3v4.5Z"/></svg>
+                                                <span>Org Chart</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('profile.edit') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('profile.edit') ? 'sidebar-link-active' : '' }}">
-                         Edit Profile
+                                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM5.25 20.25a6.75 6.75 0 0 1 13.5 0"/></svg>
+                                                <span>Edit Profile</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('my-backup.index') }}"
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition font-bold text-white {{ request()->routeIs('my-backup.*') ? 'sidebar-link-active' : '' }}">
-                         My Data Backup
+                                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25V7.5A4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 4.5 4.5v.75M5.25 10.5h13.5v9h-13.5v-9Z"/></svg>
+                                                <span>My Data Backup</span>
                     </a>
                 </li>
                 @else
@@ -173,7 +178,7 @@
 
                 <li x-data="{ open: {{ request()->routeIs('admin.gpoa.*') || request()->routeIs('admin.activities') || request()->routeIs('activities.calendar') || request()->routeIs('admin.document-deadlines.*') ? 'true' : 'false' }} }">
                     <div class="px-3 pb-1 pt-2">
-                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">DOCUMENTS &amp; ACTIVITIES</p>
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">MONITORING</p>
                     </div>
                     <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition text-white">
                         <span class="flex items-center gap-3">
@@ -192,6 +197,10 @@
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 18.75V7.5A1.5 1.5 0 0 1 6 6h12a1.5 1.5 0 0 1 1.5 1.5v11.25M7.5 10.5h9M7.5 14.25h6"/></svg>
                             <span>Activity Monitoring</span>
                         </a>
+                        <a href="{{ route('admin.narrative-reports.outstanding') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.narrative-reports.*') ? 'sidebar-link-active' : 'text-white' }}">
+                            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9l3 3v12h-15v-15h3Zm2.25 6h4.5m-4.5 3.75h6"/></svg>
+                            <span>Outstanding Reports</span>
+                        </a>
                         <a href="{{ route('activities.calendar') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('activities.calendar') ? 'sidebar-link-active' : 'text-white' }}">
                             <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.25M16.5 3.75v2.25M4.5 8.25h15M6 20.25h12A1.5 1.5 0 0 0 19.5 18.75V8.25H4.5v10.5A1.5 1.5 0 0 0 6 20.25Z"/></svg>
                             <span>Activity Calendar</span>
@@ -205,7 +214,7 @@
 
                 <li>
                     <div class="px-3 pb-1 pt-2">
-                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">ORGANIZATION</p>
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">ORGANIZATION MANAGEMENT</p>
                     </div>
                     <a href="{{ route('admin.officers.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.*') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75v-1.5A3 3 0 0 0 13.5 14.25H10.5a3 3 0 0 0-3 3v1.5M12 11.25a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25Z"/></svg>
@@ -222,6 +231,18 @@
                     <a href="{{ route('admin.organizations.index') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.organizations.*') ? 'sidebar-link-active' : 'text-white' }}">
                         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 14.25V6.75A1.5 1.5 0 0 1 6 5.25h12a1.5 1.5 0 0 1 1.5 1.5v7.5M4.5 14.25h15M18.75 19.5h-13.5v-5.25h13.5v5.25Z"/></svg>
                         <span>Organizations</span>
+                    </a>
+                    <a href="{{ route('admin.organization-classifications.index') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.organization-classifications.*') ? 'sidebar-link-active' : 'text-white' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15m-15 5.25h15m-15 5.25h9"/></svg>
+                        <span>Classifications</span>
+                    </a>
+                    <a href="{{ route('admin.users.index') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.users.*') ? 'sidebar-link-active' : 'text-white' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75v-1.5a3 3 0 0 0-3-3h-3a3 3 0 0 0-3 3v1.5M12 11.25a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25Z"/></svg>
+                        <span>Users</span>
+                    </a>
+                    <a href="{{ route('admin.officers.history') }}" class="mt-0.5 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.officers.history') ? 'sidebar-link-active' : 'text-white' }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v4.5l3 1.5m5.25-2.25a8.25 8.25 0 1 1-2.42-5.83M20.25 4.5v4.5h-4.5"/></svg>
+                        <span>Officer History</span>
                     </a>
                 </li>
 
@@ -359,7 +380,7 @@
     </div>
 
     <!-- Mobile overlay -->
-    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black/50 z-10 hidden md:hidden"></div>
 
     <!-- Main Content -->
     <div class="min-w-0 max-w-full flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-auto">

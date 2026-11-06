@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\ActivityReport;
 use App\Models\ActivityRequest;
 use App\Models\BackupSetting;
+use App\Models\DocumentDeadline;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
 use App\Models\MonitoringResult;
+use App\Models\Organization;
 use App\Exports\ActivityMonitoringExport;
 use App\Services\BackupService;
 use Illuminate\Http\Request;
@@ -22,42 +24,152 @@ use Maatwebsite\Excel\Facades\Excel;
 class AdminController extends Controller
 {
     public function monitoringDashboard(
+        Request $request,
         AdminActivityMonitoringService $monitoringService,
         BackupService $backupService,
         OutstandingActivityReportService $reportService
     )
     {
-        $activities = $monitoringService->all();
-        $stats = $monitoringService->counts($activities);
-        $visibleActivities = $activities->reject(fn (GpoaActivity $activity) => $activity->archived_at)->values();
+        [$currentTerm, $currentSchoolYear] = auth()->user()->currentPeriod() ?? [null, null];
+        $filters = [
+            'term' => $request->query('term', $currentTerm),
+            'school_year' => $request->query('school_year', $currentSchoolYear),
+            'college' => $request->query('college', ''),
+            'classification' => $request->query('classification', ''),
+            'organization' => $request->query('organization', ''),
+        ];
+        $allActivities = $monitoringService->all();
+        $visibleActivities = $allActivities->reject(fn (GpoaActivity $activity) => $activity->archived_at)->values();
+        $filteredActivities = $visibleActivities->filter(function (GpoaActivity $activity) use ($filters): bool {
+            $gpoa = $activity->gpoa;
+            $organization = $gpoa?->user?->organization;
+
+            return (! filled($filters['term']) || $gpoa?->term === $filters['term'])
+                && (! filled($filters['school_year']) || $gpoa?->school_year === $filters['school_year'])
+                && (! filled($filters['college']) || ($gpoa?->college ?? $organization?->college) === $filters['college'])
+                && (! filled($filters['classification']) || $organization?->type === $filters['classification'])
+                && (! filled($filters['organization']) || (string) $organization?->id === (string) $filters['organization']);
+        })->values();
+        $stats = $monitoringService->counts($filteredActivities);
+
+        $organizationsQuery = Organization::query()
+            ->where('is_active', true)
+            ->with(['members' => fn ($query) => $query->where('role', '!=', 'admin')]);
+        if (filled($filters['term'])) {
+            $organizationsQuery->where('term', $filters['term']);
+        }
+        if (filled($filters['school_year'])) {
+            $organizationsQuery->where('school_year', $filters['school_year']);
+        }
+        if (filled($filters['college'])) {
+            $organizationsQuery->where('college', $filters['college']);
+        }
+        if (filled($filters['classification'])) {
+            $organizationsQuery->where('type', $filters['classification']);
+        }
+        if (filled($filters['organization'])) {
+            $organizationsQuery->whereKey($filters['organization']);
+        }
+        $organizations = $organizationsQuery->orderBy('name')->get();
+        $organizationOptions = Organization::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $periodGpoas = Gpoa::query()->excludeAdmins()
+            ->with('user:id,organization_id')
+            ->when(filled($filters['term']), fn ($query) => $query->where('term', $filters['term']))
+            ->when(filled($filters['school_year']), fn ($query) => $query->where('school_year', $filters['school_year']))
+            ->whereHas('user.organization', function ($query) use ($filters): void {
+                $query->where('is_active', true)
+                    ->when(filled($filters['college']), fn ($query) => $query->where('college', $filters['college']))
+                    ->when(filled($filters['classification']), fn ($query) => $query->where('type', $filters['classification']))
+                    ->when(filled($filters['organization']), fn ($query) => $query->whereKey($filters['organization']));
+            })
+            ->get()
+            ->groupBy(fn (Gpoa $gpoa) => $gpoa->user?->organization_id);
+        $organizationProgressRows = $organizations->map(function (Organization $organization) use ($filteredActivities, $periodGpoas): array {
+            $memberIds = $organization->members->pluck('id');
+            $activities = $filteredActivities->filter(fn (GpoaActivity $activity) => $memberIds->contains($activity->gpoa?->user_id));
+            $gpoaCount = $periodGpoas->get($organization->id, collect())->count();
+            $total = $activities->count();
+            $completed = $activities->where('monitoring_status', 'Completed')->count();
+
+            return [
+                'id' => $organization->id,
+                'user_id' => $organization->members->first()?->id,
+                'name' => $organization->name,
+                'college' => $organization->college,
+                'classification' => $organization->type,
+                'gpoa_count' => $gpoaCount,
+                'total' => $total,
+                'completed' => $completed,
+                'ongoing' => $activities->where('monitoring_status', 'Ongoing')->count(),
+                'pending' => $activities->where('monitoring_status', 'Pending')->count(),
+                'late' => $activities->where('monitoring_late', true)->count(),
+                'percent' => $total > 0 ? round(($completed / $total) * 100, 1) : 0,
+            ];
+        })->values();
+
+        $organizationCount = $organizations->count();
+        $submittedGpoaCount = $periodGpoas->flatten(1)->count();
+
         $today = now()->startOfDay();
         $upcomingThrough = $today->copy()->addDays(7)->endOfDay();
+        $outstandingReports = $reportService->forAdmin();
+        $selectedOrganization = $organizations->firstWhere('id', $filters['organization']);
+        $selectedMemberIds = $selectedOrganization?->members->pluck('id') ?? collect();
+        $outstandingReports = $outstandingReports->filter(fn (array $row): bool => (! filled($filters['term']) || $row['term'] === $filters['term'])
+            && (! filled($filters['school_year']) || $row['school_year'] === $filters['school_year'])
+            && (! filled($filters['college']) || $row['college'] === $filters['college'])
+            && (! filled($filters['organization']) || $selectedMemberIds->contains($row['organization_id']))
+        )->values();
+        $outstandingReportCount = $outstandingReports->where('report_status', '!=', 'Submitted')->count();
+        $monitoringAssessments = [
+            'aligned' => $filteredActivities->filter(fn (GpoaActivity $activity) => $activity->monitoringResult?->compliance_status === 'aligned')->count(),
+            'partial' => $filteredActivities->filter(fn (GpoaActivity $activity) => $activity->monitoringResult?->compliance_status === 'partial')->count(),
+            'not_aligned' => $filteredActivities->filter(fn (GpoaActivity $activity) => $activity->monitoringResult?->compliance_status === 'not_aligned')->count(),
+        ];
         $alerts = [
-            'awaitingReview' => $visibleActivities->filter(fn (GpoaActivity $activity) => $activity->narrativeStatusLabel() === 'For Review')->count(),
-            'upcomingInSevenDays' => $visibleActivities->filter(function (GpoaActivity $activity) use ($today, $upcomingThrough): bool {
+            'awaitingReview' => $filteredActivities->filter(fn (GpoaActivity $activity) => $activity->narrativeStatusLabel() === 'For Review')->count(),
+            'upcomingInSevenDays' => $filteredActivities->filter(function (GpoaActivity $activity) use ($today, $upcomingThrough): bool {
                 return $activity->date
                     && $activity->date->greaterThanOrEqualTo($today)
                     && $activity->date->lessThanOrEqualTo($upcomingThrough)
                     && ! filled($activity->activityRequest?->communication_letter);
             })->count(),
             'late' => $stats['Late'],
+            'overdueReports' => $outstandingReports->where('report_status', 'Overdue')->count(),
+            'missingLetters' => $filteredActivities->filter(fn (GpoaActivity $activity) => ! filled($activity->activityRequest?->communication_letter))->count(),
+            'needsRevision' => $outstandingReports->where('report_status', 'Needs revision')->count(),
+            'incompleteGpoaActivities' => $filteredActivities->where('monitoring_status', 'Pending')->count(),
         ];
-        $outstandingReportCount = $reportService->forAdmin()
-            ->where('report_status', '!=', 'Submitted')
-            ->count();
-        $dashboardData = $monitoringService->dashboardData($visibleActivities);
-        $organizationProgress = $monitoringService->organizationProgress($visibleActivities);
-        $recentActivities = $visibleActivities
+        $deadlines = DocumentDeadline::query()
+            ->when(filled($filters['term']), fn ($query) => $query->where('term', $filters['term']))
+            ->when(filled($filters['school_year']), fn ($query) => $query->where('school_year', $filters['school_year']))
+            ->whereNotNull('deadline_date')
+            ->orderBy('deadline_date')
+            ->get()
+            ->filter(fn (DocumentDeadline $deadline) => $deadline->deadline_date->betweenIncluded($today, $today->copy()->addDays(30)))
+            ->values();
+        $dashboardData = $monitoringService->dashboardData($filteredActivities);
+        $organizationProgress = $monitoringService->organizationProgress($filteredActivities);
+        $recentActivities = $filteredActivities
             ->sortByDesc(fn ($activity) => $activity->updated_at?->timestamp ?? 0)
             ->take(8)
             ->values();
+        $termOptions = Gpoa::query()->excludeAdmins()->select('term')->distinct()->orderBy('term')->pluck('term');
+        $schoolYearOptions = Gpoa::query()->excludeAdmins()->select('school_year')->distinct()->orderByDesc('school_year')->pluck('school_year');
+        $collegeOptions = Organization::query()->where('is_active', true)->whereNotNull('college')->distinct()->orderBy('college')->pluck('college');
+        $classificationOptions = Organization::query()->where('is_active', true)->whereNotNull('type')->distinct()->orderBy('type')->pluck('type');
+        $stats = array_merge($stats, [
+            'Organizations' => $organizationCount,
+            'Submitted GPOAs' => $submittedGpoaCount,
+            'Overdue Activities' => $alerts['late'],
+        ]);
 
         $backupSetting = BackupSetting::query()->firstOrCreate([], ['frequency' => 'manual', 'retention_count' => 5]);
         $backupWarning = $backupService->isBackupDue($backupSetting);
         $schedulerLastRunAt = Cache::get('scheduler_last_run_at');
         $nextDueAt = $backupService->nextBackupDueAt($backupSetting);
 
-       return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'backupWarning', 'nextDueAt', 'schedulerLastRunAt', 'outstandingReportCount'));
+    return view('admin.monitoring-dashboard', compact('stats', 'alerts', 'recentActivities', 'dashboardData', 'organizationProgress', 'organizationProgressRows', 'organizationOptions', 'termOptions', 'schoolYearOptions', 'collegeOptions', 'classificationOptions', 'monitoringAssessments', 'filters', 'deadlines', 'backupWarning', 'nextDueAt', 'schedulerLastRunAt', 'outstandingReportCount'));
     }
 
     public function outstandingReports(Request $request, OutstandingActivityReportService $reportService)
@@ -68,13 +180,27 @@ class AdminController extends Controller
             'status' => ['nullable', 'in:Missing,Overdue,Needs revision,Submitted'],
             'school_year' => ['nullable', 'string', 'max:20'],
             'term' => ['nullable', 'string', 'max:50'],
+            'search' => ['nullable', 'string', 'max:120'],
+            'activity_date_from' => ['nullable', 'date_format:Y-m-d'],
+            'activity_date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:activity_date_from'],
         ]);
         $allReports = $reportService->forAdmin();
         $reports = $allReports->filter(fn (array $row) => (! filled($filters['organization'] ?? null) || (string) $row['organization_id'] === (string) $filters['organization'])
             && (! filled($filters['college'] ?? null) || mb_strtolower((string) $row['college']) === mb_strtolower((string) $filters['college']))
             && (! filled($filters['status'] ?? null) || $row['report_status'] === $filters['status'])
             && (! filled($filters['school_year'] ?? null) || $row['school_year'] === $filters['school_year'])
-            && (! filled($filters['term'] ?? null) || $row['term'] === $filters['term']))->values();
+            && (! filled($filters['term'] ?? null) || $row['term'] === $filters['term'])
+            && (! filled($filters['search'] ?? null) || str_contains(mb_strtolower(implode(' ', [$row['organization'], $row['college'], $row['activity']->title])), mb_strtolower(trim($filters['search']))))
+            && (! filled($filters['activity_date_from'] ?? null) || ($row['activity']->date?->toDateString() ?? '') >= $filters['activity_date_from'])
+            && (! filled($filters['activity_date_to'] ?? null) || ($row['activity']->date?->toDateString() ?? '') <= $filters['activity_date_to']))->values();
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $reports = new LengthAwarePaginator(
+            $reports->forPage($page, 15)->values(),
+            $reports->count(),
+            15,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
         $organizations = $allReports->unique('organization_id')->sortBy('organization')->values();
         $colleges = $allReports->pluck('college')->filter(fn ($college) => $college !== '—')->unique()->sort()->values();
         $terms = $allReports->pluck('term')->filter()->unique()->sort()->values();

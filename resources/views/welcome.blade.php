@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrgTrack | Campus Student Organization Narrative Accomplishment and Summary Reports</title>
+    <meta name="description" content="OrgTrack is CSU Aparri's platform for student organization GPOA submissions, activity monitoring, communication letters, narrative reports, and OSDW review.">
+    <meta property="og:title" content="OrgTrack | CSU Aparri Student Organization Reports">
+    <meta property="og:description" content="Plan, submit, and track student organization activities with OrgTrack at Cagayan State University - Aparri.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:image" content="{{ asset('images/hero-bg.jpg') }}">
+    <link rel="preload" as="image" href="{{ asset('images/hero-bg.jpg') }}" fetchpriority="high">
 
     {{-- Google Fonts: Sora + Inter --}}
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,7 +29,7 @@
     {{-- ========================================================
          NAVBAR  —  header navigation layout update
     ======================================================== --}}
-    <nav class="site-navbar" x-data="{ mobileMenuOpen: false, orgChartMobileOpen: false }">
+    <nav class="site-navbar" aria-label="Main navigation" x-data="{ mobileMenuOpen: false }">
         <div class="navbar-inner">
             <a href="{{ url('/') }}" class="nav-brand">
                 <img src="{{ asset('images/orgTracklogo.png') }}" alt="OrgTrack logo" class="nav-logo-img">
@@ -32,19 +39,9 @@
             <ul class="nav-links">
                 <li><a href="#top" class="nav-link is-active">Home</a></li>
                 <li><a href="#features" class="nav-link">Features</a></li>
-                <li><a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#learnMoreModal">About</a></li>
+                <li><a href="#about" class="nav-link">About</a></li>
                 <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Org Chart
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('public.orgchart') }}">View Full Org Chart</a></li>
-                        @foreach(\App\Models\Organization::where('is_active', true)->orderBy('name')->get() as $organization)
-                            <li><a class="dropdown-item" href="{{ route('public.orgchart', ['organization' => $organization->id]) }}">{{ $organization->name }}</a></li>
-                        @endforeach
-                    </ul>
-                </li>
+                <li><a href="#organizations" class="nav-link">Organization Chart</a></li>
             </ul>
 
             <div class="nav-auth">
@@ -87,20 +84,9 @@
             <ul class="mobile-nav-links">
                 <li class="mobile-nav-item"><a href="#top" class="mobile-nav-link" @click="mobileMenuOpen = false">Home</a></li>
                 <li class="mobile-nav-item"><a href="#features" class="mobile-nav-link" @click="mobileMenuOpen = false">Features</a></li>
-                <li class="mobile-nav-item"><a href="#" class="mobile-nav-link" data-bs-toggle="modal" data-bs-target="#learnMoreModal" @click="mobileMenuOpen = false">About</a></li>
+                <li class="mobile-nav-item"><a href="#about" class="mobile-nav-link" @click="mobileMenuOpen = false">About</a></li>
                 <li class="mobile-nav-item"><a href="#how-it-works" class="mobile-nav-link" @click="mobileMenuOpen = false">How It Works</a></li>
-                <li class="mobile-nav-item mobile-nav-dropdown">
-                    <button type="button" class="mobile-nav-link mobile-dropdown-toggle" @click="orgChartMobileOpen = !orgChartMobileOpen">
-                        <span>Org Chart</span>
-                        <i class="fas fa-chevron-down" :class="{ 'rotated': orgChartMobileOpen }"></i>
-                    </button>
-                    <ul class="mobile-submenu" x-show="orgChartMobileOpen" x-transition style="display: none;">
-                        <li><a href="{{ route('public.orgchart') }}" @click="mobileMenuOpen = false">View Full Org Chart</a></li>
-                        @foreach(\App\Models\Organization::where('is_active', true)->orderBy('name')->get() as $organization)
-                            <li><a href="{{ route('public.orgchart', ['organization' => $organization->id]) }}" @click="mobileMenuOpen = false">{{ $organization->name }}</a></li>
-                        @endforeach
-                    </ul>
-                </li>
+                <li class="mobile-nav-item"><a href="#organizations" class="mobile-nav-link" @click="mobileMenuOpen = false">Organization Chart</a></li>
                 <li class="mobile-nav-item mobile-auth-item">
                     @guest
                         <a href="{{ route('login') }}" class="nav-auth-link mobile-auth-link" @click="mobileMenuOpen = false">Login</a>
@@ -119,23 +105,20 @@
         <div class="hero-container">
             <div class="hero-content">
                 <h1 class="hero-heading">Manage Student Organizations.<br>Simplify Every Activity.</h1>
-                <p class="hero-sub">OrgTrack helps student organizations plan, submit and track activity reports under their approved GPOA, while giving OSDW a centralized view of every organization's progress.</p>
+                <p class="hero-sub">OrgTrack provides a centralized platform for student organizations to manage their GPOA, monitor planned activities, submit communication letters, and track narrative report submissions.</p>
                 <div class="hero-btns">
                     @auth
-                        <a href="{{ route('user.submit') }}" class="btn-primary-cta">
-                            <i class="fas fa-plus-circle"></i> Submit Activity
-                        </a>
-                        <a href="{{ route('user.activities') }}" class="btn-outline-cta">
-                            <i class="fas fa-calendar"></i> My Activities
+                        <a href="{{ route('dashboard') }}" class="btn-primary-cta">
+                            <i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i> Go to Dashboard
                         </a>
                     @else
                         <a href="{{ route('login') }}" class="btn-primary-cta">
-                            <i class="fas fa-sign-in-alt"></i> Get Started
-                        </a>
-                        <a href="#how-it-works" class="btn-outline-cta">
-                            <i class="fas fa-compass" aria-hidden="true"></i> How It Works
+                            <i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i> Get Started
                         </a>
                     @endauth
+                    <a href="#how-it-works" class="btn-outline-cta">
+                        <i class="fas fa-compass" aria-hidden="true"></i> How It Works
+                    </a>
                 </div>
             </div>
         </div>
@@ -164,7 +147,7 @@
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Why Use OrgTrack?</h2>
-                <p class="section-subtitle">Streamlined management for student organizations</p>
+                <p class="section-subtitle">Everything student organizations need to monitor and manage their activities in one centralized platform.</p>
             </div>
 
             <div class="row g-4">
@@ -172,22 +155,69 @@
                     <div class="benefit-item">
                         <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-file-arrow-up"></i></div>
                         <h5 class="benefit-title">Easy Submission</h5>
-                        <p class="benefit-text">Quickly submit activities and signed PDF narrative reports without hassle. User-friendly forms guide you through each step.</p>
+                        <p class="benefit-text">Submit GPOA, activity requests, communication letters, and narrative reports through organized digital workflows.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
                         <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></div>
-                        <h5 class="benefit-title">Real-Time Tracking</h5>
-                        <p class="benefit-text">Monitor activity progress instantly. Stay updated on every submission with transparent feedback.</p>
+                        <h5 class="benefit-title">Real-Time Monitoring</h5>
+                        <p class="benefit-text">Monitor activity implementation, submission status, and report progress.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <div class="benefit-item">
                         <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved fa-shield-alt"></i></div>
-                        <h5 class="benefit-title">Secure & Organized</h5>
-                        <p class="benefit-text">Narrative Reports are stored as verified, signed PDF files-organized and easily accessible.</p>
+                        <h5 class="benefit-title">Secure Document Management</h5>
+                        <p class="benefit-text">Keep important organizational documents protected and accessible through authorized application features.</p>
                     </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="benefit-item">
+                        <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-building-columns"></i></div>
+                        <h5 class="benefit-title">Centralized Organization Records</h5>
+                        <p class="benefit-text">Keep organizational information, officer records, and activity history organized.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="benefit-item">
+                        <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-clipboard-check"></i></div>
+                        <h5 class="benefit-title">Transparent Monitoring</h5>
+                        <p class="benefit-text">Track document submissions and administrative feedback through clear status information.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="benefit-item">
+                        <div class="benefit-icon" aria-hidden="true"><i class="fa-solid fa-file-arrow-down"></i></div>
+                        <h5 class="benefit-title">Reporting and Analytics</h5>
+                        <p class="benefit-text">Provide organized activity summaries and monitoring reports for OSDW.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="section-block about-orgtrack-section">
+        <div class="container">
+            <div class="about-orgtrack-layout">
+                <div class="about-orgtrack-copy">
+                    <p class="about-eyebrow">CSU Aparri · OSDW</p>
+                    <h2 class="section-title">About OrgTrack</h2>
+                    <p class="about-orgtrack-description">OrgTrack is a centralized monitoring and tracking platform developed to support the Office of Student Development and Welfare in monitoring student organization activities and documentation. It provides a structured environment for managing General Plans of Action, activity requests, communication letters, narrative reports, and organizational monitoring records.</p>
+                </div>
+                <div class="about-highlights" aria-label="OrgTrack principles">
+                    <article class="about-highlight">
+                        <span class="about-highlight-icon" aria-hidden="true"><i class="fa-solid fa-eye"></i></span>
+                        <div><h3>Purpose</h3><p>Improve the monitoring of student organization activities.</p></div>
+                    </article>
+                    <article class="about-highlight">
+                        <span class="about-highlight-icon" aria-hidden="true"><i class="fa-solid fa-list-check"></i></span>
+                        <div><h3>Transparency</h3><p>Provide accessible submission and monitoring information.</p></div>
+                    </article>
+                    <article class="about-highlight">
+                        <span class="about-highlight-icon" aria-hidden="true"><i class="fa-solid fa-folder-open"></i></span>
+                        <div><h3>Organization</h3><p>Centralize important organizational records and reports.</p></div>
+                    </article>
                 </div>
             </div>
         </div>
@@ -197,65 +227,153 @@
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">How OrgTrack Works</h2>
-                <p class="section-subtitle">A clear path from submission to completion</p>
+                <p class="section-subtitle">From GPOA submission to activity monitoring and reporting.</p>
             </div>
             <div class="workflow-steps">
                 <article class="workflow-step">
                     <span class="workflow-number">01</span>
-                    <h3>Submit GPOA</h3>
-                    <p>Upload your signed, approved GPOA together with your planned activities.</p>
+                    <h3>Set Document Deadlines</h3>
+                    <p>OSDW establishes submission deadlines for GPOA, activity requests, and narrative reports.</p>
                 </article>
                 <article class="workflow-step">
                     <span class="workflow-number">02</span>
-                    <h3>Request Activity</h3>
-                    <p>For each activity, file a request and upload the communication letter.</p>
+                    <h3>Submit GPOA</h3>
+                    <p>Organizations submit their GPOA PDF and encode or import their planned activities.</p>
                 </article>
                 <article class="workflow-step">
                     <span class="workflow-number">03</span>
-                    <h3>Submit Report</h3>
-                    <p>After the activity, upload the narrative report, photos and attendance sheet.</p>
+                    <h3>Submit Activity Request</h3>
+                    <p>Organizations provide activity schedules, venues, objectives, budgets, SDGs, program flow, and signed communication letters.</p>
                 </article>
                 <article class="workflow-step">
                     <span class="workflow-number">04</span>
-                    <h3>OSDW Review</h3>
-                    <p>OSDW approves the report or sends it back for revision.</p>
+                    <h3>Conduct Activities</h3>
+                    <p>Organizations implement their planned activities and document their implementation.</p>
                 </article>
                 <article class="workflow-step">
                     <span class="workflow-number">05</span>
-                    <h3>Completed</h3>
-                    <p>Once OSDW approves the report, the activity is marked Completed in your records.</p>
+                    <h3>Submit Narrative Report</h3>
+                    <p>Organizations submit narrative reports, supporting photographs, and optional attendance sheets.</p>
+                </article>
+                <article class="workflow-step">
+                    <span class="workflow-number">06</span>
+                    <h3>OSDW Monitoring and Assessment</h3>
+                    <p>OSDW reviews narrative reports, requests revisions when necessary, and records activity compliance results.</p>
                 </article>
             </div>
         </div>
     </section>
 
-    <section id="explore" class="section-block">
+    <section id="organizations" class="section-block section-light organization-directory-section" data-org-directory>
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Get Started</h2>
-                <p class="section-subtitle">Learn about OrgTrack or follow your submissions</p>
+                <h2 class="section-title">Recognized Student Organizations</h2>
+                <p class="section-subtitle">Explore the student organizations of Cagayan State University–Aparri Campus.</p>
+            </div>
+            <div class="directory-tools" role="search">
+                <label class="directory-search">
+                    <span class="visually-hidden">Search organizations by name</span>
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="organizationSearch" placeholder="Search organizations" autocomplete="off">
+                </label>
+                <label class="directory-filter">
+                    <span class="visually-hidden">Filter organizations by category</span>
+                    <select id="organizationCategory">
+                        <option value="all">All categories</option>
+                        <option value="major">Major Organizations</option>
+                        <option value="minor">Minor Organizations</option>
+                        <option value="specialized">Specialized Organizations</option>
+                    </select>
+                </label>
+                <p class="directory-count" id="organizationCount" aria-live="polite">{{ $organizations->count() }} organization{{ $organizations->count() === 1 ? '' : 's' }}</p>
+            </div>
+
+            <div class="organization-directory-grid" id="organizationDirectoryGrid">
+                @forelse($organizations as $organization)
+                    @php
+                        $organizationCategory = match ($organization->type) {
+                            'Major Student Organization' => 'major',
+                            'Minor Student Organization' => 'minor',
+                            'Specialized Student Organization' => 'specialized',
+                            default => 'other',
+                        };
+                        $organizationCategoryLabel = match ($organizationCategory) {
+                            'major' => 'Major Organization',
+                            'minor' => 'Minor Organization',
+                            'specialized' => 'Specialized Organization',
+                            default => $organization->type ?: 'Student Organization',
+                        };
+                    @endphp
+                    <article class="organization-directory-card" data-organization-card data-org-name="{{ strtolower($organization->name) }}" data-org-category="{{ $organizationCategory }}">
+                        <div class="organization-card-topline">
+                            @if($organization->logo_url)
+                                <img src="{{ $organization->logo_url }}" alt="{{ $organization->name }} logo" class="organization-card-logo" loading="lazy" decoding="async">
+                            @else
+                                <span class="organization-card-logo organization-card-logo-fallback" aria-hidden="true"><i class="fa-solid fa-people-group"></i></span>
+                            @endif
+                            <span class="organization-card-category">{{ $organizationCategoryLabel }}</span>
+                        </div>
+                        <h3>{{ $organization->name }}</h3>
+                        <p class="organization-card-college"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>{{ $organization->college ?: 'CSU Aparri' }}</p>
+                        <a href="{{ route('public.orgchart', ['organization' => $organization->id]) }}" class="organization-card-link">
+                            View organization details <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </article>
+                @empty
+                    <div class="directory-empty-state" id="organizationEmptyState">
+                        <i class="fa-solid fa-building-circle-exclamation" aria-hidden="true"></i>
+                        <h3>No recognized organizations to display</h3>
+                        <p>Organization listings will appear here when active records are available.</p>
+                    </div>
+                @endforelse
+            </div>
+            @if($organizations->isNotEmpty())
+                <div class="directory-empty-state" id="organizationNoResults" hidden>
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <h3>No matching organizations</h3>
+                    <p>Try a different search term or category.</p>
+                </div>
+            @endif
+            <div class="directory-footer-action">
+                <a href="{{ route('public.orgchart') }}" class="btn-directory-all">Explore the full organization chart <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <section id="explore" class="section-block section-explore">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get Started with OrgTrack</h2>
+                <p class="section-subtitle">Discover the platform and access your organization's monitoring records.</p>
             </div>
             <div class="row g-4">
-                <div class="col-md-6">
+                <div class="col-md-6 col-lg-4">
                     <div class="feat-card">
-                        <h5 class="feat-title">Learn More</h5>
-                        <p class="feat-desc">
-                            OrgTrack simplifies how student organizations submit, track, and manage activities. Our platform provides verified reporting, and real-time updates, and streamlined workflows for seamless collaboration.
-                        </p>
+                        <h5 class="feat-title">Explore OrgTrack</h5>
+                        <p class="feat-desc">Learn how OrgTrack helps student organizations organize their activities and documentation.</p>
                         <a href="#" class="btn-feat btn-feat-teal" data-bs-toggle="modal" data-bs-target="#learnMoreModal">Learn More</a>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 col-lg-4">
                     <div class="feat-card">
-                        <h5 class="feat-title">Track Status</h5>
-                        <p class="feat-desc">
-                            Monitor activity progress for your submitted activities in real-time.
-                        </p>
+                        <h5 class="feat-title">Access Your Account</h5>
+                        <p class="feat-desc">Sign in to manage your organization's GPOA, activity requests, and reports.</p>
                         @guest
                             <a href="{{ route('login') }}" class="btn-feat btn-feat-amber">Sign In</a>
+                        @else
+                            <a href="{{ route('dashboard') }}" class="btn-feat btn-feat-amber">Open Dashboard</a>
+                        @endguest
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feat-card">
+                        <h5 class="feat-title">Track Your Activities</h5>
+                        <p class="feat-desc">Access your organization's activity monitoring records and track submission progress.</p>
+                        @guest
+                            <a href="{{ route('login') }}" class="btn-feat btn-feat-amber">Access OrgTrack</a>
                         @endguest
                         @auth
-                            <a href="{{ route('user.activities') }}" class="btn-feat btn-feat-amber">View Status</a>
+                            <a href="{{ route('activity-monitor.index') }}" class="btn-feat btn-feat-amber">Access OrgTrack</a>
                         @endauth
                     </div>
                 </div>
@@ -269,27 +387,39 @@
     <footer id="contact" class="site-footer">
         <div class="container">
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="footer-brand"><span style="color:#f5a623; font-weight:700;">OrgTrack</span></div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="footer-brand"><img src="{{ asset('images/orgTracklogo.png') }}" alt="" loading="lazy"><span>OrgTrack</span></div>
                     <p class="footer-desc">
                         Campus Student Organization Narrative & Summary Reports.<br>
-                        A comprehensive platform for monitoring and managing student organization activities.
+                        A centralized platform for student organization submissions, activity tracking, and OSDW review at CSU Aparri.
                     </p>
                 </div>
-                <div class="col-md-6 text-md-end mb-3">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <p class="footer-contact-title">Explore</p>
+                    <ul class="footer-nav-links">
+                        <li><a href="#top" class="footer-link">Home</a></li>
+                        <li><a href="#features" class="footer-link">Features</a></li>
+                        <li><a href="#about" class="footer-link">About</a></li>
+                        <li><a href="#how-it-works" class="footer-link">How It Works</a></li>
+                        <li><a href="#organizations" class="footer-link">Organization Chart</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
                     <p class="footer-contact-title">Contact Us</p>
                     <p class="mb-1"><i class="fas fa-envelope me-2"></i>
                         <a href="mailto:osdwcsuaparri@gmail.com" class="footer-link">osdwcsuaparri@gmail.com</a>
                     </p>
+                    <p class="mb-1 footer-campus-name">Cagayan State University–Aparri Campus</p>
                     <p class="mb-0"><i class="fa-brands fa-facebook"></i>
                         <a href="https://www.facebook.com/CSUAparri-OSDW" class="footer-link" target="_blank">CSUAparri-OSDW</a>
                     </p>
                 </div>
             </div>
             <hr class="footer-hr">
-            <p class="footer-copy">
-                &copy; OrgTrack - Campus Student Organization Narrative and Summary Reports. All Rights Reserved.
-            </p>
+            <div class="footer-bottom">
+                <p class="footer-copy">&copy; {{ date('Y') }} OrgTrack - Campus Student Organization Narrative and Summary Reports. All Rights Reserved.</p>
+                <a href="{{ route('terms.accept') }}" class="footer-link">Terms of Use</a>
+            </div>
         </div>
     </footer>
 
@@ -304,24 +434,24 @@
                 <div class="modal-body about-modal-body">
                     <div class="about-modal-section">
                         <h6 class="about-section-title">What is OrgTrack?</h6>
-                        <p class="about-copy">OrgTrack is the Campus Student Organization Narrative and Summary Reports system of the Office of Student Development and Welfare (OSDW) at Cagayan State University - Aparri. It helps student organizations submit their approved GPOA, request activities and submit narrative reports, and gives OSDW one place to review reports and monitor every organization's progress.</p>
+                        <p class="about-copy">OrgTrack is a centralized monitoring and tracking platform that supports the Office of Student Development and Welfare (OSDW) at Cagayan State University–Aparri. It helps organize General Plans of Action, planned activities, activity requests, communication letters, narrative reports, and monitoring records.</p>
                     </div>
 
                     <div class="about-modal-section">
                         <h6 class="about-section-title">Key Features</h6>
                         <ul class="about-feature-list">
-                            <li><strong>GPOA Submission:</strong> Upload your signed, approved GPOA together with your list of planned activities.</li>
-                            <li><strong>Activity Requests:</strong> File a request for each planned activity and upload the communication letter.</li>
-                            <li><strong>Narrative Reports:</strong> Submit a narrative report with photos and the attendance sheet, either generated in the system or uploaded as a signed PDF.</li>
-                            <li><strong>Report Review:</strong> OSDW approves reports or sends them back with feedback for revision.</li>
-                            <li><strong>Status Tracking:</strong> See at a glance whether each activity is pending, ongoing or completed.</li>
-                            <li><strong>Secure Records:</strong> Documents are stored securely and visible only to the organization and OSDW.</li>
+                            <li><strong>GPOA and Activities:</strong> Submit a GPOA and encode or import planned activities.</li>
+                            <li><strong>Activity Requests:</strong> Record activity details and submit signed communication letters.</li>
+                            <li><strong>Narrative Reports:</strong> Submit reports, supporting photographs, and optional attendance sheets.</li>
+                            <li><strong>Monitoring:</strong> Track activity implementation, document status, and report progress.</li>
+                            <li><strong>OSDW Assessment:</strong> Review reports, request revisions when necessary, and record compliance results.</li>
+                            <li><strong>Organized Records:</strong> Access documents through the application's authorized features.</li>
                         </ul>
                     </div>
 
                     <div class="about-modal-section">
                         <h6 class="about-section-title">Why OrgTrack</h6>
-                        <p class="about-copy">OrgTrack replaces scattered paper submissions with one organized record. Organizations always know where each submission stands, and OSDW can review and follow up from a single dashboard.</p>
+                        <p class="about-copy">OrgTrack provides a structured place for organizations and OSDW to follow activity documentation and monitoring information.</p>
                     </div>
 
                     <div class="about-modal-section about-team-section">
@@ -357,11 +487,10 @@
 
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     @vite(['resources/js/app.js'])
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const sectionIds = ['top', 'features', 'how-it-works'];
+            const sectionIds = ['top', 'features', 'about', 'how-it-works', 'organizations'];
             const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
             const updateActiveLinks = (activeId) => {
                 document.querySelectorAll('.nav-link[href^="#"], .mobile-nav-link[href^="#"]').forEach((link) => {
@@ -383,6 +512,52 @@
             });
 
             sections.forEach((section) => observer.observe(section));
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const search = document.getElementById('organizationSearch');
+            const category = document.getElementById('organizationCategory');
+            const count = document.getElementById('organizationCount');
+            const noResults = document.getElementById('organizationNoResults');
+            const cards = [...document.querySelectorAll('[data-organization-card]')];
+
+            const filterOrganizations = () => {
+                const query = search.value.trim().toLocaleLowerCase();
+                const selectedCategory = category.value;
+                let visibleCount = 0;
+
+                cards.forEach((card) => {
+                    const matchesName = card.dataset.orgName.includes(query);
+                    const matchesCategory = selectedCategory === 'all' || card.dataset.orgCategory === selectedCategory;
+                    const visible = matchesName && matchesCategory;
+                    card.hidden = !visible;
+                    if (visible) visibleCount++;
+                });
+
+                count.textContent = `${visibleCount} organization${visibleCount === 1 ? '' : 's'}`;
+                noResults.hidden = visibleCount > 0;
+            };
+
+            if (search && category && count && noResults) {
+                search.addEventListener('input', filterOrganizations);
+                category.addEventListener('change', filterOrganizations);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const revealItems = document.querySelectorAll('.benefit-item, .about-highlight, .workflow-step, .organization-directory-card, .feat-card');
+            document.documentElement.classList.add('reveal-ready');
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                });
+            }, { threshold: 0.12 });
+
+            revealItems.forEach((item) => revealObserver.observe(item));
         });
     </script>
 

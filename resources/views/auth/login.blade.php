@@ -38,7 +38,7 @@
                     </a>
 
                     <div class="login-header">
-                        <h1 class="login-heading">Welcome <span>Back</span></h1>
+                        <h1 class="login-heading">Welcome <span style="color: #000 !important">Back</span></h1>
                         <p class="login-subtext">Sign in to your account.</p>
                     </div>
 

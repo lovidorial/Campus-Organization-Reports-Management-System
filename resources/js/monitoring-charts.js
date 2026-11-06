@@ -5,6 +5,9 @@ const palette = {
     Ongoing: '#0EA5E9',
     Completed: '#10B981',
     Archived: '#CBD5E1',
+    Aligned: '#15803D',
+    'Partially Aligned': '#D97706',
+    'Not Aligned': '#E11D48',
 };
 
 const centerTextPlugin = {

@@ -8,9 +8,17 @@
     <div class="rounded-lg border bg-white p-4"><p class="text-xs uppercase text-gray-500">GPOAs</p><p class="text-2xl font-bold text-slate-800">{{ $stats['total'] }}</p></div>
 </div>
 
-<form method="GET" class="bg-white rounded-xl border p-4 mb-6 flex flex-wrap gap-3">
-    <input type="text" name="search" placeholder="Search org, term, SY..." value="{{ request('search') }}" class="border rounded px-3 py-2 text-sm flex-1 min-w-[200px]">
-    <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded text-sm">Filter</button>
+<form method="GET" class="mb-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
+    <input type="search" name="search" aria-label="Search organizations or GPOAs" placeholder="Search organization, term, year..." value="{{ request('search') }}" class="min-w-0 rounded-md border-slate-300 px-3 py-2 text-sm">
+    <select name="school_year" aria-label="Academic year" class="rounded-md border-slate-300 px-3 py-2 text-sm"><option value="">All academic years</option>@foreach($schoolYears as $schoolYear)<option value="{{ $schoolYear }}" @selected(request('school_year') === $schoolYear)>{{ $schoolYear }}</option>@endforeach</select>
+    <select name="term" aria-label="Semester" class="rounded-md border-slate-300 px-3 py-2 text-sm"><option value="">All semesters</option>@foreach($terms as $term)<option value="{{ $term }}" @selected(request('term') === $term)>{{ $term }}</option>@endforeach</select>
+    <select name="college" aria-label="College" class="rounded-md border-slate-300 px-3 py-2 text-sm"><option value="">All colleges</option>@foreach($colleges as $college)<option value="{{ $college }}" @selected(request('college') === $college)>{{ $college }}</option>@endforeach</select>
+    <select name="classification" aria-label="Organization classification" class="rounded-md border-slate-300 px-3 py-2 text-sm"><option value="">All classifications</option>@foreach($classifications as $classification)<option value="{{ $classification }}" @selected(request('classification') === $classification)>{{ $classification }}</option>@endforeach</select>
+    <select name="organization" aria-label="Organization" class="rounded-md border-slate-300 px-3 py-2 text-sm"><option value="">All organizations</option>@foreach($organizations as $organization)<option value="{{ $organization->id }}" @selected((string) request('organization') === (string) $organization->id)>{{ $organization->name }}</option>@endforeach</select>
+    <div class="flex gap-2 sm:col-span-2 lg:col-span-6 lg:justify-end">
+        <button type="submit" class="rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-800">Apply filters</button>
+        <a href="{{ route('admin.gpoa.index') }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
+    </div>
 </form>
 
 <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">

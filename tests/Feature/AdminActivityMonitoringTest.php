@@ -6,6 +6,7 @@ use App\Models\ActivityReport;
 use App\Models\ActivityRequest;
 use App\Models\Gpoa;
 use App\Models\GpoaActivity;
+use App\Models\MonitoringResult;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -318,12 +319,99 @@ class AdminActivityMonitoringTest extends TestCase
             ->assertSee('Monitoring Dashboard Activity')
             ->assertSee('Activities by status')
             ->assertSee('Completion by organization')
-            ->assertSee('Activities by Category')
+            ->assertDontSee('Activities by Category')
             ->assertSee('Recent Document Submissions')
             ->assertSee('Communication Letter')
             ->assertSee('Narrative Report')
             ->assertDontSee('Pending GPOAs')
             ->assertDontSee('Recent Submissions');
+    }
+
+    public function test_admin_dashboard_filters_metrics_and_recorded_compliance_by_period_and_organization(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $organization = Organization::create([
+            'name' => 'CICS Monitoring Council',
+            'type' => 'Major Student Organization',
+            'college' => 'CICS',
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'is_active' => true,
+        ]);
+        $owner = User::factory()->create([
+            'organization_id' => $organization->id,
+            'org_name' => $organization->name,
+            'college' => 'CICS',
+        ]);
+        $gpoa = Gpoa::create([
+            'user_id' => $owner->id,
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'status' => 'approved',
+        ]);
+        $completed = $this->plannedActivity($gpoa, 'Assessed completed activity', '2026-10-01');
+        $completedRequest = $this->createRequest($owner, $gpoa, $completed, 'letters/completed-assessment.pdf');
+        $completed->update(['activity_request_id' => $completedRequest->id]);
+        ActivityReport::create([
+            'activity_request_id' => $completedRequest->id,
+            'narrative_report' => 'reports/completed-assessment.pdf',
+            'narrative_source' => 'uploaded',
+            'status' => 'approved',
+            'submitted_at' => now(),
+        ]);
+        MonitoringResult::create([
+            'activity_request_id' => $completedRequest->id,
+            'gpoa_activity_id' => $completed->id,
+            'admin_id' => $admin->id,
+            'compliance_status' => 'aligned',
+            'recorded_at' => now(),
+        ]);
+        $pending = $this->plannedActivity($gpoa, 'Unassessed pending activity', '2026-10-02');
+
+        $otherOrganization = Organization::create([
+            'name' => 'CET Student Council',
+            'type' => 'Minor Student Organization',
+            'college' => 'CET',
+            'term' => '2nd Term',
+            'school_year' => '2027-2028',
+            'is_active' => true,
+        ]);
+        $otherOwner = User::factory()->create(['organization_id' => $otherOrganization->id, 'org_name' => $otherOrganization->name]);
+        $otherGpoa = Gpoa::create([
+            'user_id' => $otherOwner->id,
+            'term' => '2nd Term',
+            'school_year' => '2027-2028',
+            'college' => 'CET',
+            'status' => 'approved',
+        ]);
+        $this->plannedActivity($otherGpoa, 'Different period activity', '2027-03-01');
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard', [
+            'term' => '1st Term',
+            'school_year' => '2026-2027',
+            'college' => 'CICS',
+            'classification' => 'Major Student Organization',
+            'organization' => $organization->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Total Organizations')
+            ->assertSee('Submitted GPOAs')
+            ->assertSee('Outstanding Narrative Reports')
+            ->assertSee('Organization monitoring overview')
+            ->assertSee('Compliance analytics')
+            ->assertSee('Assessed completed activity')
+            ->assertDontSee('Different period activity');
+
+        $this->assertSame(1, $response->viewData('stats')['Organizations']);
+        $this->assertSame(1, $response->viewData('stats')['Submitted GPOAs']);
+        $this->assertSame(2, $response->viewData('stats')['Total']);
+        $this->assertSame(1, $response->viewData('monitoringAssessments')['aligned']);
+        $this->assertSame(0, $response->viewData('monitoringAssessments')['partial']);
+        $this->assertSame(1, $response->viewData('organizationProgressRows')->first()['gpoa_count']);
+        $this->assertSame(1, $response->viewData('organizationProgressRows')->first()['completed']);
+        $this->assertSame(1, $response->viewData('organizationProgressRows')->first()['pending']);
     }
 
     public function test_admin_monitor_marks_a_deleted_stored_document_as_unreadable(): void

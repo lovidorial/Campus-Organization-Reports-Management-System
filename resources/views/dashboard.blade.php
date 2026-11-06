@@ -1,4 +1,99 @@
 <x-app-layout>
+    <style>
+        .orgtrack-dashboard {
+            --ot-brand: #c6531b;
+            --ot-brand-deep: #8f3d12;
+            --ot-brand-soft: #fdf1e9;
+            --ot-ink: #1f2937;
+            --ot-muted: #64748b;
+            --ot-line: #e2e8f0;
+            --ot-panel: #ffffff;
+            --ot-pending: #f59e0b;
+            --ot-ongoing: #3b82f6;
+            --ot-complete: #16a34a;
+            --ot-archived: #64748b;
+            --ot-late: #dc2626;
+        }
+
+        .orgtrack-dashboard .orgtrack-header-panel {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%), linear-gradient(135deg, var(--ot-brand) 0%, var(--ot-brand-deep) 100%);
+            box-shadow: 0 16px 30px rgba(130, 61, 18, 0.18);
+        }
+
+        .orgtrack-dashboard .orgtrack-header-panel .stat-label {
+            letter-spacing: 0.12em;
+        }
+
+        .orgtrack-dashboard .orgtrack-attention {
+            border-color: rgba(234, 88, 12, 0.2);
+            border-left-width: 5px;
+            background: linear-gradient(90deg, rgba(255, 237, 213, 0.9), rgba(255, 255, 255, 0.95));
+            box-shadow: 0 12px 22px rgba(120, 76, 38, 0.08);
+        }
+
+        .orgtrack-dashboard .orgtrack-stat-card {
+            border-color: var(--ot-line);
+            border-top-width: 3px;
+            background: var(--ot-panel);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+            transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        }
+
+        .orgtrack-dashboard .orgtrack-stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .orgtrack-dashboard .orgtrack-stat-card .stat-count {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .orgtrack-dashboard .orgtrack-progress {
+            background: linear-gradient(180deg, #ffffff 0%, #fffdfb 100%);
+            border-color: var(--ot-line);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.03);
+        }
+
+        .orgtrack-dashboard .orgtrack-progress .progress-bar {
+            background: linear-gradient(90deg, #22c55e 0%, #34d399 100%);
+        }
+
+        .orgtrack-dashboard .orgtrack-panel {
+            background: var(--ot-panel);
+            border: 1px solid var(--ot-line);
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.03);
+        }
+
+        .orgtrack-dashboard .orgtrack-activity-list thead {
+            background: #f8fafc;
+        }
+
+        .orgtrack-dashboard .orgtrack-activity-list tbody tr {
+            transition: background-color 140ms ease;
+        }
+
+        .orgtrack-dashboard .orgtrack-activity-list tbody tr:hover {
+            background-color: #fafafb;
+        }
+
+        .orgtrack-dashboard .orgtrack-activity-list .search-shell {
+            border-color: rgba(148, 163, 184, 0.35);
+            background: #f8fafc;
+        }
+
+        @media (max-width: 767px) {
+            .orgtrack-dashboard .orgtrack-header-panel .status-badge {
+                display: inline-flex;
+                width: auto;
+            }
+
+            .orgtrack-dashboard .orgtrack-activity-list .mobile-card {
+                border-color: var(--ot-line);
+            }
+        }
+    </style>
+
     @if(session('documentValidation'))
         <div class="mx-auto mt-4 max-w-7xl rounded-md border px-4 py-3 text-sm {{ session('documentValidation.status') === 'valid' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900' }}" role="status">
             <p class="font-semibold">GPOA document validation: {{ str_replace('_', ' ', ucfirst(session('documentValidation.status'))) }}</p>
@@ -11,6 +106,8 @@
             @endif
         </div>
     @endif
+
+    <div class="orgtrack-dashboard max-w-7xl mx-auto">
 
 @php
     $user = auth()->user();
@@ -52,7 +149,7 @@
     $dashboardStatusChart = ['labels' => ['Pending', 'Ongoing', 'Completed', 'Archived'], 'values' => [$activityCounts['Pending'] ?? 0, $activityCounts['Ongoing'] ?? 0, $activityCounts['Completed'] ?? 0, $activityCounts['Archived'] ?? 0]];
 @endphp
 
-<div class="mb-4 rounded-2xl py-3 px-4 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl md:px-5" style="background: linear-gradient(135deg, {{ $themeColorLight }} 0%, {{ $themeColor }} 100%);">
+<div class="orgtrack-welcome orgtrack-header-panel mb-4 rounded-2xl py-3 px-4 text-white md:px-5" style="background: linear-gradient(135deg, {{ $themeColorLight }} 0%, {{ $themeColor }} 100%);">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
             <img src="{{ $user->avatar_url }}" alt="{{ $user->name }} profile photo" class="h-10 w-10 rounded-xl border border-white/40 object-cover shadow-sm md:h-10 md:w-10" />
@@ -78,20 +175,20 @@
 
     <div class="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 md:flex md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2">
         <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Organization</p>
+            <p class="stat-label text-[10px] font-semibold uppercase tracking-wider text-white/70">Organization</p>
             <p class="mt-0.5 text-sm font-semibold leading-tight">{{ $orgName }}</p>
         </div>
         <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Current Semester</p>
+            <p class="stat-label text-[10px] font-semibold uppercase tracking-wider text-white/70">Current Semester</p>
             <p class="mt-0.5 text-sm font-semibold leading-tight">{{ $semester }}</p>
         </div>
         <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Academic Year</p>
+            <p class="stat-label text-[10px] font-semibold uppercase tracking-wider text-white/70">Academic Year</p>
             <p class="mt-0.5 text-sm font-semibold leading-tight">{{ $academicYear }}</p>
         </div>
         <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Current Status</p>
-            <div class="mt-1 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur-sm">
+            <p class="stat-label text-[10px] font-semibold uppercase tracking-wider text-white/70">Current Status</p>
+            <div class="status-badge mt-1 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur-sm">
                 <span class="h-2 w-2 rounded-full {{ $gpoa ? 'bg-emerald-400' : 'bg-slate-300' }} shrink-0"></span>
                 <span>{{ $statusLabel }}</span>
             </div>
@@ -100,9 +197,9 @@
 </div>
 
 @if($showActionRequired)
-    <div class="mb-6 rounded-2xl border border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/80 to-white p-5 shadow-sm">
+    <div class="orgtrack-attention mb-6 rounded-2xl border border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/80 to-white p-5 shadow-sm">
         <div class="flex items-center gap-3">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 ring-1 ring-amber-200">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.93 19h12.14a2 2 0 001.73-3L13.73 4a2 2 0 00-3.46 0L4.2 16a2 2 0 001.73 3z"/></svg>
             </span>
             <div>
@@ -113,13 +210,13 @@
     </div>
 @endif
 
-<section class="mb-4" aria-label="Activity status summary">
+<section class="orgtrack-statistics mb-4" aria-label="Activity status summary">
     <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         @foreach($statusCards as $card)
             @if($gpoa)
-                <a href="{{ $card['link'] }}" title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="group flex h-full min-h-24 flex-col rounded-xl border border-t-2 border-slate-200 {{ $card['accent'] }} bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 animate-fade-up">
+                <a href="{{ $card['link'] }}" title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="orgtrack-stat-card group flex h-full min-h-24 flex-col rounded-xl border border-t-2 {{ $card['accent'] }} p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2 animate-fade-up">
             @else
-                <article title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="flex h-full min-h-24 flex-col rounded-xl border border-t-2 border-slate-200 {{ $card['accent'] }} bg-white p-3 shadow-sm">
+                <article title="{{ $card['title'] }}" aria-label="{{ $card['label'] }}: {{ $card['count'] }}. {{ $card['title'] }}" class="orgtrack-stat-card flex h-full min-h-24 flex-col rounded-xl border border-t-2 {{ $card['accent'] }} p-3">
             @endif
                 <div class="flex items-start justify-between gap-2">
                     <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
@@ -131,7 +228,7 @@
                         @else<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 0 0-2 2v2h16V5a2 2 0 0 0-2-2H4ZM2 9v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9H2Z"/></svg>@endif
                     </span>
                 </div>
-                <p class="mt-2 text-2xl font-bold {{ $card['color'] }}">{{ $card['count'] }}</p>
+                <p class="stat-count mt-2 text-2xl font-bold {{ $card['color'] }}">{{ $card['count'] }}</p>
                 <p class="mt-1 text-[11px] text-slate-500">{{ $card['subtitle'] }}</p>
                 @if($gpoa)<span class="mt-auto self-end pt-2 text-sm text-slate-400 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true">→</span>@endif
             @if($gpoa)
@@ -168,7 +265,7 @@
     </div>
 </section>
 
-<div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+<div class="orgtrack-progress orgtrack-panel mb-4 rounded-2xl border p-4">
     <div class="flex items-start justify-between gap-4">
         <div>
             <h2 class="text-lg font-bold text-gray-900">Monitoring Progress</h2>
@@ -187,8 +284,8 @@
             <span class="text-xs font-medium uppercase tracking-wide text-slate-500">Overall completion</span>
         </div>
 
-        <div class="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow="{{ $overallPercent }}" aria-valuemin="0" aria-valuemax="100">
-            <span class="block min-w-0 h-full bg-emerald-500 transition-all duration-500 w-[var(--overall-percent)]" @style(['--overall-percent' => $overallPercent . '%'])></span>
+        <div class="mt-2 flex h-2.5 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow="{{ $overallPercent }}" aria-valuemin="0" aria-valuemax="100">
+            <span class="progress-bar block min-w-0 h-full transition-all duration-500 w-[var(--overall-percent)]" @style(['--overall-percent' => $overallPercent . '%'])></span>
         </div>
     </div>
 
@@ -220,7 +317,7 @@
     <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900" role="status">{{ $submissionBlockMessage }}</div>
 @endif
 
-<div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+<div class="orgtrack-gpoa-summary orgtrack-panel mb-4 rounded-2xl p-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
             <div class="flex items-center gap-2">
@@ -236,17 +333,17 @@
 
         <div class="flex flex-wrap items-center gap-2">
             @if($gpoa)
-                <a href="{{ route('gpoa.index') }}" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">View GPOA</a>
+                <a href="{{ route('gpoa.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">View GPOA</a>
             @else
                 @if($canSubmitGpoa)
-                    <a href="{{ route('gpoa.create') }}" class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700">Submit GPOA</a>
+                    <a href="{{ route('gpoa.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700">Submit GPOA</a>
                 @else
-                    <span class="inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">Submit GPOA unavailable</span>
+                    <span class="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">Submit GPOA unavailable</span>
                     <p class="text-xs text-amber-800">{{ $submissionBlockMessage }}</p>
                 @endif
             @endif
 
-            <a href="{{ route('activity-monitor.index') }}" class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700">Open Activity Monitor</a>
+            <a href="{{ route('activity-monitor.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700">Open Activity Monitor</a>
         </div>
     </div>
 </div>
@@ -266,14 +363,14 @@
 @endphp
 
 @if($activities->isNotEmpty())
-    <div class="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div class="orgtrack-activity-list orgtrack-panel mb-4 rounded-2xl p-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div class="min-w-0">
                 <h3 class="text-lg font-bold text-gray-900">Current Activities</h3>
                 <p class="text-xs text-gray-500">Latest status from your GPOA entries.</p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div class="search-shell flex flex-wrap items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2">
                 <label class="relative block">
                     <span class="sr-only">Search activity</span>
                     <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM13.707 15.293l4 4 1.414-1.414-4-4-1.414 1.414Z" clip-rule="evenodd"/></svg>
@@ -368,7 +465,7 @@
                 @php($mainStatus = $monitoring['late'] ? 'Late' : (($monitoring['status'] ?? 'Not Started') === 'Pending' ? 'Not Started' : ($monitoring['status'] ?? 'Not Started')))
                 @php($letterStatus = $activity->letterStatusLabel())
                 @php($reportStatus = $activity->narrativeStatusLabel())
-                <article data-title="{{ strtolower($activity->title) }}" data-date="{{ $activity->date ? $activity->date->format('Y-m-d') : '9999-12-31' }}" data-status="{{ $mainStatus }}" class="rounded-xl border border-slate-100 bg-white p-3">
+                <article data-title="{{ strtolower($activity->title) }}" data-date="{{ $activity->date ? $activity->date->format('Y-m-d') : '9999-12-31' }}" data-status="{{ $mainStatus }}" class="mobile-card rounded-xl border bg-white p-3">
                     <h4 class="break-words text-sm font-semibold text-slate-900">{{ $activity->title }}</h4>
                     <dl class="mt-2 grid grid-cols-2 gap-2 text-xs">
                         <div><dt class="text-slate-500">Date</dt><dd class="text-slate-700">{{ $activity->date?->format('M d, Y') ?? '—' }}</dd></div>
@@ -509,4 +606,5 @@
     </script>
 @endif
 
+    </div>
 </x-app-layout>

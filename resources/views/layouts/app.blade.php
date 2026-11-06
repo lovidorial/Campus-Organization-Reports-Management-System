@@ -303,7 +303,7 @@
     </div>
 
     <!-- Mobile overlay -->
-    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black/50 z-10 hidden md:hidden"></div>
 
     <!-- Main Content -->
     <div class="min-w-0 max-w-full flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-auto">

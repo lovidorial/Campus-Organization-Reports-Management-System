@@ -20,14 +20,16 @@ class ActivityRequestDetailTest extends TestCase
     {
         $owner = User::factory()->create(['org_name' => 'CICS-SC', 'terms_accepted_at' => now()]);
         $venue = Venue::create(['name' => 'Main Hall']);
+        $activityDate = now()->addDays(10);
+        $activityEndDate = $activityDate->copy()->addDay();
         $request = ActivityRequest::create([
             'user_id' => $owner->id,
             'venue_id' => $venue->id,
             'title' => 'Leadership Symposium',
             'category' => 'Academic',
             'venue' => $venue->name,
-            'date' => '2026-10-15',
-            'end_date' => '2026-10-16',
+            'date' => $activityDate->toDateString(),
+            'end_date' => $activityEndDate->toDateString(),
             'start_time' => '08:00',
             'end_time' => '17:00',
             'description' => 'A detailed description.',
@@ -63,8 +65,8 @@ class ActivityRequestDetailTest extends TestCase
             ->assertSee('Academic')
             ->assertSee('Main Hall')
             ->assertSee('Reserved')
-            ->assertSee('Oct 15, 2026')
-            ->assertSee('Oct 16, 2026')
+            ->assertSee($activityDate->format('M d, Y'))
+            ->assertSee($activityEndDate->format('M d, Y'))
             ->assertSee('08:00 – 17:00')
             ->assertSee('A detailed description.')
             ->assertSee('Build leadership skills.')

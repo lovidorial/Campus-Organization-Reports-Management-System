@@ -97,6 +97,19 @@ class AdminOutstandingNarrativeReportsTest extends TestCase
             'narrative_report' => 'reports/submitted.pdf',
         ]);
 
+        $this->get(route('admin.narrative-reports.outstanding', ['search' => 'Overdue Report Activity']))
+            ->assertOk()
+            ->assertSee('Overdue Report Activity')
+            ->assertDontSee('Missing Report Activity');
+        $this->get(route('admin.narrative-reports.outstanding', [
+            'activity_date_from' => '2026-10-20',
+            'activity_date_to' => '2026-10-20',
+        ]))->assertOk()->assertSee('Missing Report Activity');
+        $this->get(route('admin.narrative-reports.outstanding', [
+            'activity_date_from' => '2026-10-21',
+            'activity_date_to' => '2026-10-22',
+        ]))->assertOk()->assertDontSee('Missing Report Activity');
+
         $overdueResponse = $this->get(route('admin.narrative-reports.outstanding', ['status' => 'Overdue']))
             ->assertOk()
             ->assertSee('Overdue Report Activity');

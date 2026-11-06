@@ -7,7 +7,6 @@ use App\Models\Organization;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Storage;
 
 class AdminActivityMonitoringService
 {
@@ -16,7 +15,7 @@ class AdminActivityMonitoringService
         return GpoaActivity::query()
             ->whereHas('gpoa.user', fn ($query) => $query->where('role', '!=', 'admin'))
             ->with([
-                'gpoa.user',
+                'gpoa.user.organization',
                 'activityRequest.report.photos',
                 'activityRequest.programFlows',
                 'activityRequest.venueRecord' => fn ($query) => $query->withCount(['scheduledRequests', 'futureReservationRequests']),
@@ -230,7 +229,8 @@ class AdminActivityMonitoringService
                     'organization' => $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—',
                     'document' => 'Communication Letter',
                     'submitted_at' => $request->communication_letter_signed_at ?? $request->updated_at,
-                    'url' => Storage::url($request->communication_letter),
+                    'status' => 'Submitted',
+                    'url' => route('admin.file.view', [$request->id, 'communication']),
                 ]);
             }
             if ($request?->report && ($request->report->narrative_report || $request->report->narrative_content)) {
@@ -240,8 +240,9 @@ class AdminActivityMonitoringService
                     'organization' => $activity->gpoa?->user?->org_name ?? $activity->gpoa?->user?->name ?? '—',
                     'document' => 'Narrative Report',
                     'submitted_at' => $request->report->submitted_at,
+                    'status' => $request->report->reviewStatusLabel(),
                     'url' => filled($request->report->narrative_report)
-                        ? Storage::url($request->report->narrative_report)
+                        ? route('admin.file.view', [$request->id, 'narrative'])
                         : route('admin.activity-requests.show', $request),
                 ]);
             }

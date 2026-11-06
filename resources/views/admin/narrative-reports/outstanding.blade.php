@@ -16,7 +16,11 @@
             <p class="text-sm text-slate-600">{{ $reports->count() }} records shown, including submitted history</p>
         </section>
 
-        <form method="GET" action="{{ route('admin.narrative-reports.outstanding') }}" class="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+        <form method="GET" action="{{ route('admin.narrative-reports.outstanding') }}" class="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+            <div class="sm:col-span-2 lg:col-span-4">
+                <label for="report-search" class="mb-1 block text-xs font-semibold text-slate-600">Search</label>
+                <input id="report-search" type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search organization, college, or activity" class="w-full rounded-md border-slate-300 py-2 text-sm">
+            </div>
             <div>
                 <label for="report-organization" class="mb-1 block text-xs font-semibold text-slate-600">Organization</label>
                 <select id="report-organization" name="organization" class="w-full rounded border-slate-300 py-2 text-sm">
@@ -62,9 +66,17 @@
                     @endforeach
                 </select>
             </div>
-            <div class="flex gap-2 sm:col-span-2 lg:col-span-5 lg:justify-end">
-                <button type="submit" class="rounded bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Apply filters</button>
-                <a href="{{ route('admin.narrative-reports.outstanding') }}" class="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
+            <div>
+                <label for="report-activity-date-from" class="mb-1 block text-xs font-semibold text-slate-600">Activity date from</label>
+                <input id="report-activity-date-from" type="date" name="activity_date_from" value="{{ $filters['activity_date_from'] ?? '' }}" class="w-full rounded-md border-slate-300 py-2 text-sm">
+            </div>
+            <div>
+                <label for="report-activity-date-to" class="mb-1 block text-xs font-semibold text-slate-600">Activity date to</label>
+                <input id="report-activity-date-to" type="date" name="activity_date_to" value="{{ $filters['activity_date_to'] ?? '' }}" class="w-full rounded-md border-slate-300 py-2 text-sm">
+            </div>
+            <div class="flex gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">
+                <button type="submit" class="rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-800">Apply filters</button>
+                <a href="{{ route('admin.narrative-reports.outstanding') }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
             </div>
         </form>
 
@@ -118,5 +130,8 @@
                 </tbody>
             </table>
         </div>
+        @if($reports->hasPages())
+            <div class="border-t border-slate-200 pt-4">{{ $reports->links() }}</div>
+        @endif
     </main>
 </x-app-layout>
